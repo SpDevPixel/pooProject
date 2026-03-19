@@ -6,32 +6,31 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "toilet")
+@Table(name = "toilets")
 @Getter
 @Setter
 @NoArgsConstructor
 public class Toilet {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "management_no")
+    private String managementNo;
 
-    @Column(unique = true)
-    private String managementNo;       // 관리번호 (중복 방지 키)
+    private String name;
+    private String roadAddress;
+    private Double lat;
+    private Double lng;
+    private String openTime;
+    private String openTimeDetail;
+    private String managingOrg;
+    private String phoneNumber;
+    private String wasteDisposal;
+    private Boolean hasDisabledFacility;
+    private Boolean hasEmergencyBell;
+    private Boolean hasDiaperTable;
+    private Boolean hasEntranceCctv;
 
-    private String name;               // 화장실명
-    private String roadAddress;        // 소재지도로명주소
-    private Double lat;                // WGS84위도
-    private Double lng;                // WGS84경도
-
-    private String openTime;           // 개방시간
-    private String openTimeDetail;     // 개방시간상세
-    private String managingOrg;        // 관리기관명
-    private String phoneNumber;        // 전화번호
-    private String wasteDisposal;      // 오물처리방식
-
-    private Boolean hasDisabledFacility;  // 장애인 시설
-    private Boolean hasEmergencyBell;     // 비상벨
-    private Boolean hasDiaperTable;       // 기저귀 교환대
-    private Boolean hasEntranceCctv;      // 입구 CCTV
+    // 공공 데이터 vs 이용자 등록 구분
+    @Column(nullable = false)
+    private Boolean isUserSubmitted = false;
 }

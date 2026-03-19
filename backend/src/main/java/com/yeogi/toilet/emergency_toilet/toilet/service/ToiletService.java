@@ -22,9 +22,35 @@ public class ToiletService {
 
     private final ToiletRepository toiletRepository;
 
+    // 공공 데이터만 조회
+    public List<Toilet> getPublicToilets() {
+        return toiletRepository.findByIsUserSubmitted(false);
+    }
+
+    // 이용자 등록 데이터만 조회
+    public List<Toilet> getUserToilets() {
+        return toiletRepository.findByIsUserSubmitted(true);
+    }
+
+    // 전체 조회
+    public List<Toilet> getAllToilets() {
+        return toiletRepository.findAll();
+    }
+
+    // 이용자 화장실 등록
+    public Toilet addUserToilet(Toilet toilet) {
+        toilet.setIsUserSubmitted(true);
+        return toiletRepository.save(toilet);
+    }
+
+    public boolean hasData() {
+        return toiletRepository.count() > 0;
+    }
+
+    // CSV에서 공공데이터 로드
     public void loadFromCsv(String filePath) {
         try (Reader reader = new InputStreamReader(
-                new FileInputStream(filePath), "EUC-KR")) { // 공공데이터 인코딩
+                new FileInputStream(filePath), "EUC-KR")) {
 
             CsvToBean<ToiletCsvRow> csvToBean = new CsvToBeanBuilder<ToiletCsvRow>(reader)
                     .withType(ToiletCsvRow.class)
@@ -34,12 +60,11 @@ public class ToiletService {
 
             List<Toilet> toilets = csvToBean.parse().stream()
                     .filter(row -> row.getLat() != null && !row.getLat().isBlank())
-                    .filter(row -> toiletRepository.findByManagementNo(row.getManagementNo()).isEmpty())
                     .map(this::toEntity)
                     .collect(Collectors.toList());
 
-            toiletRepository.saveAll(toilets);
-            log.info("화장실 데이터 {}건 저장 완료", toilets.size());
+            toiletRepository.saveAll(toilets);  // 🔥 Firebase set() → saveAll()
+            log.info("화장실 데이터 {}건 MySQL 저장 완료", toilets.size());
 
         } catch (Exception e) {
             log.error("CSV 로딩 실패: {}", e.getMessage());
@@ -66,6 +91,7 @@ public class ToiletService {
         t.setHasEmergencyBell(parseYn(row.getEmergencyBell()));
         t.setHasDiaperTable(parseYn(row.getDiaperTable()));
         t.setHasEntranceCctv(parseYn(row.getEntranceCctv()));
+        t.setIsUserSubmitted(false);  // CSV는 공공데이터
         return t;
     }
 

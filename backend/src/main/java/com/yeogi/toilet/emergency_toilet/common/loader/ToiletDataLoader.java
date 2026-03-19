@@ -18,7 +18,12 @@ public class ToiletDataLoader implements CommandLineRunner {
     private String csvPath;
 
     @Override
-    public void run(String... args) {
+    public void run(String... args) throws Exception {
+        if (toiletService.hasData()) {
+            log.info("이미 데이터가 존재합니다. CSV 로딩 스킵");
+            return;
+        }
+
         log.info("화장실 CSV 데이터 로딩 시작...");
         toiletService.loadFromCsv(csvPath);
     }
