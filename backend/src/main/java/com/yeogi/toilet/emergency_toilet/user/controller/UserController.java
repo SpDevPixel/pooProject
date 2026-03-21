@@ -25,6 +25,16 @@ public class UserController {
     public void addUserData(@RequestBody User user){
         userService.addUserData(user);
     }
+    //이메일 중복 확인
+    @GetMapping("/check-email")
+    public ResponseEntity<Boolean> checkEmail(@RequestParam String email){
+        return ResponseEntity.ok(userService.isUseEmail(email));
+    }
+    //닉네임 중복 확인
+    @GetMapping("/check-nickname")
+    public ResponseEntity<Boolean> checkNickname(@RequestParam String nickname){
+        return ResponseEntity.ok(userService.isUseNickname(nickname));
+    }
 
     //로그인
     @PostMapping("/login")
