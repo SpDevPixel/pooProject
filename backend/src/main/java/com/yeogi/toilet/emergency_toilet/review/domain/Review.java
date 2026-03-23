@@ -1,6 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.review.domain;
 
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,10 @@ public class Review {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "management_no", nullable = false)
     private Toilet toilet;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id", nullable = false)
+    private User user;
 
     private int rating;
     private int cleanliness;

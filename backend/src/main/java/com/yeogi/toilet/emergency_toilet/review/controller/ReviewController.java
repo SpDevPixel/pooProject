@@ -25,7 +25,7 @@ public class ReviewController {
     }
 
     //리뷰 데이터 저장
-    @PostMapping("/add-review")
+    @PostMapping
     public ResponseEntity<Review> addReview(@RequestBody ReviewDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(reviewService.addReview(dto));
