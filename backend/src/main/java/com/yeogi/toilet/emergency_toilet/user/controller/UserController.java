@@ -1,7 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.user.controller;
 
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
-import com.yeogi.toilet.emergency_toilet.user.dto.LoginDto;
+import com.yeogi.toilet.emergency_toilet.user.dto.UserDto;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.user.service.UserService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
@@ -22,8 +22,8 @@ public class UserController {
 
     //회원가입
     @PostMapping("/user-data")
-    public void addUserData(@RequestBody User user){
-        userService.addUserData(user);
+    public void addUserData(@RequestBody UserDto dto){
+        userService.addUserData(dto);
     }
     //이메일 중복 확인
     @GetMapping("/check-email")
@@ -38,8 +38,8 @@ public class UserController {
 
     //로그인
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDto loginDto){
-        return userService.login(loginDto);
+    public ResponseEntity<?> login(@RequestBody UserDto userDto){
+        return userService.login(userDto);
     }
     //토큰 발급
     @GetMapping("/my-info")
