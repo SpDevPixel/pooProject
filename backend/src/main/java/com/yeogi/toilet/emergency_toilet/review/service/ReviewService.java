@@ -28,8 +28,6 @@ public class ReviewService {
         Toilet toilet = toiletRepository.findById
                 (dto.getManagementNo()).orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));;
 
-
-
         Review review = new Review();
 
         review.setToilet(toilet);
@@ -45,6 +43,11 @@ public class ReviewService {
     //화장실 리뷰 전달
     public List<Review> getReviewsByToilet(String managementNo) {
         return reviewrepository.findByToilet_ManagementNo(managementNo);
+    }
+
+    //사용자가 작성한 리뷰 전달
+    public List<Review> getReviewsByUser(String id){
+        return reviewrepository.findByUser_Id(id);
     }
 
 }

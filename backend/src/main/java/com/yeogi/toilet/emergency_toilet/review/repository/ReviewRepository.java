@@ -11,4 +11,5 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 특정 화장실의 모든 리뷰 조회
     List<Review> findByToilet_ManagementNo(String managementNo);
+    List<Review> findByUser_Id(String id);
 }

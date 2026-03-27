@@ -31,4 +31,9 @@ public class ReviewController {
                 .body(reviewService.addReview(dto));
     }
 
+//    @GetMapping("/your-review")
+//    public ResponseEntity<List<Review>> getUserReviews(@RequestHeader("Authorization") String token){
+//
+//    }
+
 }
