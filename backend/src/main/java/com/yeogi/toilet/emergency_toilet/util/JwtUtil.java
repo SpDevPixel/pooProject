@@ -12,16 +12,16 @@ public class JwtUtil {
     private final String SECRET_KEY = "your-secret-key";
 
     // 토큰 생성
-    public String generateToken(String email) {
+    public String generateToken(String id) {
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(id)
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1시간
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }
 
     // 토큰에서 이메일 추출
-    public String extractEmail(String token) {
+    public String extractId(String token) {
         return Jwts.parser()
                 .setSigningKey(SECRET_KEY)
                 .parseClaimsJws(token)
