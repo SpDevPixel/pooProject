@@ -32,6 +32,12 @@ public class UserService {
     public boolean isUseNickname(String nickname){
         return userRepository.findByNickname(nickname).isEmpty();
     }
+    //아이디 사용 여부
+    public boolean isUseId(String id){
+        return userRepository.findByNickname(id).isEmpty();
+    }
+
+
     //유저 데이터 저장
     public User addUserData(UserDto dto){
         User user = new User();
@@ -63,23 +69,23 @@ public class UserService {
 
     //로그인 서비스
     public ResponseEntity<?> login(UserDto userDto){
-        Optional<User> user = userRepository.findByEmail(userDto.getEmail());
+        Optional<User> user = userRepository.findByEmail(userDto.getId());
 
         if(user.isEmpty()){
-            return ResponseEntity.badRequest().body("이메일 없음");
+            return ResponseEntity.badRequest().body("계정이 없음");
         }
 
         if(!passwordEncoder.matches(userDto.getPassword(),user.get().getPassword())){
             return ResponseEntity.badRequest().body("비밀번호 없음");
         }
-        String token = jwtUtil.generateToken(user.get().getEmail());
+        String token = jwtUtil.generateToken(user.get().getId());
         return ResponseEntity.ok(Map.of("token", token));
     }
     //토큰 발생
     public ResponseEntity<?> getMyInfo(String token) {
         String pureToken = token.substring(7);
-        String email = jwtUtil.extractEmail(pureToken);
-        User user = userRepository.findByEmail(email).get();
+        String id = jwtUtil.extractId(pureToken);
+        User user = userRepository.findById(id).get();
         return ResponseEntity.ok(user);
     }
 
