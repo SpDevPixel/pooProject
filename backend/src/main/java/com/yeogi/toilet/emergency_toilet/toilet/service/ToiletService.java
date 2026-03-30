@@ -5,6 +5,9 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletCsvRow;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
+import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
+import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,8 @@ import java.util.stream.Collectors;
 public class ToiletService {
 
     private final ToiletRepository toiletRepository;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
     // 공공 데이터만 조회
     public List<Toilet> getPublicToilets() {
@@ -38,9 +43,25 @@ public class ToiletService {
     }
 
     // 이용자 화장실 등록
-    public Toilet addUserToilet(Toilet toilet) {
+    public Toilet addUserToilet(Toilet toilet, String token) {
+        String pureToken = token.substring(7);
+        String id = jwtUtil.extractId(pureToken);
+//        toilet.setUser(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
+        toilet.setUser(user);
         toilet.setIsUserSubmitted(true);
         return toiletRepository.save(toilet);
+    }
+
+    //이용자가 등록한 화장실 조회
+    public List<Toilet> getUserToilets(String token){
+        String pureToken = token.substring(7);
+        String id = jwtUtil.extractId(pureToken);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
+
+        return toiletRepository.findByUser(user);
     }
 
     public boolean hasData() {

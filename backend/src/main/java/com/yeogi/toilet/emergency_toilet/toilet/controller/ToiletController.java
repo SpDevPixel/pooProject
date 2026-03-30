@@ -34,7 +34,13 @@ public class ToiletController {
 
     // 이용자 화장실 등록
     @PostMapping("/user")
-    public Toilet addUserToilet(@RequestBody Toilet toilet) {
-        return toiletService.addUserToilet(toilet);
+    public Toilet addUserToilet(@RequestBody Toilet toilet,@RequestHeader("Authorization") String token) {
+        return toiletService.addUserToilet(toilet,token);
+    }
+
+    // 이용자가 등록한 화장실 정보들 조회
+    @GetMapping("/userToilets")
+    public List<Toilet> sendUserToilets(@RequestHeader("Authorization") String token){
+        return toiletService.getUserToilets(token);
     }
 }

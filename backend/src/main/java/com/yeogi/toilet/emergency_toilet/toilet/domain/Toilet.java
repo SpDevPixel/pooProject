@@ -1,5 +1,6 @@
 package com.yeogi.toilet.emergency_toilet.toilet.domain;
 
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,10 @@ public class Toilet {
     @Id
     @Column(name = "management_no")
     private String managementNo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     private String name;
     private String roadAddress;

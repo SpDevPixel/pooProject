@@ -13,6 +13,8 @@ public class ToiletCsvRow {
     @CsvBindByName(column = "관리번호")
     private String managementNo;
 
+    private String userId;
+
     @CsvBindByName(column = "화장실명")
     private String name;
 
