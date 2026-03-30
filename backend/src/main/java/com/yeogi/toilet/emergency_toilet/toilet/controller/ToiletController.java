@@ -3,6 +3,7 @@ package com.yeogi.toilet.emergency_toilet.toilet.controller;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.service.ToiletService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class ToiletController {
 
     // 이용자가 등록한 화장실 정보들 조회
     @GetMapping("/userToilets")
-    public List<Toilet> sendUserToilets(@RequestHeader("Authorization") String token){
-        return toiletService.getUserToilets(token);
+    public ResponseEntity<List<Toilet>> sendUserToilets(@RequestHeader("Authorization") String token){
+        return ResponseEntity.ok(toiletService.getUserToilets(token));
     }
 }
