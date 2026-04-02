@@ -50,4 +50,15 @@ public class ReviewService {
         return reviewrepository.findByUser_Id(id);
     }
 
+    //사용자가 작성한 리뷰 삭제
+    public  void deleteUserReview(String id, Long reviewId){
+        Review review = reviewrepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+
+        if(!review.getUser().getId().equals(id)){
+            throw new RuntimeException("삭제 권한 없음");
+        }
+
+        reviewrepository.delete(review);
+    }
+
 }
