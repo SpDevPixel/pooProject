@@ -12,9 +12,10 @@ public class JwtUtil {
     private final String SECRET_KEY = "your-secret-key";
 
     // 토큰 생성
-    public String generateToken(String id) {
+    public String generateToken(String id,String role) {
         return Jwts.builder()
                 .setSubject(id)
+                .claim("role", role)
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1시간
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
@@ -27,5 +28,13 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    public String extractRole(String token) {
+        return (String) Jwts.parser()
+                .setSigningKey(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role");
     }
 }
