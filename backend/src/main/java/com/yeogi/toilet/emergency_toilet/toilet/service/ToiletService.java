@@ -64,6 +64,12 @@ public class ToiletService {
         return toiletRepository.findByUser(user);
     }
 
+    //화장실 정보 삭제
+    public void deleteAdminToilet(String managementNo){
+        Toilet toilet = toiletRepository.findById(managementNo).orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
+        toiletRepository.delete(toilet);
+    }
+
     public boolean hasData() {
         return toiletRepository.count() > 0;
     }
