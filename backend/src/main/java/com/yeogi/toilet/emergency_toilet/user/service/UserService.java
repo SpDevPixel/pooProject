@@ -78,7 +78,7 @@ public class UserService {
         if(!passwordEncoder.matches(userDto.getPassword(),user.get().getPassword())){
             return ResponseEntity.badRequest().body("비밀번호 없음");
         }
-        String token = jwtUtil.generateToken(user.get().getId());
+        String token = jwtUtil.generateToken(user.get().getId(),user.get().getRole());
         return ResponseEntity.ok(Map.of("token", token));
     }
     //토큰 발생
