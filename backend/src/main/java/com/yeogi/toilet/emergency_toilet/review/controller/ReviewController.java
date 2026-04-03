@@ -47,8 +47,16 @@ public class ReviewController {
         if (token == null || !token.startsWith("Bearer ")) {
             throw new RuntimeException("유효하지 않은 토큰");
         }
-        String id = jwtUtil.extractId(token.substring(7));
-        reviewService.deleteUserReview(id,reviewId);
+        String rawToken = token.substring(7);
+        String id = jwtUtil.extractId(rawToken);
+        String role = jwtUtil.extractRole(rawToken);
+        if("ADMIN".equals(role)){
+            reviewService.deleteReviewByAdmin(reviewId);
+        }
+        else{
+            reviewService.deleteUserReview(id,reviewId);
+        }
+
 
         return ResponseEntity.noContent().build();
     }

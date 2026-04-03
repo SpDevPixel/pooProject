@@ -60,4 +60,12 @@ public class ReviewService {
         reviewrepository.delete(review);
     }
 
+    public void deleteReviewByAdmin(Long reviewId){
+        Review review = reviewrepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
+
+        // 소유자 확인 없이 바로 삭제
+        reviewrepository.delete(review);
+    }
+
 }
