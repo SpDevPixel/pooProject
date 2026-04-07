@@ -8,14 +8,17 @@ import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,8 +68,12 @@ public class ToiletService {
     }
 
     //화장실 정보 삭제
-    public void deleteAdminToilet(String managementNo){
+    @Transactional
+    public void deleteAToilet(String managementNo,String id){
         Toilet toilet = toiletRepository.findById(managementNo).orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
+        if(!toilet.getUser().getId().equals(id)){
+            throw new AccessDeniedException("본인이 등록한 데이터만 삭제할 수 있습니다.");
+        }
         toiletRepository.delete(toilet);
     }
 

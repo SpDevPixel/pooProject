@@ -47,7 +47,25 @@ public class ToiletController {
         return ResponseEntity.ok(toiletService.getUserToilets(token));
     }
 
-    //관리자의 화장실 정보 삭제
+//    //관리자의 화장실 정보 삭제
+//    @DeleteMapping("/toilet/{managementNo}")
+//    public ResponseEntity<Void> deleteToilet(@PathVariable String managementNo,
+//                                             @RequestHeader("Authorization") String token){
+//        if (token == null || !token.startsWith("Bearer ")) {
+//            throw new RuntimeException("유효하지 않은 토큰");
+//        }
+//        String rawToken = token.substring(7);
+//        String role = jwtUtil.extractRole(rawToken);
+//
+//        if(!"ADMIN".equals(role)){
+//            throw new RuntimeException("관리자 권한이 없습니다");  // 추가!
+//        }
+//
+//        toiletService.deleteAdminToilet(managementNo);
+//        return ResponseEntity.noContent().build();
+//    }
+
+    //사용자의 화장실 정보 삭제
     @DeleteMapping("/toilet/{managementNo}")
     public ResponseEntity<Void> deleteToilet(@PathVariable String managementNo,
                                              @RequestHeader("Authorization") String token){
@@ -55,13 +73,13 @@ public class ToiletController {
             throw new RuntimeException("유효하지 않은 토큰");
         }
         String rawToken = token.substring(7);
-        String role = jwtUtil.extractRole(rawToken);
+        String id = jwtUtil.extractRole(rawToken);
+        toiletService.deleteAToilet(managementNo,id);
 
-        if(!"ADMIN".equals(role)){
-            throw new RuntimeException("관리자 권한이 없습니다");  // 추가!
-        }
 
-        toiletService.deleteAdminToilet(managementNo);
         return ResponseEntity.noContent().build();
     }
+
+    //화장실 정보 수정
+
 }
