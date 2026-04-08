@@ -1,6 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.toilet.controller;
 
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.service.ToiletService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -81,5 +82,22 @@ public class ToiletController {
     }
 
     //화장실 정보 수정
+    @PatchMapping("/{managementNo}")
+    public ResponseEntity<Void> updateToilet(
+            @PathVariable String managementNo,
+            @RequestHeader("Authorization") String token,
+            @RequestBody ToiletUpdateDto updateDto) {
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("유효하지 않은 인증 토큰입니다.");
+        }
+
+        String rawToken = token.substring(7);
+        String userId = jwtUtil.extractId(rawToken);
+
+        toiletService.updateToiletInfo(managementNo, userId, updateDto);
+
+        return ResponseEntity.noContent().build();
+    }
 
 }

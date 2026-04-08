@@ -4,10 +4,12 @@ import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletCsvRow;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +77,35 @@ public class ToiletService {
             throw new AccessDeniedException("본인이 등록한 데이터만 삭제할 수 있습니다.");
         }
         toiletRepository.delete(toilet);
+    }
+
+    @Transactional
+    public void updateToiletInfo(String managementNo, String userId, ToiletUpdateDto dto) {
+        Toilet toilet = toiletRepository.findById(managementNo)
+                .orElseThrow(() -> new EntityNotFoundException("화장실을 찾을 수 없습니다."));
+
+        // 본인 확인
+        if (!toilet.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("수정 권한이 없습니다.");
+        }
+
+        // 선택하신 필드들 업데이트
+        if (dto.getOpenTime() != null) toilet.setOpenTime(dto.getOpenTime());
+        if (dto.getOpenTimeDetail() != null) toilet.setOpenTimeDetail(dto.getOpenTimeDetail());
+        if (dto.getManagingOrg() != null) toilet.setManagingOrg(dto.getManagingOrg());
+        if (dto.getPhoneNumber() != null) toilet.setPhoneNumber(dto.getPhoneNumber());
+        if (dto.getWasteDisposal() != null) toilet.setWasteDisposal(dto.getWasteDisposal());
+
+        // Boolean 타입일 경우 변환 로직 예시 (Y/N 처리)
+        if (dto.getEmergencyBell() != null) {
+            toilet.setHasEmergencyBell(dto.getEmergencyBell().equalsIgnoreCase("Y"));
+        }
+        if (dto.getDiaperTable() != null) {
+            toilet.setHasDiaperTable(dto.getDiaperTable().equalsIgnoreCase("Y"));
+        }
+        if (dto.getEntranceCctv() != null) {
+            toilet.setHasEntranceCctv(dto.getEntranceCctv().equalsIgnoreCase("Y"));
+        }
     }
 
     public boolean hasData() {
