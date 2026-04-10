@@ -6,6 +6,7 @@ import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -60,12 +61,13 @@ public class ReviewService {
         reviewrepository.delete(review);
     }
 
-    public void deleteReviewByAdmin(Long reviewId){
-        Review review = reviewrepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
-
-        // 소유자 확인 없이 바로 삭제
-        reviewrepository.delete(review);
-    }
+    //관리자 권한으로 리뷰 삭제
+//    public void deleteReviewByAdmin(Long reviewId){
+//        Review review = reviewrepository.findById(reviewId)
+//                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
+//
+//        // 소유자 확인 없이 바로 삭제
+//        reviewrepository.delete(review);
+//    }
 
 }
