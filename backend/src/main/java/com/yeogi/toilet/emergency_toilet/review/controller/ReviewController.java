@@ -49,14 +49,14 @@ public class ReviewController {
         }
         String rawToken = token.substring(7);
         String id = jwtUtil.extractId(rawToken);
-        String role = jwtUtil.extractRole(rawToken);
-        if("ADMIN".equals(role)){
-            reviewService.deleteReviewByAdmin(reviewId);
-        }
-        else{
-            reviewService.deleteUserReview(id,reviewId);
-        }
-
+//        String role = jwtUtil.extractRole(rawToken);
+//        if("ADMIN".equals(role)){
+//            reviewService.deleteReviewByAdmin(reviewId);
+//        }
+//        else{
+//
+//        }
+        reviewService.deleteUserReview(id,reviewId);
 
         return ResponseEntity.noContent().build();
     }
