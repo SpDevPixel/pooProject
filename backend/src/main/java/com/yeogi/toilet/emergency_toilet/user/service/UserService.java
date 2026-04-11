@@ -1,7 +1,11 @@
 package com.yeogi.toilet.emergency_toilet.user.service;
 
+import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
+import com.yeogi.toilet.emergency_toilet.user.domain.UserFavorite;
 import com.yeogi.toilet.emergency_toilet.user.dto.UserDto;
+import com.yeogi.toilet.emergency_toilet.user.repository.UserFavoriteRepository;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.transaction.Transactional;
@@ -23,6 +27,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UserFavoriteRepository favoriteRepository;
+    private final ToiletRepository toiletRepository;
 
     //이메일 사용 여부
     public boolean isUseEmail(String email){
@@ -88,5 +94,38 @@ public class UserService {
         User user = userRepository.findById(id).get();
         return ResponseEntity.ok(user);
     }
+    //리뷰 즐겨찾기
+    public void addFavorite(String userId, String managementNo) {
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+
+        Toilet toilet = toiletRepository.findById(managementNo)
+                .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
+
+        // 3. 중복 체크
+        if (favoriteRepository.existsByUserAndToilet(user, toilet)) {
+            throw new RuntimeException("이미 즐겨찾기한 화장실입니다.");
+        }
+
+        UserFavorite favorite = new UserFavorite();
+        favorite.setUser(user);
+        favorite.setToilet(toilet);
+
+        favoriteRepository.save(favorite);
+    }
+
+    public void deleteFavorite(String userId, String managementNo) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+
+        Toilet toilet = toiletRepository.findById(managementNo)
+                .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
+        if (!favoriteRepository.existsByUserAndToilet(user, toilet)) {
+            throw new RuntimeException("즐겨찾기한 화장실이 아닙니다.");
+        }
+
+        favoriteRepository.deleteByUserAndToilet(user, toilet);
+
+    }
 }

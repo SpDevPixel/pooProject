@@ -75,4 +75,24 @@ public class UserController {
         return ResponseEntity.ok("회원 탈퇴 완료");
     }
 
+    @PostMapping("/favorites/{managementNo}")
+    public ResponseEntity<?> addFavorite(
+            @PathVariable String managementNo,
+            @RequestHeader("Authorization") String token  // 헤더에서 토큰 받기
+    ) {
+        String userId = jwtUtil.extractId(token.replace("Bearer ", ""));
+        userService.addFavorite(userId, managementNo);
+        return ResponseEntity.ok().build();
+    }
+    //즐겨찾기 삭제
+    @DeleteMapping("/favorites/{managementNo}")
+    public ResponseEntity<?> deleteFavorite(@PathVariable String managementNo,
+                                            @RequestHeader("Authorization") String token){
+        String userId = jwtUtil.extractId(token.replace("Bearer ", ""));
+
+        userService.deleteFavorite(userId,managementNo);
+
+        return ResponseEntity.ok().build();
+    }
+
 }
