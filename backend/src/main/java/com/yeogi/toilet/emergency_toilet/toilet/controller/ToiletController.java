@@ -100,4 +100,17 @@ public class ToiletController {
         return ResponseEntity.noContent().build();
     }
 
+    //주소검색결과에 따른 화장실 정보 전송
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Toilet>> searchToilets(@RequestParam("keyword") String keyword) {
+        List<Toilet> results = toiletService.searchAddressToilet(keyword);
+
+        if (results.isEmpty()) {
+            return ResponseEntity.noContent().build(); // 결과가 없을 때 204 상태 코드
+        }
+
+        return ResponseEntity.ok(results); // 성공 시 200 상태 코드와 데이터 반환
+    }
+
 }
