@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -77,6 +78,16 @@ public class ToiletService {
             throw new AccessDeniedException("본인이 등록한 데이터만 삭제할 수 있습니다.");
         }
         toiletRepository.delete(toilet);
+    }
+
+    //검색결과에 따른 화장실 정보 전송
+    public List<Toilet> searchAddressToilet(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        // 앞뒤 공백 제거 정도만 해줘도 검색 에러를 크게 줄입니다.
+        String trimmedKeyword = keyword.trim();
+        return toiletRepository.findByAddressContaining(trimmedKeyword);
     }
 
     @Transactional

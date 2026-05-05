@@ -38,4 +38,20 @@ public class Toilet {
     // 공공 데이터 vs 이용자 등록 구분
     @Column(nullable = false)
     private Boolean isUserSubmitted = false;
+
+    @Column(nullable = false)
+    private int reviewCount = 0;
+
+    @Column(nullable = false)
+    private double rating = 0.0;
+
+    public void updateRatingWhenReviewAdded(double newRating) {
+        double totalRating = this.rating * this.reviewCount;
+
+        totalRating += newRating;
+        this.reviewCount++;
+        
+        double newAverage = totalRating / this.reviewCount;
+        this.rating = Math.round(newAverage * 10.0) / 10.0;
+    }
 }
