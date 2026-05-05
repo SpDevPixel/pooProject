@@ -21,7 +21,6 @@ public class ReviewService {
 
     private final ReviewRepository reviewrepository;
     private final ToiletRepository toiletRepository;
-    private final UserRepository userRepository;
 
     //리뷰 데이터 저장
     public Review addReview(ReviewDto dto){
@@ -37,6 +36,9 @@ public class ReviewService {
         review.setComment(dto.getComment());
         review.setHasDoorLock(dto.isHasDoorLock());
         review.setCreatedAt(LocalDateTime.now());
+
+        toilet.updateRatingWhenReviewAdded(dto.getRating());
+
         return reviewrepository.save(review);
     }
 
