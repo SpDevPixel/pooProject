@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/carousel.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'carousel' UI를 제공합니다.
- */
+// Carousel은 여러 콘텐츠를 좌우로 넘겨 볼 수 있게 해주는 UI입니다.
 "use client";
 
 import * as React from "react";

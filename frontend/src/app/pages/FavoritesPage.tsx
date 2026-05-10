@@ -10,7 +10,7 @@ import { Button } from "../components/ui/button";
 import { useFavorites } from "../contexts/FavoritesContext";
 import { mockToilets } from "../data/mockToilets";
 import { ToiletDetailModal } from "../components/ToiletDetailModal";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { Badge } from "../components/ui/badge";
 
 export default function FavoritesPage() {

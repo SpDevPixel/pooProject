@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/pagination.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'pagination' UI를 제공합니다.
- */
+// Pagination은 많은 목록을 여러 페이지로 나누고 이동하게 해주는 UI입니다.
 import * as React from "react";
 import {
   ChevronLeftIcon,

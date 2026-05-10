@@ -18,7 +18,7 @@ import {
   Building2,
   Trash2,
 } from "lucide-react";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";

@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/badge.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'badge' UI를 제공합니다.
- */
+// Badge는 상태, 분류, 개수 같은 짧은 정보를 작게 표시하는 UI입니다.
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";

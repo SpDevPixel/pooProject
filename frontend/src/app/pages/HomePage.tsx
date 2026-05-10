@@ -25,7 +25,7 @@ import { NavigationDialog } from "../components/NavigationDialog";
 import { MapView } from "../components/MapView";
 import { fetchToilets } from "../api/toilets";
 import { mockToilets } from "../data/mockToilets";
-import { Toilet, ToiletFilters as Filters } from "../types/toilet";
+import type { Toilet, ToiletFilters as Filters } from "../types/toilet";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function HomePage() {

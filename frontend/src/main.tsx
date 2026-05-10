@@ -3,11 +3,9 @@
  * 상위 폴더: src (프론트엔드 소스 루트)
  * 역할: 앱 시작점입니다. 카카오맵 SDK를 먼저 로드한 뒤 React 앱을 렌더링합니다.
  */
-/// <reference types="vite/client" />
-
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./app/App.tsx";
+import App from "./app/App";
 import "./styles/index.css";
 
 // 1. root 요소를 먼저 잡고 렌더링 준비를 합니다.

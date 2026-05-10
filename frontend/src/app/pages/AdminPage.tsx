@@ -19,7 +19,7 @@ import { mockNotices } from "../data/mockNotices";
 import { mockToilets } from "../data/mockToilets";
 import { MockUser, mockUsers } from "../data/mockUsers";
 import { Notice } from "../types/notice";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";

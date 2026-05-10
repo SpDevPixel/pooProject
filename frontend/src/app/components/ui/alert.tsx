@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/alert.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'alert' UI를 제공합니다.
- */
+// Alert는 사용자에게 상태나 경고 메시지를 강조해서 보여주는 UI입니다.
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 

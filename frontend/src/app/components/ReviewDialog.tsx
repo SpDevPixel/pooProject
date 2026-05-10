@@ -17,7 +17,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
 import { toast } from "sonner";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 
 interface ReviewDialogProps {
   open: boolean;

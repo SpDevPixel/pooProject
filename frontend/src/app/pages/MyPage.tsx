@@ -9,7 +9,7 @@ import { ArrowLeft, MapPin, Star, Mail, LogOut, MessageSquare, Settings } from "
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 import { mockToilets } from "../data/mockToilets";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 
 interface Review {

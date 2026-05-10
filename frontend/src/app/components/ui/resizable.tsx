@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/resizable.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'resizable' UI를 제공합니다.
- */
+// Resizable은 사용자가 영역 크기를 드래그해서 조절하게 해주는 UI입니다.
 "use client";
 
 import * as React from "react";

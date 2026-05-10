@@ -4,7 +4,7 @@
  * 역할: 화장실 검색 결과를 편의시설과 등록 유형으로 필터링하는 UI입니다.
  */
 import { Accessibility, Baby, Bell, Camera, Filter } from "lucide-react";
-import { ToiletFilters as Filters } from "../types/toilet";
+import type { ToiletFilters as Filters } from "../types/toilet";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {

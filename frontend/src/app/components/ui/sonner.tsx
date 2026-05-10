@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/sonner.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'sonner' UI를 제공합니다.
- */
+// Sonner는 저장 완료나 오류 같은 알림을 토스트로 보여주는 UI입니다.
 "use client";
 
 import { useTheme } from "next-themes";

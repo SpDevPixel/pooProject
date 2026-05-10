@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/collapsible.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'collapsible' UI를 제공합니다.
- */
+// Collapsible은 특정 영역을 접거나 펼칠 수 있게 해주는 UI입니다.
 "use client";
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";

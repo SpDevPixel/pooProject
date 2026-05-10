@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/skeleton.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'skeleton' UI를 제공합니다.
- */
+// Skeleton은 데이터가 로딩 중일 때 자리 표시 형태로 보여주는 UI입니다.
 import { cn } from "./utils";
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {

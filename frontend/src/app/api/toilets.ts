@@ -3,7 +3,7 @@
  * 상위 폴더: src/app/api (백엔드 API 통신 함수)
  * 역할: 백엔드 화장실 API를 호출하고 응답 데이터를 프론트 타입으로 변환합니다.
  */
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 
 type BackendToilet = {
   managementNo?: string | number | null;
@@ -25,7 +25,7 @@ type BackendToilet = {
   reviewCount?: number | null;
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
+const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL
 
 const toNumber = (value: BackendToilet["lat"]) => {
   const numberValue = typeof value === "number" ? value : Number(value);

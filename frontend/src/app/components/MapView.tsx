@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 // 🚨 새로 추가된 부분: 로딩 효과를 주기 위해 Loader2 아이콘을 가져옵니다. (대문자 L 주의)
 import { Navigation, Loader2 } from "lucide-react"; 
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 
 declare global {
   interface Window {

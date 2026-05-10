@@ -27,8 +27,19 @@ export interface Toilet {
   distance?: number; // 현재 위치로부터의 거리 (미터)
 }
 
-// 🚨 범인 검거! (추가된 부분)
-// HomePage.tsx에서 애타게 찾던 복수형 이름의 ToiletFilters 인터페이스입니다.
+export interface Review {
+  id: string;
+  toiletId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  cleanliness: number;
+  hasTissuePaper: boolean;
+  hasDoorLock: boolean;
+  comment?: string;
+  createdAt: Date;
+}
+
 export interface ToiletFilters {
   hasDisabledFacility: boolean;
   hasDiaperTable: boolean;

@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/command.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'command' UI를 제공합니다.
- */
+// Command는 검색창처럼 명령이나 항목을 빠르게 찾아 선택하는 UI입니다.
 "use client";
 
 import * as React from "react";

@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, MapPin, Search } from "lucide-react";
 import { mockToilets } from "../data/mockToilets";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ToiletFilters } from "../components/ToiletFilters";

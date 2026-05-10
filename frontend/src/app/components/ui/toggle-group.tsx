@@ -1,8 +1,4 @@
-﻿/*
- * 파일 위치: src/app/components/ui/toggle-group.tsx
- * 상위 폴더: src/app/components/ui (공통 디자인 시스템 UI 컴포넌트)
- * 역할: 공통 UI 컴포넌트입니다. 여러 화면에서 재사용되는 'toggle-group' UI를 제공합니다.
- */
+// ToggleGroup은 여러 토글 버튼을 묶어 선택 상태를 관리하는 UI입니다.
 "use client";
 
 import * as React from "react";

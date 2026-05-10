@@ -4,7 +4,7 @@
  * 역할: 화장실 목록을 카드 형태로 보여주고 선택 상태를 표시합니다.
  */
 import { Accessibility, Baby, Bell, Camera, MapPin } from "lucide-react";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 
