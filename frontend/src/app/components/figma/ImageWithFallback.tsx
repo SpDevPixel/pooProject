@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/components/figma/ImageWithFallback.tsx
+ * 상위 폴더: src/app/components/figma (Figma에서 가져온 보조 컴포넌트)
+ * 역할: 이미지 로드 실패 시 대체 UI를 보여주는 Figma 기반 보조 컴포넌트입니다.
+ */
 import React, { useState } from 'react'
 
 const ERROR_IMG_SRC =

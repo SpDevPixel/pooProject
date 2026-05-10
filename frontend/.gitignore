@@ -2,3 +2,7 @@ node_modules/
 .env
 dist/
 build/
+*.log
+vite-dev.out.log
+vite-dev.err.log
+backend

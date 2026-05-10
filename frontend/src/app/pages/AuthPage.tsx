@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/pages/AuthPage.tsx
+ * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
+ * 역할: 로그인과 회원가입 흐름을 담당하는 인증 화면입니다.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { UserPlus, LogIn } from "lucide-react";

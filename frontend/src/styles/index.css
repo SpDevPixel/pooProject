@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/styles/index.css
+ * 상위 폴더: src/styles (전역 스타일과 디자인 토큰)
+ * 역할: 앱 전체 CSS 진입점입니다. Tailwind와 테마 스타일을 불러옵니다.
+ */
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';

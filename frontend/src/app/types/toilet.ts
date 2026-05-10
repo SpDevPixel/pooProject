@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/types/toilet.ts
+ * 상위 폴더: src/app/types (공유 TypeScript 타입)
+ * 역할: 화장실, 리뷰, 필터 등 앱 전반에서 공유하는 타입 정의입니다.
+ */
 export interface Toilet {
   id: string; // managementNo를 id로 사용
   managementNo: string;

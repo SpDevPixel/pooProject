@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/components/ReviewDialog.tsx
+ * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
+ * 역할: 화장실 리뷰와 평점을 작성하는 다이얼로그입니다.
+ */
 import { useState } from "react";
 import { Star, MessageSquare, Sparkles, Lock, FileText } from "lucide-react";
 import {

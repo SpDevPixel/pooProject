@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/pages/FavoritesPage.tsx
+ * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
+ * 역할: 사용자가 즐겨찾기한 화장실 목록을 보여주는 화면입니다.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Heart, MapPin, Star, Trash2 } from "lucide-react";

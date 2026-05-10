@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/components/ToiletDetailModal.tsx
+ * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
+ * 역할: 선택한 화장실의 상세 정보, 편의시설, 리뷰 액션을 보여주는 모달입니다.
+ */
 import { useState } from "react";
 import { 
   Accessibility, 

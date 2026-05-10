@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/pages/RegisterPage.tsx
+ * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
+ * 역할: 사용자가 새 화장실 위치와 정보를 등록하는 화면입니다.
+ */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, MapPin } from "lucide-react";
