@@ -21,7 +21,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    // 토큰에서 이메일 추출
+    // 토큰에서 아이디 추출
     public String extractId(String token) {
         return Jwts.parser()
                 .setSigningKey(SECRET_KEY)

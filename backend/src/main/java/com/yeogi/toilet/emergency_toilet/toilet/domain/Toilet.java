@@ -23,7 +23,9 @@ public class Toilet {
 
     private String name;
     private String roadAddress;
+    @Column(nullable = true)
     private Double lat;
+    @Column(nullable = true)
     private Double lng;
     private String openTime;
     private String openTimeDetail;
