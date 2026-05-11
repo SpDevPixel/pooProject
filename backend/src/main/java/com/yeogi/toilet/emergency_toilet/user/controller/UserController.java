@@ -3,6 +3,7 @@ package com.yeogi.toilet.emergency_toilet.user.controller;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.dto.UserDto;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
+import com.yeogi.toilet.emergency_toilet.user.service.FavoriteService;
 import com.yeogi.toilet.emergency_toilet.user.service.UserService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-    private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
 
     //회원가입
     @PostMapping("/user-data")
@@ -40,6 +39,18 @@ public class UserController {
     @GetMapping("/id")
     public ResponseEntity<Boolean> checkid(@RequestParam String id){
         return ResponseEntity.ok(userService.isUseId(id));
+    }
+
+    //닉네임 변경
+    @GetMapping("/change-nn")
+    public ResponseEntity<String> changeNickname(
+            @RequestHeader("Authorization") String token,
+            @RequestParam String newNn){
+        String id = jwtUtil.extractId(token.substring(7));
+        userService.changeNn(id,newNn);
+
+
+        return ResponseEntity.ok("닉네임 변경 완료");
     }
 
     //로그인
@@ -74,5 +85,7 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.ok("회원 탈퇴 완료");
     }
+
+
 
 }

@@ -1,7 +1,11 @@
 package com.yeogi.toilet.emergency_toilet.user.service;
 
+import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
+import com.yeogi.toilet.emergency_toilet.user.domain.UserFavorite;
 import com.yeogi.toilet.emergency_toilet.user.dto.UserDto;
+import com.yeogi.toilet.emergency_toilet.user.repository.UserFavoriteRepository;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.transaction.Transactional;
@@ -23,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+
 
     //이메일 사용 여부
     public boolean isUseEmail(String email){
@@ -56,10 +61,16 @@ public class UserService {
     }
 
     @Transactional
-    public void changePw(String email, String newPw){
-        User user = userRepository.findByEmail(email).get();
+    public void changePw(String id, String newPw){
+        User user = userRepository.findById(id).get();
         String encodePassword = passwordEncoder.encode(newPw);
         user.setPassword(encodePassword);
+    }
+
+    @Transactional
+    public void changeNn(String id,String newNn){
+        User user = userRepository.findById(id).get();
+        user.setNickname(newNn);
     }
 
     public void deleteUser(String email){
