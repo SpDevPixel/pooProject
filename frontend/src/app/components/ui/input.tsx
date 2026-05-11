@@ -1,3 +1,4 @@
+// Input은 사용자가 짧은 텍스트를 입력하는 기본 입력창 UI입니다.
 import * as React from "react";
 
 import { cn } from "./utils";

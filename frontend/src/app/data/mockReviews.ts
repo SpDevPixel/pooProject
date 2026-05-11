@@ -1,4 +1,9 @@
-import { Review } from "../types/toilet";
+﻿/*
+ * 파일 위치: src/app/data/mockReviews.ts
+ * 상위 폴더: src/app/data (샘플 데이터)
+ * 역할: 리뷰 화면과 상세 화면에 사용하던 리뷰 샘플 데이터입니다.
+ */
+import type { Review } from "../types/toilet";
 
 export const mockReviews: Review[] = [
   {

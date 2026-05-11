@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/contexts/AuthContext.tsx
+ * 상위 폴더: src/app/contexts (전역 상태 Context)
+ * 역할: 로그인 상태와 사용자 정보를 localStorage 기반으로 관리하는 인증 컨텍스트입니다.
+ */
 import { createContext, useContext, useState, ReactNode } from "react";
 
 interface User {

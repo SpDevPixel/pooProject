@@ -1,3 +1,4 @@
+// Popover는 버튼 주변에 작은 정보 창이나 선택 창을 띄우는 UI입니다.
 "use client";
 
 import * as React from "react";

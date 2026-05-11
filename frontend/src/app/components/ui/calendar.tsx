@@ -1,3 +1,4 @@
+// Calendar는 날짜를 선택하거나 달력 형태로 보여주는 UI입니다.
 "use client";
 
 import * as React from "react";

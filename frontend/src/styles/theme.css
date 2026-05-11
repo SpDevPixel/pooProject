@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/styles/theme.css
+ * 상위 폴더: src/styles (전역 스타일과 디자인 토큰)
+ * 역할: 앱 전반의 색상, 폰트, CSS 변수 같은 디자인 토큰을 정의합니다.
+ */
 @custom-variant dark (&:is(.dark *));
 
 :root {

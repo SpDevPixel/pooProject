@@ -1,3 +1,4 @@
+// AlertDialog는 중요한 확인이나 경고를 모달로 보여주는 UI입니다.
 "use client";
 
 import * as React from "react";

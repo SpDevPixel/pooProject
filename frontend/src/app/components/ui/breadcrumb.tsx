@@ -1,3 +1,4 @@
+// Breadcrumb는 현재 페이지가 어느 경로에 있는지 보여주는 이동 경로 UI입니다.
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";

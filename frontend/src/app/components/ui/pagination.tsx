@@ -1,3 +1,4 @@
+// Pagination은 많은 목록을 여러 페이지로 나누고 이동하게 해주는 UI입니다.
 import * as React from "react";
 import {
   ChevronLeftIcon,

@@ -1,3 +1,4 @@
+// Slider는 값을 막대 위에서 드래그해 조절하는 UI입니다.
 "use client";
 
 import * as React from "react";

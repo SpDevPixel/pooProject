@@ -1,3 +1,4 @@
+// NavigationMenu는 주요 페이지나 섹션으로 이동하는 내비게이션 메뉴 UI입니다.
 import * as React from "react";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";

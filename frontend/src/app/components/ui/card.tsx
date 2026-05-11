@@ -1,3 +1,4 @@
+// Card는 관련된 내용을 하나의 묶음으로 보여주는 박스형 UI입니다.
 import * as React from "react";
 
 import { cn } from "./utils";

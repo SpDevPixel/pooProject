@@ -1,3 +1,4 @@
+// Badge는 상태, 분류, 개수 같은 짧은 정보를 작게 표시하는 UI입니다.
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";

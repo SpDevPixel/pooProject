@@ -1,3 +1,4 @@
+// Label은 입력창이나 선택 항목의 이름을 표시하는 UI입니다.
 "use client";
 
 import * as React from "react";

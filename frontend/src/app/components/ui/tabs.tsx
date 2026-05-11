@@ -1,3 +1,4 @@
+// Tabs는 여러 화면이나 내용을 탭으로 나눠 전환하는 UI입니다.
 "use client";
 
 import * as React from "react";

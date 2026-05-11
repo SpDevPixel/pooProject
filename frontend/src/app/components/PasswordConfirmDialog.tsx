@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/components/PasswordConfirmDialog.tsx
+ * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
+ * 역할: 중요 작업 전 비밀번호 재확인을 받는 공통 다이얼로그입니다.
+ */
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";

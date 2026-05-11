@@ -1,3 +1,4 @@
+// Switch는 켜짐과 꺼짐을 전환하는 토글 UI입니다.
 "use client";
 
 import * as React from "react";

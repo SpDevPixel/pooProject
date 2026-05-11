@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/contexts/FavoritesContext.tsx
+ * 상위 폴더: src/app/contexts (전역 상태 Context)
+ * 역할: 즐겨찾기 목록을 localStorage 기반으로 관리하는 컨텍스트입니다.
+ */
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface FavoritesContextType {

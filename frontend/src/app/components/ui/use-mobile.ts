@@ -1,3 +1,4 @@
+// useMobile은 현재 화면이 모바일 크기인지 알려주는 훅입니다.
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;

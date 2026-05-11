@@ -1,3 +1,4 @@
+// ScrollArea는 긴 내용을 정해진 영역 안에서 스크롤하게 해주는 UI입니다.
 "use client";
 
 import * as React from "react";

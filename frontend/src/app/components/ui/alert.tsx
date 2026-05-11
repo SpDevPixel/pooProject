@@ -1,3 +1,4 @@
+// Alert는 사용자에게 상태나 경고 메시지를 강조해서 보여주는 UI입니다.
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 

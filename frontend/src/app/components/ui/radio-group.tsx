@@ -1,3 +1,4 @@
+// RadioGroup은 여러 선택지 중 하나만 고르게 해주는 UI입니다.
 "use client";
 
 import * as React from "react";

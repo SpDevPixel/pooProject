@@ -1,3 +1,4 @@
+// Sheet는 화면 옆에서 열리는 패널 형태의 모달 UI입니다.
 "use client";
 
 import * as React from "react";

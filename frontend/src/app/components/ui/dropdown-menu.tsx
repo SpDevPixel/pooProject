@@ -1,3 +1,4 @@
+// DropdownMenu는 버튼을 눌렀을 때 아래로 펼쳐지는 메뉴 UI입니다.
 "use client";
 
 import * as React from "react";

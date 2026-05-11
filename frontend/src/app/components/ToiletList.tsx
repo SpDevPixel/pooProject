@@ -1,5 +1,10 @@
+﻿/*
+ * 파일 위치: src/app/components/ToiletList.tsx
+ * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
+ * 역할: 화장실 목록을 카드 형태로 보여주고 선택 상태를 표시합니다.
+ */
 import { Accessibility, Baby, Bell, Camera, MapPin } from "lucide-react";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 

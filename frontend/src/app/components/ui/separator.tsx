@@ -1,3 +1,4 @@
+// Separator는 화면의 내용이나 메뉴를 선으로 구분해주는 UI입니다.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// Chart는 데이터를 그래프나 차트로 보기 쉽게 보여주는 UI입니다.
 "use client";
 
 import * as React from "react";

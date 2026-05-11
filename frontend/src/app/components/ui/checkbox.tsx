@@ -1,3 +1,4 @@
+// Checkbox는 여러 선택지 중 선택 여부를 체크하는 UI입니다.
 "use client";
 
 import * as React from "react";

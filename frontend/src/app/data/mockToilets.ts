@@ -1,4 +1,9 @@
-import { Toilet } from "../types/toilet";
+﻿/*
+ * 파일 위치: src/app/data/mockToilets.ts
+ * 상위 폴더: src/app/data (샘플 데이터)
+ * 역할: 백엔드 연결 전 화면 개발에 사용하던 화장실 샘플 데이터입니다.
+ */
+import type { Toilet } from "../types/toilet";
 
 export const mockToilets: Toilet[] = [
   {

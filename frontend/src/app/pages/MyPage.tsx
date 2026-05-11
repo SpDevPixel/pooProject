@@ -1,10 +1,15 @@
+﻿/*
+ * 파일 위치: src/app/pages/MyPage.tsx
+ * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
+ * 역할: 사용자 프로필, 등록한 화장실, 작성 리뷰를 확인하는 마이페이지입니다.
+ */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, MapPin, Star, Mail, LogOut, MessageSquare, Settings } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
 import { mockToilets } from "../data/mockToilets";
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 
 interface Review {

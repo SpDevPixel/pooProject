@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/styles/tailwind.css
+ * 상위 폴더: src/styles (전역 스타일과 디자인 토큰)
+ * 역할: Tailwind CSS 레이어를 불러오는 설정용 스타일 파일입니다.
+ */
 @import 'tailwindcss' source(none);
 @source '../**/*.{js,ts,jsx,tsx}';
 

@@ -1,3 +1,4 @@
+// InputOTP는 인증번호처럼 여러 칸으로 나뉜 코드를 입력하는 UI입니다.
 "use client";
 
 import * as React from "react";

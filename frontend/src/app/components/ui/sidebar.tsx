@@ -1,3 +1,4 @@
+// Sidebar는 화면 한쪽에 주요 메뉴나 보조 정보를 배치하는 UI입니다.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// Form은 입력값, 라벨, 오류 메시지를 묶어 폼을 만들기 쉽게 해주는 UI입니다.
 "use client";
 
 import * as React from "react";

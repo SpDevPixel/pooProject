@@ -1,3 +1,4 @@
+// Button은 클릭해서 작업을 실행하는 기본 버튼 UI입니다.
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";

@@ -1,3 +1,4 @@
+// ContextMenu는 우클릭이나 특정 동작에서 뜨는 추가 메뉴 UI입니다.
 "use client";
 
 import * as React from "react";

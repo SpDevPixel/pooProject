@@ -1,7 +1,12 @@
+﻿/*
+ * 파일 위치: src/app/components/MapView.tsx
+ * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
+ * 역할: 카카오맵을 렌더링하고 화장실 마커와 현재 위치 표시를 관리합니다.
+ */
 import { useEffect, useRef, useState } from "react";
 // 🚨 새로 추가된 부분: 로딩 효과를 주기 위해 Loader2 아이콘을 가져옵니다. (대문자 L 주의)
 import { Navigation, Loader2 } from "lucide-react"; 
-import { Toilet } from "../types/toilet";
+import type { Toilet } from "../types/toilet";
 
 declare global {
   interface Window {

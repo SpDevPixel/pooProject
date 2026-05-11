@@ -1,3 +1,4 @@
+// Select는 여러 옵션 중 하나를 펼쳐서 선택하는 UI입니다.
 "use client";
 
 import * as React from "react";

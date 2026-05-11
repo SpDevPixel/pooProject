@@ -1,3 +1,8 @@
+﻿/*
+ * 파일 위치: src/app/pages/RegisterPage.tsx
+ * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
+ * 역할: 사용자가 새 화장실 위치와 정보를 등록하는 화면입니다.
+ */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, MapPin } from "lucide-react";
@@ -7,7 +12,7 @@ import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
-import { ToiletFormData } from "../types/toilet";
+import type { ToiletFormData } from "../types/toilet";
 
 // 전역 kakao 타입 선언
 declare global {
@@ -21,7 +26,7 @@ declare global {
 // .env → VITE_KAKAO_REST_KEY 에 REST API 키 저장
 // ──────────────────────────────────────────────
 const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-  const REST_KEY = (import.meta as any).env.VITE_KAKAO_REST_KEY;
+  const REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
 
   if (!REST_KEY) {
     throw new Error("VITE_KAKAO_REST_KEY가 .env에 설정되지 않았습니다.");

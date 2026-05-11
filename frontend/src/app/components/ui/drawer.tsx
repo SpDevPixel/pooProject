@@ -1,3 +1,4 @@
+// Drawer는 화면 아래나 옆에서 밀려 올라오는 패널 UI입니다.
 "use client";
 
 import * as React from "react";
