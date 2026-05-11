@@ -61,10 +61,16 @@ public class UserService {
     }
 
     @Transactional
-    public void changePw(String email, String newPw){
-        User user = userRepository.findByEmail(email).get();
+    public void changePw(String id, String newPw){
+        User user = userRepository.findById(id).get();
         String encodePassword = passwordEncoder.encode(newPw);
         user.setPassword(encodePassword);
+    }
+
+    @Transactional
+    public void changeNn(String id,String newNn){
+        User user = userRepository.findById(id).get();
+        user.setNickname(newNn);
     }
 
     public void deleteUser(String email){

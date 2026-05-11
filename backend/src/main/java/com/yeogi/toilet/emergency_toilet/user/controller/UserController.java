@@ -41,6 +41,18 @@ public class UserController {
         return ResponseEntity.ok(userService.isUseId(id));
     }
 
+    //닉네임 변경
+    @GetMapping("/change-nn")
+    public ResponseEntity<String> changeNickname(
+            @RequestHeader("Authorization") String token,
+            @RequestParam String newNn){
+        String id = jwtUtil.extractId(token.substring(7));
+        userService.changeNn(id,newNn);
+
+
+        return ResponseEntity.ok("닉네임 변경 완료");
+    }
+
     //로그인
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserDto userDto){
