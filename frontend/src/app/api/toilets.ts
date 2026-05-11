@@ -25,7 +25,7 @@ type BackendToilet = {
   reviewCount?: number | null;
 };
 
-const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL
+const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";
 
 const toNumber = (value: BackendToilet["lat"]) => {
   const numberValue = typeof value === "number" ? value : Number(value);
@@ -37,7 +37,7 @@ const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lng = toNumber(toilet.lng);
   const managementNo = toilet.managementNo?.toString();
 
-  if (!managementNo || !toilet.name || lat === null || lng === null) {
+  if (!managementNo || !toilet.name || !toilet.roadAddress) {
     return null;
   }
 

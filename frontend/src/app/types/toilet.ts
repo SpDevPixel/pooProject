@@ -8,8 +8,8 @@ export interface Toilet {
   managementNo: string;
   name: string;
   roadAddress: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   openTime?: string;
   openTimeDetail?: string;
   managingOrg?: string;

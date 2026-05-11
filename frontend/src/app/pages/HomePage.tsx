@@ -37,6 +37,7 @@ export default function HomePage() {
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isNavigationDialogOpen, setIsNavigationDialogOpen] = useState(false);
+  const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Filters>({
     hasDisabledFacility: false,
@@ -102,6 +103,13 @@ export default function HomePage() {
                 ? "화장실 데이터를 불러오는 중입니다."
                 : `${filteredToilets.length}개의 화장실을 찾았습니다.`}
             </p>
+            {!isLoadingToilets && addressMarkerStatus !== "idle" && (
+              <p className="text-sm font-medium text-blue-600">
+                {addressMarkerStatus === "loading"
+                  ? "화장실 불러오는중"
+                  : "화장실 불러오기 완료"}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {toiletLoadError && (
@@ -202,6 +210,7 @@ export default function HomePage() {
                 toilets={filteredToilets}
                 selectedToilet={selectedToilet}
                 onMarkerClick={handleToiletClick}
+                onAddressMarkerStatusChange={setAddressMarkerStatus}
               />
             </div>
           </div>

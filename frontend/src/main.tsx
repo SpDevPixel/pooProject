@@ -34,8 +34,8 @@ if (!KAKAO_KEY) {
 } else {
   const script = document.createElement("script");
   
-  // 💡 [파라미터 주의] libraries=services (두 단어 모두 복수형 's'가 붙습니다)
-  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services&autoload=false`;
+  // 💡 services는 주소 검색, clusterer는 가까운 마커를 숫자 묶음으로 표시하는 데 필요합니다.
+  script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services,clusterer&autoload=false`;
 
   script.onload = () => {
     window.kakao.maps.load(() => {

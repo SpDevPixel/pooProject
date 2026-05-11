@@ -14,13 +14,6 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import type { ToiletFormData } from "../types/toilet";
 
-// 전역 kakao 타입 선언
-declare global {
-  interface Window {
-    kakao: any;
-  }
-}
-
 // ──────────────────────────────────────────────
 // 카카오 REST API로 역지오코딩 (fetch 방식)
 // .env → VITE_KAKAO_REST_KEY 에 REST API 키 저장

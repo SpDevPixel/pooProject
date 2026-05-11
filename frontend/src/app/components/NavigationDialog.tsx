@@ -43,10 +43,11 @@ export function NavigationDialog({
   const currentLng = 127.0276;
 
   const toiletsWithDistance = toilets
+    .filter((toilet) => toilet.lat !== null && toilet.lng !== null)
     .map((toilet) => {
       // Simple distance calculation (mock)
-      const latDiff = toilet.lat - currentLat;
-      const lngDiff = toilet.lng - currentLng;
+      const latDiff = toilet.lat! - currentLat;
+      const lngDiff = toilet.lng! - currentLng;
       const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111000; // rough conversion to meters
       const estimatedTime = Math.ceil(distance / 80); // ~80m/min walking speed
 
