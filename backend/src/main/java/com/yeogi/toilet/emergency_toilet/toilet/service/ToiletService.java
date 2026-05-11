@@ -135,7 +135,6 @@ public class ToiletService {
                     .build();
 
             List<Toilet> toilets = csvToBean.parse().stream()
-                    .filter(row -> row.getLat() != null && !row.getLat().isBlank())
                     .map(this::toEntity)
                     .collect(Collectors.toList());
 

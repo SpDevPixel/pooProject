@@ -59,4 +59,6 @@ public class ToiletCsvRow {
 
     @CsvBindByName(column = "화장실입구CCTV설치유무")
     private String entranceCctv;
+    
+
 }
