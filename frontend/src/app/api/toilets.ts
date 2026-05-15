@@ -67,7 +67,7 @@ export const fetchToilets = async (): Promise<Toilet[]> => {
   const response = await fetch(`${API_BASE_URL}/toilets/all`);
 
   if (!response.ok) {
-    throw new Error(`화장실 데이터를 불러오지 못했습니다. (${response.status})`);
+    throw new Error("화장실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
   }
 
   const data = (await response.json()) as BackendToilet[];

@@ -4,15 +4,19 @@
  * 역할: 로그인 상태와 사용자 정보를 localStorage 기반으로 관리하는 인증 컨텍스트입니다.
  */
 import { createContext, useContext, useState, ReactNode } from "react";
+import { fetchMyInfo, loginUser } from "../api/users";
 
 interface User {
+  id: string;
   email: string;
   name: string;
+  role?: string | null;
+  token: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (id: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (data: { name?: string; password?: string }) => void;
   deleteAccount: () => void;
@@ -28,28 +32,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = async (email: string, password: string) => {
-    // TODO: 실제 구현 시 백엔드 API 호출
-    // const response = await fetch('/api/auth/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, password })
-    // });
-    // const data = await response.json();
-    
-    // Mock 로그인 (데모용)
-    const mockUser = {
-      email,
-      name: email.split("@")[0],
+  const login = async (id: string, password: string) => {
+    const { token } = await loginUser({ id, password });
+
+    const userInfo = await fetchMyInfo(token).catch(() => null);
+    const loggedInUser: User = {
+      id: userInfo?.id ?? id,
+      email: userInfo?.email ?? "",
+      name: userInfo?.name ?? id,
+      role: userInfo?.role,
+      token,
     };
-    
-    setUser(mockUser);
-    localStorage.setItem("user", JSON.stringify(mockUser));
+
+    setUser(loggedInUser);
+    localStorage.setItem("user", JSON.stringify(loggedInUser));
+    localStorage.setItem("token", token);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   const updateProfile = (data: { name?: string; password?: string }) => {
@@ -79,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   return (

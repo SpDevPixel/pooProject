@@ -12,11 +12,14 @@ import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
+import { signupUser } from "../api/users";
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
+  const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
   const [loginData, setLoginData] = useState({
     username: "",
     password: "",
@@ -31,36 +34,45 @@ export default function AuthPage() {
     address: "",
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!loginData.username || !loginData.password) {
+    const id = loginData.username.trim();
+    const password = loginData.password;
+
+    if (!id || !password) {
       toast.error("아이디와 비밀번호를 입력해주세요");
       return;
     }
 
-    // Mock login - 실제로는 백엔드 API 호출
-    // 아이디를 이메일처럼 사용 (데모용)
-    const mockEmail = `${loginData.username}@example.com`;
-    
-    login(mockEmail, loginData.password)
-      .then(() => {
-        toast.success("로그인 성공!");
-        navigate("/");
-      })
-      .catch(() => {
-        toast.error("로그인 실패");
-      });
+    setIsLoginSubmitting(true);
+
+    try {
+      await login(id, password);
+      toast.success("로그인 성공!");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      toast.error("일치하는 정보가 없습니다");
+    } finally {
+      setIsLoginSubmitting(false);
+    }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const id = signupData.username.trim();
+    const name = signupData.name.trim();
+    const email = signupData.email.trim();
+    const address = signupData.address.trim();
+    const password = signupData.password;
+
     if (
-      !signupData.username ||
-      !signupData.name ||
-      !signupData.email ||
-      !signupData.password
+      !id ||
+      !name ||
+      !email ||
+      !password
     ) {
       toast.error("필수 항목을 입력해주세요");
       return;
@@ -76,11 +88,35 @@ export default function AuthPage() {
       return;
     }
 
-    // Mock signup - 실제로는 백엔드 API 호출
-    toast.success("회원가입 완료! 로그인해주세요.");
-    
-    // 회원가입 후 로그인 탭으로 이동
-    setActiveTab("login");
+    setIsSignupSubmitting(true);
+
+    try {
+      await signupUser({
+        id,
+        name,
+        email,
+        address,
+        password,
+        nickname: "",
+      });
+
+      toast.success("회원가입 완료! 로그인해주세요.");
+      setSignupData({
+        username: "",
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        address: "",
+      });
+      setLoginData((prev) => ({ ...prev, username: id }));
+      setActiveTab("login");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "회원가입에 실패했습니다");
+    } finally {
+      setIsSignupSubmitting(false);
+    }
   };
 
   return (
@@ -129,9 +165,9 @@ export default function AuthPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
+                <Button type="submit" className="w-full" size="lg" disabled={isLoginSubmitting}>
                   <LogIn size={18} className="mr-2" />
-                  로그인
+                  {isLoginSubmitting ? "로그인 중..." : "로그인"}
                 </Button>
 
                 <div className="text-center">
@@ -246,9 +282,9 @@ export default function AuthPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
+                <Button type="submit" className="w-full" size="lg" disabled={isSignupSubmitting}>
                   <UserPlus size={18} className="mr-2" />
-                  회원가입
+                  {isSignupSubmitting ? "회원가입 중..." : "회원가입"}
                 </Button>
               </form>
             </TabsContent>

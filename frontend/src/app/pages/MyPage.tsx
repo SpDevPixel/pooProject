@@ -11,6 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { mockToilets } from "../data/mockToilets";
 import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
+import { loginWithAnyIdentifier } from "../api/users";
 
 interface Review {
   id: string;
@@ -95,14 +96,8 @@ export default function MyPage() {
     setShowPasswordConfirm(true);
   };
 
-  const handlePasswordConfirmed = (password: string) => {
-    // TODO: 실제 구현 시 백엔드에서 비밀번호 검증
-    // const response = await fetch('/api/auth/verify-password', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ password })
-    // });
-    
+  const handlePasswordConfirmed = async (password: string) => {
+    await loginWithAnyIdentifier([user.id, user.email], password);
     setShowPasswordConfirm(false);
     navigate("/edit-profile");
   };

@@ -22,7 +22,7 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   const REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
 
   if (!REST_KEY) {
-    throw new Error("VITE_KAKAO_REST_KEY가 .env에 설정되지 않았습니다.");
+    throw new Error("주소 자동 입력 설정이 없어 주소를 불러오지 못했습니다. 주소를 직접 입력해주세요.");
   }
 
   const response = await fetch(
@@ -35,13 +35,21 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   );
 
   if (!response.ok) {
-    throw new Error(`카카오 API 오류: ${response.status}`);
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("주소 자동 입력 권한이 없어 주소를 불러오지 못했습니다. 주소를 직접 입력해주세요.");
+    }
+
+    if (response.status === 429) {
+      throw new Error("주소 자동 입력 요청이 많습니다. 잠시 후 다시 시도하거나 주소를 직접 입력해주세요.");
+    }
+
+    throw new Error("주소 자동 입력을 할 수 없습니다. 주소를 직접 입력해주세요.");
   }
 
   const data = await response.json();
 
   if (!data.documents || data.documents.length === 0) {
-    throw new Error("주소를 찾을 수 없습니다.");
+    throw new Error("선택한 위치의 주소를 찾지 못했습니다. 주소를 직접 입력해주세요.");
   }
 
   // 도로명 주소 우선, 없으면 지번 주소
@@ -170,7 +178,11 @@ export default function RegisterPage() {
       toast.success("위치와 주소가 자동으로 입력되었습니다");
     } catch (error) {
       console.error(error);
-      toast.error("주소를 가져오는데 실패했습니다. 직접 입력해주세요.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "주소를 불러오지 못했습니다. 주소를 직접 입력해주세요."
+      );
     } finally {
       setIsLoadingAddress(false);
     }
