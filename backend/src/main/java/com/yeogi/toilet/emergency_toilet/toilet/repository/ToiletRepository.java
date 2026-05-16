@@ -14,5 +14,5 @@ public interface ToiletRepository extends JpaRepository<Toilet, String> {
     List<Toilet> findByUser(User user);
 
     @Query("SELECT t FROM Toilet t WHERE t.roadAddress LIKE %:keyword%")
-    List<Toilet> findByAddressContaining(@Param("keyword") String keyword);
+    List<Toilet> findTop10ByRoadAddressContaining(String keyword);
 }

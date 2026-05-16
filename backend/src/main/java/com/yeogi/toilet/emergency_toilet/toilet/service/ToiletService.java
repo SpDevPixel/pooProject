@@ -57,7 +57,7 @@ public class ToiletService {
         if (keyword == null || keyword.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        return toiletRepository.findByAddressContaining(keyword.trim());
+        return toiletRepository.findTop10ByRoadAddressContaining(keyword.trim());
     }
 
     /**
