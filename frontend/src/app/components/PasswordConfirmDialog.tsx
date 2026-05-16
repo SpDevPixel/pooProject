@@ -13,7 +13,7 @@ import { Lock } from "lucide-react";
 interface PasswordConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (password: string) => void;
+  onConfirm: (password: string) => void | Promise<void>;
   title?: string;
   description?: string;
 }
@@ -27,8 +27,9 @@ export function PasswordConfirmDialog({
 }: PasswordConfirmDialogProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!password.trim()) {
@@ -36,16 +37,17 @@ export function PasswordConfirmDialog({
       return;
     }
 
-    // TODO: 실제 구현 시 백엔드에서 비밀번호 검증
-    // const response = await fetch('/api/auth/verify-password', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ password })
-    // });
-    
-    onConfirm(password);
-    setPassword("");
-    setError("");
+    setIsSubmitting(true);
+
+    try {
+      await onConfirm(password);
+      setPassword("");
+      setError("");
+    } catch {
+      setError("비밀번호가 일치하지 않습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -88,7 +90,9 @@ export function PasswordConfirmDialog({
             <Button type="button" variant="outline" onClick={handleCancel}>
               취소
             </Button>
-            <Button type="submit">확인</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "확인 중..." : "확인"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

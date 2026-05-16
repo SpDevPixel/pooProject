@@ -1,7 +1,7 @@
 ﻿/*
  * 파일 위치: src/app/pages/EditProfilePage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 사용자 닉네임과 비밀번호 변경, 회원 탈퇴를 처리하는 프로필 수정 화면입니다.
+ * 역할: 사용자 정보 확인, 비밀번호 변경, 회원 탈퇴를 처리하는 프로필 수정 화면입니다.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -12,6 +12,7 @@ import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 import { toast } from "sonner";
+import { changePassword, loginWithAnyIdentifier } from "../api/users";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,15 +26,14 @@ import {
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  const { user, updateProfile, deleteAccount, logout } = useAuth();
-  const [nickname, setNickname] = useState(user?.name || "");
+  const { user, deleteAccount } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [errors, setErrors] = useState<{
-    nickname?: string;
     currentPassword?: string;
     newPassword?: string;
     confirmPassword?: string;
@@ -53,14 +53,8 @@ export default function EditProfilePage() {
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
-    if (!nickname.trim()) {
-      newErrors.nickname = "닉네임을 입력해주세요.";
-    } else if (nickname.length < 2) {
-      newErrors.nickname = "닉네임은 2자 이상이어야 합니다.";
-    }
-
     // 비밀번호 변경을 시도하는 경우에만 검증
-    if (newPassword || confirmPassword) {
+    if (currentPassword || newPassword || confirmPassword) {
       if (!currentPassword) {
         newErrors.currentPassword = "현재 비밀번호를 입력해주세요.";
       }
@@ -85,27 +79,45 @@ export default function EditProfilePage() {
       return;
     }
 
-    try {
-      // TODO: 실제 구현 시 백엔드 API 호출
-      // const response = await fetch('/api/user/update', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     nickname,
-      //     currentPassword: currentPassword || undefined,
-      //     newPassword: newPassword || undefined,
-      //   })
-      // });
+    setIsSaving(true);
 
-      updateProfile({
-        name: nickname,
-        password: newPassword || undefined,
-      });
+    try {
+      if (!newPassword) {
+        toast.info("변경할 내용이 없습니다.");
+        return;
+      }
+
+      let token = "";
+
+      try {
+        const response = await loginWithAnyIdentifier(
+          [user.id, user.email],
+          currentPassword
+        );
+        token = response.token;
+      } catch (error) {
+        console.error(error);
+        setErrors((prev) => ({
+          ...prev,
+          currentPassword: "현재 비밀번호가 일치하지 않습니다.",
+        }));
+        toast.error("현재 비밀번호가 일치하지 않습니다.");
+        return;
+      }
+
+      if (newPassword) {
+        await changePassword(token, newPassword);
+      }
 
       toast.success("회원정보가 수정되었습니다.");
       navigate("/mypage");
     } catch (error) {
-      toast.error("회원정보 수정에 실패했습니다.");
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "비밀번호 변경에 실패했습니다."
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -166,25 +178,22 @@ export default function EditProfilePage() {
             </p>
           </div>
 
-          {/* Nickname */}
+          {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="nickname" className="flex items-center gap-2">
+            <Label htmlFor="name" className="flex items-center gap-2">
               <User size={16} />
-              닉네임
+              이름 (변경 불가)
             </Label>
             <Input
-              id="nickname"
+              id="name"
               type="text"
-              placeholder="닉네임을 입력하세요"
-              value={nickname}
-              onChange={(e) => {
-                setNickname(e.target.value);
-                setErrors({ ...errors, nickname: undefined });
-              }}
+              value={user.name}
+              disabled
+              className="bg-gray-50"
             />
-            {errors.nickname && (
-              <p className="text-sm text-red-600">{errors.nickname}</p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              이름은 변경할 수 없습니다.
+            </p>
           </div>
 
           <div className="border-t pt-6">
@@ -250,8 +259,8 @@ export default function EditProfilePage() {
 
           {/* Save Button */}
           <div className="pt-4">
-            <Button className="w-full" onClick={handleSaveChanges}>
-              변경사항 저장
+            <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving}>
+              {isSaving ? "저장 중..." : "변경사항 저장"}
             </Button>
           </div>
         </div>

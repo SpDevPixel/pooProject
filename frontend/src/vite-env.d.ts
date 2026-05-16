@@ -13,9 +13,5 @@ interface ImportMeta {
 }
 
 interface Window {
-  kakao: {
-    maps: {
-      load: (callback: () => void) => void;
-    };
-  };
+  kakao: any;
 }

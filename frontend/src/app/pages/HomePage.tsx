@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 파일 위치: src/app/pages/HomePage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
  * 역할: 메인 화면입니다. 화장실 목록을 불러오고 지도, 필터, 주요 이동 버튼을 보여줍니다.
@@ -37,6 +37,7 @@ export default function HomePage() {
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isNavigationDialogOpen, setIsNavigationDialogOpen] = useState(false);
+  const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Filters>({
     hasDisabledFacility: false,
@@ -57,7 +58,7 @@ export default function HomePage() {
       console.error(error);
       setToilets(mockToilets);
       setToiletLoadError(
-        "백엔드 연결 전이라 샘플 데이터로 화면을 표시하고 있습니다."
+        "화장실 정보를 불러오지 못해 임시 데이터로 보여주고 있습니다. 잠시 후 다시 시도해주세요."
       );
     } finally {
       setIsLoadingToilets(false);
@@ -99,9 +100,16 @@ export default function HomePage() {
             <h1 className="text-2xl font-bold text-blue-700">화장실 급할 때</h1>
             <p className="text-sm text-muted-foreground">
               {isLoadingToilets
-                ? "화장실 데이터를 불러오는 중입니다."
+                ? "화장실 정보를 불러오는 중입니다."
                 : `${filteredToilets.length}개의 화장실을 찾았습니다.`}
             </p>
+            {!isLoadingToilets && addressMarkerStatus !== "idle" && (
+              <p className="text-sm font-medium text-blue-600">
+                {addressMarkerStatus === "loading"
+                  ? "화장실 마커를 표시하는 중입니다."
+                  : "화장실 마커 표시가 완료되었습니다."}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {toiletLoadError && (
@@ -116,7 +124,7 @@ export default function HomePage() {
             </Button>
             <Button variant="outline" onClick={() => navigate("/toilets")} className="flex items-center gap-2">
               <ListFilter size={18} />
-              검색
+              목록
             </Button>
             <Button variant="outline" onClick={() => navigate("/admin")} className="flex items-center gap-2">
               <Shield size={18} />
@@ -202,6 +210,7 @@ export default function HomePage() {
                 toilets={filteredToilets}
                 selectedToilet={selectedToilet}
                 onMarkerClick={handleToiletClick}
+                onAddressMarkerStatusChange={setAddressMarkerStatus}
               />
             </div>
           </div>
