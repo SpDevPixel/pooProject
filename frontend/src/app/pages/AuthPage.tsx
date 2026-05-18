@@ -12,7 +12,9 @@ import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
-import { signupUser } from "../api/users";
+import { checkEmailAvailable, checkUserIdAvailable, signupUser } from "../api/users";
+
+type DuplicateCheckStatus = "idle" | "checking" | "available" | "duplicate" | "error";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
+  const [idCheckStatus, setIdCheckStatus] = useState<DuplicateCheckStatus>("idle");
+  const [emailCheckStatus, setEmailCheckStatus] = useState<DuplicateCheckStatus>("idle");
   const [loginData, setLoginData] = useState({
     username: "",
     password: "",
@@ -33,6 +37,52 @@ export default function AuthPage() {
     confirmPassword: "",
     address: "",
   });
+
+  const handleCheckUserId = async () => {
+    const id = signupData.username.trim();
+
+    if (!id) {
+      toast.error("아이디를 입력해주세요");
+      return;
+    }
+
+    setIdCheckStatus("checking");
+
+    try {
+      const isAvailable = await checkUserIdAvailable(id);
+      setIdCheckStatus(isAvailable ? "available" : "duplicate");
+      toast[isAvailable ? "success" : "error"](
+        isAvailable ? "사용 가능한 아이디입니다." : "이미 사용중인 아이디입니다."
+      );
+    } catch (error) {
+      console.error(error);
+      setIdCheckStatus("error");
+      toast.error(error instanceof Error ? error.message : "아이디 중복확인에 실패했습니다.");
+    }
+  };
+
+  const handleCheckEmail = async () => {
+    const email = signupData.email.trim();
+
+    if (!email) {
+      toast.error("이메일을 입력해주세요");
+      return;
+    }
+
+    setEmailCheckStatus("checking");
+
+    try {
+      const isAvailable = await checkEmailAvailable(email);
+      setEmailCheckStatus(isAvailable ? "available" : "duplicate");
+      toast[isAvailable ? "success" : "error"](
+        isAvailable ? "사용 가능한 이메일입니다." : "이미 사용중인 이메일입니다."
+      );
+    } catch (error) {
+      console.error(error);
+      setEmailCheckStatus("error");
+      toast.error(error instanceof Error ? error.message : "이메일 중복확인에 실패했습니다.");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +138,24 @@ export default function AuthPage() {
       return;
     }
 
+    if (idCheckStatus !== "available") {
+      toast.error(
+        idCheckStatus === "duplicate"
+          ? "이미 사용중인 아이디입니다."
+          : "아이디 중복확인을 해주세요"
+      );
+      return;
+    }
+
+    if (emailCheckStatus !== "available") {
+      toast.error(
+        emailCheckStatus === "duplicate"
+          ? "이미 사용중인 이메일입니다."
+          : "이메일 중복확인을 해주세요"
+      );
+      return;
+    }
+
     setIsSignupSubmitting(true);
 
     try {
@@ -109,6 +177,8 @@ export default function AuthPage() {
         confirmPassword: "",
         address: "",
       });
+      setIdCheckStatus("idle");
+      setEmailCheckStatus("idle");
       setLoginData((prev) => ({ ...prev, username: id }));
       setActiveTab("login");
     } catch (error) {
@@ -190,16 +260,34 @@ export default function AuthPage() {
                   <Label htmlFor="signup-username">
                     아이디 <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="signup-username"
-                    type="text"
-                    placeholder="아이디를 입력하세요"
-                    value={signupData.username}
-                    onChange={(e) =>
-                      setSignupData({ ...signupData, username: e.target.value })
-                    }
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      placeholder="아이디를 입력하세요"
+                      value={signupData.username}
+                      onChange={(e) => {
+                        setSignupData({ ...signupData, username: e.target.value });
+                        setIdCheckStatus("idle");
+                      }}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCheckUserId}
+                      disabled={idCheckStatus === "checking"}
+                      className="shrink-0"
+                    >
+                      {idCheckStatus === "checking" ? "확인 중" : "중복확인"}
+                    </Button>
+                  </div>
+                  {idCheckStatus === "available" && (
+                    <p className="text-sm text-green-600">사용 가능한 아이디입니다.</p>
+                  )}
+                  {idCheckStatus === "duplicate" && (
+                    <p className="text-sm text-red-600">이미 사용중인 아이디입니다.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -222,16 +310,34 @@ export default function AuthPage() {
                   <Label htmlFor="signup-email">
                     이메일 <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="example@email.com"
-                    value={signupData.email}
-                    onChange={(e) =>
-                      setSignupData({ ...signupData, email: e.target.value })
-                    }
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="example@email.com"
+                      value={signupData.email}
+                      onChange={(e) => {
+                        setSignupData({ ...signupData, email: e.target.value });
+                        setEmailCheckStatus("idle");
+                      }}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCheckEmail}
+                      disabled={emailCheckStatus === "checking"}
+                      className="shrink-0"
+                    >
+                      {emailCheckStatus === "checking" ? "확인 중" : "중복확인"}
+                    </Button>
+                  </div>
+                  {emailCheckStatus === "available" && (
+                    <p className="text-sm text-green-600">사용 가능한 이메일입니다.</p>
+                  )}
+                  {emailCheckStatus === "duplicate" && (
+                    <p className="text-sm text-red-600">이미 사용중인 이메일입니다.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

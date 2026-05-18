@@ -67,6 +67,26 @@ export const signupUser = async (payload: SignupRequest): Promise<void> => {
   }
 };
 
+export const checkUserIdAvailable = async (id: string): Promise<boolean> => {
+  const response = await fetch(`${API_BASE_URL}/users/id?id=${encodeURIComponent(id)}`);
+
+  if (!response.ok) {
+    throw new Error(getUserApiErrorMessage(response, "아이디 중복확인에 실패했습니다."));
+  }
+
+  return response.json() as Promise<boolean>;
+};
+
+export const checkEmailAvailable = async (email: string): Promise<boolean> => {
+  const response = await fetch(`${API_BASE_URL}/users/email?email=${encodeURIComponent(email)}`);
+
+  if (!response.ok) {
+    throw new Error(getUserApiErrorMessage(response, "이메일 중복확인에 실패했습니다."));
+  }
+
+  return response.json() as Promise<boolean>;
+};
+
 export const loginUser = async (payload: LoginRequest): Promise<LoginResponse> => {
   const response = await fetch(`${API_BASE_URL}/users/login`, {
     method: "POST",
@@ -118,6 +138,19 @@ export const fetchMyInfo = async (token: string): Promise<BackendUser> => {
   }
 
   return response.json() as Promise<BackendUser>;
+};
+
+export const deleteUserAccount = async (token: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/users/delete`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(getUserApiErrorMessage(response, "회원탈퇴에 실패했습니다."));
+  }
 };
 
 export const changePassword = async (token: string, newPassword: string): Promise<void> => {
