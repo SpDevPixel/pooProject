@@ -73,8 +73,8 @@ public class UserService {
         user.setNickname(newNn);
     }
 
-    public void deleteUser(String email){
-        User user = userRepository.findByEmail(email).get();
+    public void deleteUser(String id){
+        User user = userRepository.findById(id).get();
         userRepository.delete(user);
     }
 
