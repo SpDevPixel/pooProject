@@ -109,7 +109,7 @@ export default function EditProfilePage() {
         await changePassword(token, newPassword);
       }
 
-      toast.success("회원정보가 수정되었습니다.");
+      toast.success("비밀번호 변경완료되었습니다");
       navigate("/mypage");
     } catch (error) {
       console.error(error);
