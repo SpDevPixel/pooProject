@@ -37,7 +37,9 @@ const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lng = toNumber(toilet.lng);
   const managementNo = toilet.managementNo?.toString();
 
-  if (!managementNo || !toilet.name || !toilet.roadAddress) {
+  // 좌표로만 찍기
+  // if (!managementNo || !toilet.name || !toilet.roadAddress) {
+  if (!managementNo || !toilet.name || lat === null || lng === null) {
     return null;
   }
 
