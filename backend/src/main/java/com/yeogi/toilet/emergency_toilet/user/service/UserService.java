@@ -39,7 +39,7 @@ public class UserService {
     }
     //아이디 사용 여부
     public boolean isUseId(String id){
-        return userRepository.findByNickname(id).isEmpty();
+        return userRepository.findById(id).isEmpty();
     }
 
 
