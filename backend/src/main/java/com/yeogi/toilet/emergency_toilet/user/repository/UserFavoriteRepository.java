@@ -17,8 +17,8 @@ public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long
     // 즐겨찾기 목록 조회
     List<UserFavorite> findByUser(User user);
 
-    @Query("SELECT uf.toilet FROM UserFavorite uf WHERE uf.user.id = :userId")
-    List<Toilet> findToiletsByUserId(@Param("userId") String userId);
+    @Query("SELECT uf.toilet FROM UserFavorite uf WHERE uf.user.id = :id")
+    List<Toilet> findToiletsByUserId(@Param("id") Long userId);
 
     // 즐겨찾기 해제
     void deleteByUserAndToilet(User user, Toilet toilet);

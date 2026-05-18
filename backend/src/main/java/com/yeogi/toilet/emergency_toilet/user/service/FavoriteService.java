@@ -59,7 +59,7 @@ public class FavoriteService {
     }
     //이용자가 즐겨찾기한 화장실 데이터 전송
     @Transactional(readOnly = true)
-    public List<Toilet> getUserFavoriteToilets(String userId) {
+    public List<Toilet> getUserFavoriteToilets(Long userId) {
         return favoriteRepository.findToiletsByUserId(userId);
     }
 
