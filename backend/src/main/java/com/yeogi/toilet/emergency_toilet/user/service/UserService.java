@@ -80,7 +80,7 @@ public class UserService {
 
     //로그인 서비스
     public ResponseEntity<?> login(UserDto userDto){
-        Optional<User> user = userRepository.findByEmail(userDto.getId());
+        Optional<User> user = userRepository.findById(userDto.getId());
 
         if(user.isEmpty()){
             return ResponseEntity.badRequest().body("계정이 없음");
