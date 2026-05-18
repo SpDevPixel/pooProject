@@ -36,7 +36,7 @@ public class ReviewController {
     //유저의 리뷰 정보 전송
     @GetMapping("/your-review")
     public ResponseEntity<List<Review>> getUserReviews(@RequestHeader("Authorization") String token){
-        String id = jwtUtil.extractId(token.substring(7));
+        Long id = jwtUtil.extractId(token.substring(7));
 
         return  ResponseEntity.ok(reviewService.getReviewsByUser(id));
     }
@@ -48,7 +48,7 @@ public class ReviewController {
             throw new RuntimeException("유효하지 않은 토큰");
         }
         String rawToken = token.substring(7);
-        String id = jwtUtil.extractId(rawToken);
+        Long id = jwtUtil.extractId(rawToken);
 //        String role = jwtUtil.extractRole(rawToken);
 //        if("ADMIN".equals(role)){
 //            reviewService.deleteReviewByAdmin(reviewId);

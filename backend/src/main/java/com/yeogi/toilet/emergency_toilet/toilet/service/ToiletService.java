@@ -65,7 +65,7 @@ public class ToiletService {
      */
     public Toilet addUserToilet(Toilet toilet, String token) {
         String pureToken = token.substring(7);
-        String id = jwtUtil.extractId(pureToken);
+        Long id = jwtUtil.extractId(pureToken);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
@@ -76,7 +76,7 @@ public class ToiletService {
 
     public List<Toilet> getUserToilets(String token){
         String pureToken = token.substring(7);
-        String id = jwtUtil.extractId(pureToken);
+        Long id = jwtUtil.extractId(pureToken);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
@@ -84,22 +84,24 @@ public class ToiletService {
     }
 
     @Transactional
-    public void deleteAToilet(String managementNo, String id){
+    public void deleteAToilet(String managementNo, Long id){ // 1. 타입을 String에서 Long으로 변경
         Toilet toilet = toiletRepository.findById(managementNo)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
 
+        // 2. 이제 Long 대 Long의 올바른 비교가 이루어집니다.
         if(!toilet.getUser().getId().equals(id)){
             throw new AccessDeniedException("본인이 등록한 데이터만 삭제할 수 있습니다.");
         }
+
         toiletRepository.delete(toilet);
     }
 
     @Transactional
-    public void updateToiletInfo(String managementNo, String userId, ToiletUpdateDto dto) {
+    public void updateToiletInfo(String managementNo, Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(managementNo)
                 .orElseThrow(() -> new EntityNotFoundException("화장실을 찾을 수 없습니다."));
 
-        if (!toilet.getUser().getId().equals(userId)) {
+        if (!toilet.getUser().getId().equals(id)) {
             throw new AccessDeniedException("수정 권한이 없습니다.");
         }
 
