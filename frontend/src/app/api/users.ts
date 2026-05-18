@@ -45,7 +45,8 @@ export type LoginResponse = {
 };
 
 export type BackendUser = {
-  id: string;
+  id: string | number;
+  userId?: string | null;
   email: string;
   address?: string | null;
   name: string;

@@ -97,7 +97,7 @@ export default function MyPage() {
   };
 
   const handlePasswordConfirmed = async (password: string) => {
-    await loginWithAnyIdentifier([user.id, user.email], password);
+    await loginWithAnyIdentifier([user.userId], password);
     setShowPasswordConfirm(false);
     navigate("/edit-profile");
   };

@@ -90,7 +90,7 @@ export default function EditProfilePage() {
 
       try {
         const response = await loginWithAnyIdentifier(
-          [user.id, user.email],
+          [user.userId],
           currentPassword
         );
         token = response.token;
