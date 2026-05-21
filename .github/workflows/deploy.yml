@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'backend/**'
+#   paths:                  # 👈 앞에 #을 붙여서 주석 처리합니다.
+#     - 'backend/**'
 
 jobs:
   build-and-deploy:
