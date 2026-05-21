@@ -1,8 +1,14 @@
+#spring:
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+#    username: root
+#    password: root
+#    driver-class-name: com.mysql.cj.jdbc.Driver
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://poo-db.cy5qskawumdq.ap-northeast-2.rds.amazonaws.com:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: 040203root
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
