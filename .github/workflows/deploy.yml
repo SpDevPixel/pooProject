@@ -55,30 +55,25 @@ jobs:
             mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
             
-            # 1. 기존 구동 중인 스프링 서버 종료
-            CURRENT_PID=$(pgrep -f "java -jar.*\.jar")
-            if [ -z "$CURRENT_PID" ]; then
-              echo "👉 구동 중인 서버가 없으므로 종료하지 않습니다."
+            echo "👉 1. 기존 구동 중인 서버 확인"
+            # 정확하게 java -jar 로 켜진 프로세스의 ID만 딱 하나 골라냅니다.
+            PID=$(ps -ef | grep 'java -jar' | grep -v grep | awk '{print $2}')
+            
+            if [ -z "$PID" ]; then
+              echo "👉 실행 중인 스프링 부트 서버가 없습니다."
             else
-              echo "👉 구동 중인 서버 종료 (PID: $CURRENT_PID)"
-              kill -15 $CURRENT_PID
+              echo "👉 기존 서버 프로세스 종료 (PID: $PID)"
+              kill -15 $PID
               sleep 5
-              
-              if pgrep -f "java -jar.*\.jar" > /dev/null; then
-                echo "👉 강제 종료 진행 (kill -9)"
-                pgrep -f "java -jar.*\.jar" | xargs kill -9
-              fi
+              # 5초 뒤에도 살아있다면 확인 후 강제 종료 (에러 무시)
+              kill -9 $PID 2>/dev/null || true
             fi
             
-            # 2. 새 jar 파일 권한 부여
+            echo "👉 2. 배포 파일 실행 권한 부여"
             chmod +x *.jar
             
-            # 3. 완벽한 백그라운드 독립 실행 (괄호로 묶어 서브쉘 실행 + disown 조합)
-            echo "👉 새 애플리케이션 백그라운드 구동 시작"
-            (nohup java -jar *.jar --spring.datasource.url="${{ secrets.DB_URL }}" > nohup.out 2>&1 &)
+            echo "👉 3. 새 애플리케이션 구동 시작"
+            # </dev/null 을 추가하여 SSH 세션의 입력 대기를 완벽하게 차단합니다.
+            nohup java -jar *.jar --spring.datasource.url="${{ secrets.DB_URL }}" > nohup.out 2>&1 </dev/null &
             
-            # 4. 현재 쉘 세션에서 이 백그라운드 작업을 완전히 해제 (SSH가 꺼져도 안 죽게 함)
-            sleep 2
-            disown -a
-            
-            echo "👉 배포 스크립트 실행 완료"
+            echo "👉 배포 완료! SSH 세션을 정상 종료합니다."
