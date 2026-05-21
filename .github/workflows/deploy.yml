@@ -3,7 +3,7 @@ name: Deploy Spring Boot to AWS EC2
 on:
   push:
     branches:
-      - main  # 본인이 사용하는 메인 브랜치 이름 (master일 경우 master로 변경)
+      - master  # 본인이 사용하는 메인 브랜치 이름 (master일 경우 master로 변경)
     paths:
       - 'backend/**' # backend 폴더 안의 코드가 바뀔 때만 작동하도록 제한
 
