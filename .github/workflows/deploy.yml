@@ -3,9 +3,9 @@ name: Deploy Spring Boot to AWS EC2
 on:
   push:
     branches:
-      - master  # 본인이 사용하는 메인 브랜치 이름 (master일 경우 master로 변경)
+      - master
     paths:
-      - 'backend/**' # backend 폴더 안의 코드가 바뀔 때만 작동하도록 제한
+      - 'backend/**'
 
 jobs:
   build-and-deploy:
@@ -16,9 +16,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 자바 21 환경 세팅
+      # 2. 자바 21 환경 세팅 (한자 오타 수정 완료)
       - name: Set up JDK 21
-        uses: actions/愛情/setup-java@v4
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew clean build -x test
         working-directory: ./backend
 
-      # 5. 빌드된 .jar 파일을 AWS EC2로 전송 및 실행
+      # 5. 빌드된 .jar 파일을 AWS EC2로 전송
       - name: Deploy to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
