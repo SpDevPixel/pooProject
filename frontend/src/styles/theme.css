@@ -140,6 +140,17 @@
 
   html {
     font-size: var(--font-size);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
 
   h1 {
