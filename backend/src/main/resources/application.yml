@@ -1,15 +1,15 @@
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
 #spring:
 #  datasource:
-#    url: jdbc:mysql://poo-db.cjc4eymao339.ap-northeast-2.rds.amazonaws.com:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-#    username: admin
-#    password: 040203root
+#    url: jdbc:mysql://localhost:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+#    username: root
+#    password: root
 #    driver-class-name: com.mysql.cj.jdbc.Driver
+spring:
+  datasource:
+    url: jdbc:mysql://poo-db.cjc4eymao339.ap-northeast-2.rds.amazonaws.com:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    username: admin
+    password: 040203root
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update   # 처음엔 create, 이후 update
