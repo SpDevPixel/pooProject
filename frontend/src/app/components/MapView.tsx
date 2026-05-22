@@ -62,6 +62,9 @@ export function MapView({
         };
 
         mapInstanceRef.current = new window.kakao.maps.Map(container, options);
+        window.setTimeout(() => {
+          mapInstanceRef.current?.relayout();
+        }, 0);
         markerClustererRef.current = new window.kakao.maps.MarkerClusterer({
           map: mapInstanceRef.current,
           averageCenter: true,
@@ -82,6 +85,7 @@ export function MapView({
       return;
     }
 
+    window.addEventListener("kakao-maps-loaded", initMap);
     window.addEventListener("kakao-maps-load-error", handleMapLoadError);
 
     const kakaoScript = document.querySelector(
@@ -92,6 +96,7 @@ export function MapView({
       kakaoScript.addEventListener("load", initMap);
       kakaoScript.addEventListener("error", handleMapLoadError);
       return () => {
+        window.removeEventListener("kakao-maps-loaded", initMap);
         window.removeEventListener("kakao-maps-load-error", handleMapLoadError);
         kakaoScript.removeEventListener("load", initMap);
         kakaoScript.removeEventListener("error", handleMapLoadError);
@@ -99,6 +104,7 @@ export function MapView({
     }
 
     return () => {
+      window.removeEventListener("kakao-maps-loaded", initMap);
       window.removeEventListener("kakao-maps-load-error", handleMapLoadError);
     };
   }, [onAddressMarkerStatusChange]);
