@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite --mode local-api",
+    "dev:aws": "vite --mode aws",
+    "dev:local": "vite --mode local-api"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
