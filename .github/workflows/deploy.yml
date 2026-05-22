@@ -21,17 +21,39 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3. gradlew에 실행 권한 부여 (backend 폴더 기준)
+      # 3. gradlew에 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         working-directory: ./backend
 
-      # 4. Spring Boot 프로젝트 빌드 (.jar 파일 생성)
+      # 4. Spring Boot 프로젝트 빌드
       - name: Build with Gradle
         run: ./gradlew clean build -x test
         working-directory: ./backend
 
-      # 5. 빌드된 .jar 파일을 AWS EC2로 전송
+      # 🔑 [추가] AWS 인증 및 환경 세팅
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2 # 👈 서울 리전 정보
+
+      # 🔑 [추가] 현재 깃허브 배포 로봇의 공인 IP 주소 알아내기
+      - name: Get GitHub Actions IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+      # 🔑 [추가] AWS EC2 보안 그룹에 깃허브 로봇 IP를 22번 포트에 임시 등록 (문 열어주기)
+      - name: Authorize Amazon EC2 Security Group Inbound Rule
+        run: |
+          aws ec2 authorize-security-group-inbound \
+            --group-id ${{ secrets.EC2_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
+      # 5. 빌드된 .jar 파일을 AWS EC2로 전송 (이제 타임아웃 안 나고 통과됨!)
       - name: Deploy to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -41,6 +63,17 @@ jobs:
           source: "backend/build/libs/*.jar"
           target: "/home/ubuntu/app"
           strip_components: 3
+
+      # 🔑 [추가] 파일 전송이 끝났으니 보안을 위해 등록했던 깃허브 로봇 IP를 방화벽에서 즉시 삭제 (문 닫기)
+      # 💡 아래에 continue-on-error: true를 주어 뒤쪽 명령어가 혹시 실패하더라도 문은 무조건 닫히도록 안전장치를 합니다.
+      - name: Revoke Amazon EC2 Security Group Inbound Rule
+        if: always() # ➡️ 배포가 성공하든 실패하든 무조건 실행하라는 뜻
+        run: |
+          aws ec2 revoke-security-group-inbound \
+            --group-id ${{ secrets.EC2_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
       # 6. EC2에 원격 접속해서 기존 서버 끄고 새 서버 켜기
       - name: Execute remote ssh commands
