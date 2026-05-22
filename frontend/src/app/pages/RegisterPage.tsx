@@ -346,7 +346,7 @@ export default function RegisterPage() {
                   </Label>
                   <Input
                     id="name"
-                    placeholder="예: OO빌딩 화장실"
+                    placeholder="예: OO빌딩 O층 화장실"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
@@ -378,12 +378,7 @@ export default function RegisterPage() {
                   <Label>
                     위치 <span className="text-red-500">*</span>
                   </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={`${formData.lat.toFixed(5)}, ${formData.lng.toFixed(5)}`}
-                      readOnly
-                      className="flex-1 text-sm text-muted-foreground"
-                    />
+                  <div>
                     <Button
                       type="button"
                       variant={isSelectingLocation ? "default" : "outline"}

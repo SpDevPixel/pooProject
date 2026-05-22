@@ -196,8 +196,12 @@ export function MapView({
         const locPosition = new window.kakao.maps.LatLng(lat, lng);
 
         currentLocationMarkerRef.current?.setMap(null);
-        currentLocationMarkerRef.current = new window.kakao.maps.Marker({
+        currentLocationMarkerRef.current = new window.kakao.maps.CustomOverlay({
           position: locPosition,
+          content:
+            '<div style="width:16px;height:16px;border-radius:9999px;background:#dc2626;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>',
+          yAnchor: 0.5,
+          xAnchor: 0.5,
           map: mapInstanceRef.current,
         });
 
