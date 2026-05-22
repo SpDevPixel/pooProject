@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 자바 21 환경 세팅 (한자 오타 수정 완료)
+      # 2. 자바 21 환경 세팅
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -42,7 +42,6 @@ jobs:
           target: "/home/ubuntu/app"
           strip_components: 3
 
-YAML
       # 6. EC2에 원격 접속해서 기존 서버 끄고 새 서버 켜기
       - name: Execute remote ssh commands
         uses: appleboy/ssh-action@v1.0.3
@@ -54,24 +53,25 @@ YAML
             mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
             
-            echo " 1. 기존 구동 중인 서버 확인"
+            echo "👉 1. 기존 구동 중인 서버 확인"
             PID=$(ps -ef | grep 'java -jar' | grep -v grep | awk '{print $2}')
             
             if [ -z "$PID" ]; then
-              echo " 실행 중인 스프링 부트 서버가 없습니다."
+              echo "👉 실행 중인 스프링 부트 서버가 없습니다."
             else
-              echo " 기존 서버 프로세스 종료 (PID: $PID)"
+              echo "👉 기존 서버 프로세스 종료 (PID: $PID)"
               kill -15 $PID
               sleep 5
               kill -9 $PID 2>/dev/null || true
             fi
             
-            echo " 2. 배포 파일 실행 권한 부여"
+            echo "👉 2. 배포 파일 실행 권한 부여"
             chmod +x *.jar
             
-            echo "            nohup java -jar *.jar \
-              --spring.datasource.url="${{ secrets.DB_URL }}" \
-              --spring.datasource.username="${{ secrets.DB_USERNAME }}" \
-              --spring.datasource.password="${{ secrets.DB_PASSWORD }}" > nohup.out 2>&1 </dev/null &
+            echo "👉 3. 새 애플리케이션 구동 시작 (GitHub Secrets 변수 주입)"
+            nohup java -jar *.jar \
+              --spring.datasource.url=${{ secrets.DB_URL }} \
+              --spring.datasource.username=${{ secrets.DB_USERNAME }} \
+              --spring.datasource.password=${{ secrets.DB_PASSWORD }} > nohup.out 2>&1 </dev/null &
             
-            echo " 배포 완료! SSH 세션을 정상 종료합니다."
+            echo "👉 배포 완료! SSH 세션을 정상 종료합니다."
