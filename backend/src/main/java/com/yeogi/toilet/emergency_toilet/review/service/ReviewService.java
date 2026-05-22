@@ -48,12 +48,12 @@ public class ReviewService {
     }
 
     //사용자가 작성한 리뷰 전달
-    public List<Review> getReviewsByUser(String id){
+    public List<Review> getReviewsByUser(Long id){
         return reviewrepository.findByUser_Id(id);
     }
 
     //사용자가 작성한 리뷰 삭제
-    public  void deleteUserReview(String id, Long reviewId){
+    public  void deleteUserReview(Long id, Long reviewId){
         Review review = reviewrepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
         if(!review.getUser().getId().equals(id)){

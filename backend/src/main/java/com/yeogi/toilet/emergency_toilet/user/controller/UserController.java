@@ -46,7 +46,7 @@ public class UserController {
     public ResponseEntity<String> changeNickname(
             @RequestHeader("Authorization") String token,
             @RequestParam String newNn){
-        String id = jwtUtil.extractId(token.substring(7));
+        Long id = jwtUtil.extractId(token.substring(7));
         userService.changeNn(id,newNn);
 
 
@@ -70,7 +70,7 @@ public class UserController {
             @RequestHeader("Authorization") String token,
             @RequestParam String newPw){
 
-        String id = jwtUtil.extractId(token.substring(7));
+        Long id = jwtUtil.extractId(token.substring(7));
         userService.changePw(id, newPw);
         return ResponseEntity.ok("비밀번호 변경 완료");
     }
@@ -81,7 +81,7 @@ public class UserController {
             @RequestHeader("Authorization") String token){
 
         // 토큰에서 이메일 추출
-        String id = jwtUtil.extractId(token.substring(7));
+        Long id = jwtUtil.extractId(token.substring(7));
         userService.deleteUser(id);
         return ResponseEntity.ok("회원 탈퇴 완료");
     }

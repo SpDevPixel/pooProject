@@ -74,7 +74,7 @@ public class ToiletController {
             throw new RuntimeException("유효하지 않은 토큰");
         }
         String rawToken = token.substring(7);
-        String id = jwtUtil.extractRole(rawToken);
+        Long id = jwtUtil.extractId(rawToken);
         toiletService.deleteAToilet(managementNo,id);
 
 
@@ -93,9 +93,9 @@ public class ToiletController {
         }
 
         String rawToken = token.substring(7);
-        String userId = jwtUtil.extractId(rawToken);
+        Long userSn = jwtUtil.extractId(rawToken);
 
-        toiletService.updateToiletInfo(managementNo, userId, updateDto);
+        toiletService.updateToiletInfo(managementNo, userSn, updateDto);
 
         return ResponseEntity.noContent().build();
     }

@@ -10,9 +10,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
-import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 import { toast } from "sonner";
-import { changePassword, loginWithAnyIdentifier } from "../api/users";
+import { changePassword, deleteUserAccount, loginWithAnyIdentifier } from "../api/users";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,8 +30,8 @@ export default function EditProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [errors, setErrors] = useState<{
     currentPassword?: string;
     newPassword?: string;
@@ -91,7 +90,7 @@ export default function EditProfilePage() {
 
       try {
         const response = await loginWithAnyIdentifier(
-          [user.id, user.email],
+          [user.userId],
           currentPassword
         );
         token = response.token;
@@ -109,7 +108,7 @@ export default function EditProfilePage() {
         await changePassword(token, newPassword);
       }
 
-      toast.success("회원정보가 수정되었습니다.");
+      toast.success("비밀번호 변경완료되었습니다");
       navigate("/mypage");
     } catch (error) {
       console.error(error);
@@ -121,26 +120,28 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleDeleteAccount = (password: string) => {
-    // TODO: 실제 구현 시 백엔드 API 호출하여 비밀번호 검증
-    // const response = await fetch('/api/auth/verify-password', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ password })
-    // });
-    
-    setShowPasswordConfirm(false);
-    
-    // TODO: 실제 구현 시 백엔드 API 호출
-    // await fetch('/api/user/delete', {
-    //   method: 'DELETE',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ password })
-    // });
+  const handleDeleteAccount = async () => {
+    const token = user.token || localStorage.getItem("token");
 
-    deleteAccount();
-    toast.success("회원탈퇴가 완료되었습니다.");
-    navigate("/");
+    if (!token) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await deleteUserAccount(token);
+      setShowDeleteDialog(false);
+      deleteAccount();
+      toast.success("탈퇴완료되었습니다");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "회원탈퇴에 실패했습니다.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -308,25 +309,14 @@ export default function EditProfilePage() {
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                setShowDeleteDialog(false);
-                setShowPasswordConfirm(true);
-              }}
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
             >
-              탈퇴하기
+              {isDeleting ? "탈퇴 중..." : "탈퇴하기"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Password Confirm Dialog for Deletion */}
-      <PasswordConfirmDialog
-        open={showPasswordConfirm}
-        onOpenChange={setShowPasswordConfirm}
-        onConfirm={handleDeleteAccount}
-        title="비밀번호 확인"
-        description="회원탈퇴를 진행하려면 비밀번호를 입력해주세요."
-      />
     </div>
   );
 }

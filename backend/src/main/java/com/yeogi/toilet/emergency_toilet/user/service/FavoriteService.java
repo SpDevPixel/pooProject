@@ -23,9 +23,9 @@ public class FavoriteService {
     private final ToiletRepository toiletRepository;
 
     //화장실 즐겨찾기
-    public void addFavorite(String userId, String managementNo) {
+    public void addFavorite(Long Id, String managementNo) {
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
 
         Toilet toilet = toiletRepository.findById(managementNo)
@@ -44,8 +44,8 @@ public class FavoriteService {
     }
 
     //화장실 즐겨찾기 취소
-    public void deleteFavorite(String userId, String managementNo) {
-        User user = userRepository.findById(userId)
+    public void deleteFavorite(Long Id, String managementNo) {
+        User user = userRepository.findById(Id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
 
         Toilet toilet = toiletRepository.findById(managementNo)
@@ -59,7 +59,7 @@ public class FavoriteService {
     }
     //이용자가 즐겨찾기한 화장실 데이터 전송
     @Transactional(readOnly = true)
-    public List<Toilet> getUserFavoriteToilets(String userId) {
+    public List<Toilet> getUserFavoriteToilets(Long userId) {
         return favoriteRepository.findToiletsByUserId(userId);
     }
 

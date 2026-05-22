@@ -1,0 +1,109 @@
+name: Deploy Spring Boot to AWS EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 깃허브 레포지토리의 코드를 가져옴
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 자바 21 환경 세팅
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # 3. gradlew에 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        working-directory: ./backend
+
+      # 4. Spring Boot 프로젝트 빌드
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+        working-directory: ./backend
+
+      # 🔑 [추가] AWS 인증 및 환경 세팅
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2 # 👈 서울 리전 정보
+
+      # 🔑 [추가] 현재 깃허브 배포 로봇의 공인 IP 주소 알아내기
+      - name: Get GitHub Actions IP
+        id: ip
+        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+      # 🔑 [추가] AWS EC2 보안 그룹에 깃허브 로봇 IP를 22번 포트에 임시 등록 (문 열어주기)
+      - name: Authorize Amazon EC2 Security Group Inbound Rule
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.EC2_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
+      # 5. 빌드된 .jar 파일을 AWS EC2로 전송
+      - name: Deploy to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "backend/build/libs/*.jar"
+          target: "/home/ubuntu/app"
+          strip_components: 3
+
+      # 6. EC2에 원격 접속해서 기존 서버 끄고 새 서버 켜기 (방화벽이 열려있으니 이제 정상 진입!)
+      - name: Execute remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/app
+            cd /home/ubuntu/app
+            
+            echo "👉 1. 기존 구동 중인 서버 확인"
+            PID=$(ps -ef | grep 'java -jar' | grep -v grep | awk '{print $2}')
+            
+            if [ -z "$PID" ]; then
+              echo "👉 실행 중인 스프링 부트 서버가 없습니다."
+            else
+              echo "👉 기존 서버 프로세스 종료 (PID: $PID)"
+              kill -15 $PID
+              sleep 5
+              kill -9 $PID 2>/dev/null || true
+            fi
+            
+            echo "👉 2. 배포 파일 실행 권한 부여"
+            chmod +x *.jar
+            
+            echo "👉 3. 새 애플리케이션 구동 시작 (GitHub Secrets 변수 주입)"
+            nohup java -jar *.jar \
+              --spring.datasource.url=${{ secrets.DB_URL }} \
+              --spring.datasource.username=${{ secrets.DB_USERNAME }} \
+              --spring.datasource.password=${{ secrets.DB_PASSWORD }} > nohup.out 2>&1 </dev/null &
+            
+            echo "👉 배포 완료! SSH 세션을 정상 종료합니다."
+
+      # 🔒 [맨 뒤로 이동] 모든 작업(SCP, SSH)이 끝났으니 등록했던 깃허브 로봇 IP를 방화벽에서 최종 삭제
+      - name: Revoke Amazon EC2 Security Group Inbound Rule
+        if: always() # ➡️ 배포가 중간에 성공하든 실패하든 방화벽 문은 무조건 닫히도록 보호합니다.
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.EC2_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32

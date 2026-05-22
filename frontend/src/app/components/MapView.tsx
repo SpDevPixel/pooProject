@@ -26,6 +26,7 @@ export function MapView({
   const markerClustererRef = useRef<any>(null);
   const currentLocationMarkerRef = useRef<any>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [mapLoadFailed, setMapLoadFailed] = useState(false);
 
   const hasValidToiletCoordinates = useCallback((toilet: Toilet) => {
     return (
@@ -50,6 +51,7 @@ export function MapView({
     if (!mapRef.current) return;
 
     const initMap = () => {
+      setMapLoadFailed(false);
       window.kakao.maps.load(() => {
         const container = mapRef.current;
         if (!container) return;
@@ -60,6 +62,9 @@ export function MapView({
         };
 
         mapInstanceRef.current = new window.kakao.maps.Map(container, options);
+        window.setTimeout(() => {
+          mapInstanceRef.current?.relayout();
+        }, 0);
         markerClustererRef.current = new window.kakao.maps.MarkerClusterer({
           map: mapInstanceRef.current,
           averageCenter: true,
@@ -70,10 +75,18 @@ export function MapView({
       });
     };
 
+    const handleMapLoadError = () => {
+      setMapLoadFailed(true);
+      onAddressMarkerStatusChange?.("complete");
+    };
+
     if (window.kakao?.maps) {
       initMap();
       return;
     }
+
+    window.addEventListener("kakao-maps-loaded", initMap);
+    window.addEventListener("kakao-maps-load-error", handleMapLoadError);
 
     const kakaoScript = document.querySelector(
       'script[src*="dapi.kakao.com/v2/maps"]'
@@ -81,9 +94,20 @@ export function MapView({
 
     if (kakaoScript) {
       kakaoScript.addEventListener("load", initMap);
-      return () => kakaoScript.removeEventListener("load", initMap);
+      kakaoScript.addEventListener("error", handleMapLoadError);
+      return () => {
+        window.removeEventListener("kakao-maps-loaded", initMap);
+        window.removeEventListener("kakao-maps-load-error", handleMapLoadError);
+        kakaoScript.removeEventListener("load", initMap);
+        kakaoScript.removeEventListener("error", handleMapLoadError);
+      };
     }
-  }, []);
+
+    return () => {
+      window.removeEventListener("kakao-maps-loaded", initMap);
+      window.removeEventListener("kakao-maps-load-error", handleMapLoadError);
+    };
+  }, [onAddressMarkerStatusChange]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -172,8 +196,12 @@ export function MapView({
         const locPosition = new window.kakao.maps.LatLng(lat, lng);
 
         currentLocationMarkerRef.current?.setMap(null);
-        currentLocationMarkerRef.current = new window.kakao.maps.Marker({
+        currentLocationMarkerRef.current = new window.kakao.maps.CustomOverlay({
           position: locPosition,
+          content:
+            '<div style="width:16px;height:16px;border-radius:9999px;background:#dc2626;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>',
+          yAnchor: 0.5,
+          xAnchor: 0.5,
           map: mapInstanceRef.current,
         });
 
@@ -202,11 +230,20 @@ export function MapView({
     <div className="relative w-full h-full rounded-lg overflow-hidden" style={{ minHeight: "400px" }}>
       <div ref={mapRef} className="w-full h-full" />
 
+      {mapLoadFailed && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white text-center text-red-600">
+          <div>
+            <h3 className="font-semibold">지도를 불러올 수 없습니다</h3>
+            <p className="mt-2 text-sm">카카오맵 설정 또는 네트워크 상태를 확인해주세요.</p>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={moveToCurrentLocation}
-        disabled={isLocating}
+        disabled={isLocating || mapLoadFailed}
         className={`absolute bottom-6 right-6 z-10 flex items-center justify-center rounded-full border border-gray-200 p-3 shadow-lg transition-colors ${
-          isLocating ? "bg-gray-100 cursor-not-allowed" : "bg-white hover:bg-gray-50"
+          isLocating || mapLoadFailed ? "bg-gray-100 cursor-not-allowed" : "bg-white hover:bg-gray-50"
         }`}
         aria-label="현재 위치로 이동"
       >

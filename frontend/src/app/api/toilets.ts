@@ -25,6 +25,24 @@ type BackendToilet = {
   reviewCount?: number | null;
 };
 
+export type CreateUserToiletRequest = {
+  managementNo: string;
+  name: string;
+  roadAddress: string;
+  lat: number;
+  lng: number;
+  openTime: string | null;
+  openTimeDetail: string | null;
+  managingOrg: string | null;
+  phoneNumber: string | null;
+  wasteDisposal: string | null;
+  hasDisabledFacility: boolean;
+  hasEmergencyBell: boolean;
+  hasDiaperTable: boolean;
+  hasEntranceCctv: boolean;
+  isUserSubmitted: boolean;
+};
+
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";
 
 const toNumber = (value: BackendToilet["lat"]) => {
@@ -37,7 +55,9 @@ const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lng = toNumber(toilet.lng);
   const managementNo = toilet.managementNo?.toString();
 
-  if (!managementNo || !toilet.name || !toilet.roadAddress) {
+  // 좌표로만 찍기
+  // if (!managementNo || !toilet.name || !toilet.roadAddress) {
+  if (!managementNo || !toilet.name || lat === null || lng === null) {
     return null;
   }
 
@@ -73,4 +93,35 @@ export const fetchToilets = async (): Promise<Toilet[]> => {
   const data = (await response.json()) as BackendToilet[];
 
   return data.map(normalizeToilet).filter((toilet): toilet is Toilet => toilet !== null);
+};
+
+export const createUserToilet = async (
+  payload: CreateUserToiletRequest,
+  token: string
+): Promise<Toilet> => {
+  const response = await fetch(`${API_BASE_URL}/toilets/user`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("로그인이 만료되었습니다. 다시 로그인한 뒤 등록해주세요.");
+    }
+
+    throw new Error("화장실 등록에 실패했습니다. 잠시 후 다시 시도해주세요.");
+  }
+
+  const data = (await response.json()) as BackendToilet;
+  const toilet = normalizeToilet(data);
+
+  if (!toilet) {
+    throw new Error("등록된 화장실 정보를 확인하지 못했습니다.");
+  }
+
+  return toilet;
 };

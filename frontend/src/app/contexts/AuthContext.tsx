@@ -8,6 +8,7 @@ import { fetchMyInfo, loginUser } from "../api/users";
 
 interface User {
   id: string;
+  userId: string;
   email: string;
   name: string;
   role?: string | null;
@@ -29,17 +30,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     // 로컬 스토리지에서 사용자 정보 복원
     const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
+    if (!savedUser) return null;
+
+    const parsedUser = JSON.parse(savedUser);
+    return {
+      ...parsedUser,
+      id: String(parsedUser.id ?? ""),
+      userId: parsedUser.userId ?? parsedUser.id ?? "",
+    };
   });
 
   const login = async (id: string, password: string) => {
     const { token } = await loginUser({ id, password });
 
     const userInfo = await fetchMyInfo(token).catch(() => null);
+    const userId = userInfo?.userId ?? id;
     const loggedInUser: User = {
-      id: userInfo?.id ?? id,
+      id: String(userInfo?.id ?? id),
+      userId,
       email: userInfo?.email ?? "",
-      name: userInfo?.name ?? id,
+      name: userInfo?.name ?? userId,
       role: userInfo?.role,
       token,
     };

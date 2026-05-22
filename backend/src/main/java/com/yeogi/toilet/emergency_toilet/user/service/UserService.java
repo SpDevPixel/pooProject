@@ -39,7 +39,7 @@ public class UserService {
     }
     //아이디 사용 여부
     public boolean isUseId(String id){
-        return userRepository.findByNickname(id).isEmpty();
+        return userRepository.findByUserId(id).isEmpty();
     }
 
 
@@ -49,7 +49,7 @@ public class UserService {
 
         String encodePassword = passwordEncoder.encode(dto.getPassword());
 
-        user.setId(dto.getId());
+        user.setUserId(dto.getId());
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setAddress(dto.getAddress());
@@ -61,26 +61,29 @@ public class UserService {
     }
 
     @Transactional
-    public void changePw(String id, String newPw){
-        User user = userRepository.findById(id).get();
+    public void changePw(Long id, String newPw){
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
         String encodePassword = passwordEncoder.encode(newPw);
         user.setPassword(encodePassword);
     }
 
     @Transactional
-    public void changeNn(String id,String newNn){
-        User user = userRepository.findById(id).get();
+    public void changeNn(Long id,String newNn){
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
         user.setNickname(newNn);
     }
 
-    public void deleteUser(String email){
-        User user = userRepository.findByEmail(email).get();
+    public void deleteUser(Long id){
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
         userRepository.delete(user);
     }
 
     //로그인 서비스
     public ResponseEntity<?> login(UserDto userDto){
-        Optional<User> user = userRepository.findByEmail(userDto.getId());
+        Optional<User> user = userRepository.findByUserId(userDto.getId());
 
         if(user.isEmpty()){
             return ResponseEntity.badRequest().body("계정이 없음");
@@ -89,14 +92,15 @@ public class UserService {
         if(!passwordEncoder.matches(userDto.getPassword(),user.get().getPassword())){
             return ResponseEntity.badRequest().body("비밀번호 없음");
         }
-        String token = jwtUtil.generateToken(user.get().getId(),user.get().getRole());
+        String token = jwtUtil.generateToken(user.get().getId(), user.get().getRole());
         return ResponseEntity.ok(Map.of("token", token));
     }
     //토큰 발생
     public ResponseEntity<?> getMyInfo(String token) {
         String pureToken = token.substring(7);
-        String id = jwtUtil.extractId(pureToken);
-        User user = userRepository.findById(id).get();
+        Long id = jwtUtil.extractId(pureToken);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         return ResponseEntity.ok(user);
     }
 

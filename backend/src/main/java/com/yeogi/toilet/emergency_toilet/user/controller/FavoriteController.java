@@ -20,8 +20,8 @@ public class FavoriteController {
             @PathVariable String managementNo,
             @RequestHeader("Authorization") String token  // 헤더에서 토큰 받기
     ) {
-        String userId = jwtUtil.extractId(token.replace("Bearer ", ""));
-        favoriteService.addFavorite(userId, managementNo);
+        Long Id = jwtUtil.extractId(token.replace("Bearer ", ""));
+        favoriteService.addFavorite(Id, managementNo);
         return ResponseEntity.ok().build();
     }
 
@@ -29,9 +29,9 @@ public class FavoriteController {
     @DeleteMapping("/favorites/{managementNo}")
     public ResponseEntity<?> deleteFavorite(@PathVariable String managementNo,
                                             @RequestHeader("Authorization") String token){
-        String userId = jwtUtil.extractId(token.replace("Bearer ", ""));
+        Long Id = jwtUtil.extractId(token.replace("Bearer ", ""));
 
-        favoriteService.deleteFavorite(userId,managementNo);
+        favoriteService.deleteFavorite(Id,managementNo);
 
         return ResponseEntity.ok().build();
     }
@@ -39,9 +39,9 @@ public class FavoriteController {
     //즐겨찾기한 화장실 정보 전송
     @GetMapping("/toilets")
     public ResponseEntity<?> getFavoriteToilet(@RequestHeader("Authorization") String token){
-        String userId = jwtUtil.extractId(token.replace("Bearer ", ""));
+        Long Id = jwtUtil.extractId(token.replace("Bearer ", ""));
 
-        favoriteService.getUserFavoriteToilets(userId);
+        favoriteService.getUserFavoriteToilets(Id);
 
         return ResponseEntity.ok().build();
     }
