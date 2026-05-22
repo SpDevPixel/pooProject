@@ -53,7 +53,7 @@ jobs:
             --port 22 \
             --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-      # 5. 빌드된 .jar 파일을 AWS EC2로 전송 (이제 타임아웃 안 나고 통과됨!)
+      # 5. 빌드된 .jar 파일을 AWS EC2로 전송
       - name: Deploy to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -64,18 +64,7 @@ jobs:
           target: "/home/ubuntu/app"
           strip_components: 3
 
-      # 🔑 [추가] 파일 전송이 끝났으니 보안을 위해 등록했던 깃허브 로봇 IP를 방화벽에서 즉시 삭제 (문 닫기)
-      # 💡 아래에 continue-on-error: true를 주어 뒤쪽 명령어가 혹시 실패하더라도 문은 무조건 닫히도록 안전장치를 합니다.
-      - name: Revoke Amazon EC2 Security Group Inbound Rule
-        if: always()
-        run: |
-          aws ec2 revoke-security-group-ingress \
-            --group-id ${{ secrets.EC2_SG_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr ${{ steps.ip.outputs.ipv4 }}/32
-
-      # 6. EC2에 원격 접속해서 기존 서버 끄고 새 서버 켜기
+      # 6. EC2에 원격 접속해서 기존 서버 끄고 새 서버 켜기 (방화벽이 열려있으니 이제 정상 진입!)
       - name: Execute remote ssh commands
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -108,3 +97,13 @@ jobs:
               --spring.datasource.password=${{ secrets.DB_PASSWORD }} > nohup.out 2>&1 </dev/null &
             
             echo "👉 배포 완료! SSH 세션을 정상 종료합니다."
+
+      # 🔒 [맨 뒤로 이동] 모든 작업(SCP, SSH)이 끝났으니 등록했던 깃허브 로봇 IP를 방화벽에서 최종 삭제
+      - name: Revoke Amazon EC2 Security Group Inbound Rule
+        if: always() # ➡️ 배포가 중간에 성공하든 실패하든 방화벽 문은 무조건 닫히도록 보호합니다.
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.EC2_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
