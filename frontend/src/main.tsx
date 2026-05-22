@@ -12,22 +12,18 @@ import "./styles/index.css";
 const rootElement = document.getElementById("root")!;
 const root = createRoot(rootElement);
 
-// 2. 카카오맵이 로드되기 전, 빈 화면 대신 보여줄 로딩 화면을 먼저 그립니다.
-root.render(
-  <div style={{ display: "flex", justifyContent: "center", marginTop: "50px" }}>
-    <h3>화장실 지도를 불러오는 중입니다. 잠시만 기다려주세요.</h3>
-  </div>
-);
+const renderApp = () => {
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+};
 
 const KAKAO_KEY = (import.meta as any).env.VITE_KAKAO_MAP_KEY;
 
 if (!KAKAO_KEY) {
-  root.render(
-    <div style={{ color: "#b91c1c", textAlign: "center", marginTop: "50px" }}>
-      <h3>지도를 불러올 수 없습니다</h3>
-      <p>지도 설정이 아직 연결되지 않았습니다. 잠시 후 다시 시도해주세요.</p>
-    </div>
-  );
+  window.dispatchEvent(new Event("kakao-maps-load-error"));
 } else {
   const script = document.createElement("script");
   
@@ -35,23 +31,15 @@ if (!KAKAO_KEY) {
 
   script.onload = () => {
     window.kakao.maps.load(() => {
-      // 3. 스크립트 로드와 내부 초기화가 모두 끝나면, 드디어 진짜 App을 그립니다.
-      root.render(
-        <StrictMode>
-          <App />
-        </StrictMode>
-      );
+      window.dispatchEvent(new Event("kakao-maps-loaded"));
     });
   };
 
   script.onerror = () => {
-    root.render(
-      <div style={{ color: "#b91c1c", textAlign: "center", marginTop: "50px" }}>
-        <h3>지도를 불러올 수 없습니다</h3>
-        <p>인터넷 연결을 확인한 뒤 새로고침해주세요.</p>
-      </div>
-    );
+    window.dispatchEvent(new Event("kakao-maps-load-error"));
   };
 
   document.head.appendChild(script);
 }
+
+renderApp();
