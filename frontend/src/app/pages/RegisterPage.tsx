@@ -13,6 +13,8 @@ import { Switch } from "../components/ui/switch";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import type { ToiletFormData } from "../types/toilet";
+import { createUserToilet } from "../api/toilets";
+import { useAuth } from "../contexts/AuthContext";
 
 // ──────────────────────────────────────────────
 // 카카오 REST API로 역지오코딩 (fetch 방식)
@@ -61,11 +63,47 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   return address;
 };
 
+const geocodeAddress = async (
+  roadAddress: string
+): Promise<{ lat: number; lng: number }> => {
+  const REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
+
+  if (!REST_KEY) {
+    throw new Error("좌표 변환 설정이 없습니다.");
+  }
+
+  const response = await fetch(
+    `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(roadAddress)}`,
+    {
+      headers: {
+        Authorization: `KakaoAK ${REST_KEY}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("주소를 좌표로 변환하지 못했습니다.");
+  }
+
+  const data = await response.json();
+  const firstDocument = data.documents?.[0];
+
+  if (!firstDocument?.x || !firstDocument?.y) {
+    throw new Error("주소에 맞는 좌표를 찾지 못했습니다.");
+  }
+
+  return {
+    lat: Number(firstDocument.y),
+    lng: Number(firstDocument.x),
+  };
+};
+
 // ──────────────────────────────────────────────
 // RegisterPage 컴포넌트
 // ──────────────────────────────────────────────
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
 
   // 지도 관련 ref
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +112,8 @@ export default function RegisterPage() {
 
   const [isSelectingLocation, setIsSelectingLocation] = useState(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSelectedLocation, setHasSelectedLocation] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   const [formData, setFormData] = useState<ToiletFormData>({
@@ -168,6 +208,7 @@ export default function RegisterPage() {
     mapInstanceRef.current?.panTo(newPosition);
 
     setFormData((prev) => ({ ...prev, lat, lng }));
+    setHasSelectedLocation(true);
     setIsSelectingLocation(false);
 
     // 역지오코딩으로 주소 자동 입력
@@ -205,7 +246,7 @@ export default function RegisterPage() {
   // ──────────────────────────────────────────
   // 폼 제출
   // ──────────────────────────────────────────
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.roadAddress) {
@@ -213,40 +254,61 @@ export default function RegisterPage() {
       return;
     }
 
-    const toiletData = {
-      managementNo: `USER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: formData.name,
-      roadAddress: formData.roadAddress,
-      lat: formData.lat,
-      lng: formData.lng,
-      openTime: formData.openTime || null,
-      openTimeDetail: formData.openTimeDetail || null,
-      managingOrg: formData.managingOrg || null,
-      phoneNumber: formData.phoneNumber || null,
-      wasteDisposal: formData.wasteDisposal || null,
-      hasDisabledFacility: formData.hasDisabledFacility,
-      hasEmergencyBell: formData.hasEmergencyBell,
-      hasDiaperTable: formData.hasDiaperTable,
-      hasEntranceCctv: formData.hasEntranceCctv,
-      isUserSubmitted: true,
-    };
+    if (!isAuthenticated || !user?.token) {
+      toast.error("로그인 후 화장실을 등록할 수 있습니다.");
+      navigate("/auth");
+      return;
+    }
 
-    // TODO: 백엔드 API 연동 시 아래 주석 해제
-    // fetch('/api/toilets', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(toiletData),
-    // })
-    //   .then((res) => res.json())
-    //   .then(() => {
-    //     toast.success("화장실 정보가 등록되었습니다!");
-    //     navigate("/");
-    //   })
-    //   .catch(() => toast.error("등록에 실패했습니다. 다시 시도해주세요."));
+    setIsSubmitting(true);
 
-    console.log("등록할 화장실 데이터:", toiletData);
-    toast.success("화장실 정보가 등록되었습니다!");
-    setTimeout(() => navigate("/"), 1000);
+    try {
+      let coordinates = {
+        lat: formData.lat,
+        lng: formData.lng,
+      };
+
+      try {
+        coordinates = await geocodeAddress(formData.roadAddress);
+      } catch (error) {
+        if (!hasSelectedLocation) {
+          throw error;
+        }
+      }
+
+      await createUserToilet(
+        {
+          managementNo: `USER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: formData.name,
+          roadAddress: formData.roadAddress,
+          lat: coordinates.lat,
+          lng: coordinates.lng,
+          openTime: formData.openTime || null,
+          openTimeDetail: formData.openTimeDetail || null,
+          managingOrg: formData.managingOrg || null,
+          phoneNumber: formData.phoneNumber || null,
+          wasteDisposal: formData.wasteDisposal || null,
+          hasDisabledFacility: formData.hasDisabledFacility,
+          hasEmergencyBell: formData.hasEmergencyBell,
+          hasDiaperTable: formData.hasDiaperTable,
+          hasEntranceCctv: formData.hasEntranceCctv,
+          isUserSubmitted: true,
+        },
+        user.token
+      );
+
+      toast.success("화장실 정보가 등록되었습니다!");
+      setTimeout(() => navigate("/"), 700);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "등록에 실패했습니다. 다시 시도해주세요."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ──────────────────────────────────────────
@@ -449,8 +511,8 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                등록하기
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "등록 중..." : "등록하기"}
               </Button>
             </form>
           </div>
