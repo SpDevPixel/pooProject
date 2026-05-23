@@ -92,12 +92,15 @@ export default function HomePage() {
     setIsDetailModalOpen(true);
   }, []);
 
+  const headerButtonClass =
+    "min-w-[5.5rem] flex-1 basis-[30%] shrink justify-center gap-1 whitespace-nowrap px-2 text-xs sm:min-w-0 sm:flex-none sm:basis-auto sm:gap-2 sm:px-3 sm:text-sm";
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <div className="bg-white border-b px-4 py-4 flex-shrink-0 shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-700">화장실 급할 때</h1>
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden flex flex-col bg-gray-50">
+      <div className="bg-white border-b px-3 py-4 flex-shrink-0 shadow-sm sm:px-4">
+        <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-blue-700 sm:text-2xl">화장실 급할 때</h1>
             <p className="text-sm text-muted-foreground">
               {isLoadingToilets
                 ? "화장실 정보를 불러오는 중입니다."
@@ -111,31 +114,35 @@ export default function HomePage() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
             {toiletLoadError && (
-              <Button variant="outline" onClick={loadToilets} className="flex items-center gap-2">
+              <Button variant="outline" onClick={loadToilets} className={headerButtonClass}>
                 <RefreshCw size={18} />
                 다시 불러오기
               </Button>
             )}
-            <Button variant="outline" onClick={() => navigate("/notices")} className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/notices")} className={headerButtonClass}>
               <Megaphone size={18} />
               공지사항
             </Button>
-            <Button variant="outline" onClick={() => navigate("/toilets")} className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/toilets")} className={headerButtonClass}>
               <ListFilter size={18} />
               목록
             </Button>
-            <Button variant="outline" onClick={() => navigate("/admin")} className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/admin")} className={headerButtonClass}>
               <Shield size={18} />
               관리자
             </Button>
-            <ToiletFilters filters={filters} onFiltersChange={setFilters} />
+            <ToiletFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              triggerClassName={headerButtonClass}
+            />
             {isAuthenticated ? (
               <Button
                 variant="outline"
                 onClick={() => navigate("/mypage")}
-                className="flex items-center gap-2"
+                className={headerButtonClass}
               >
                 <User size={18} />
                 마이페이지
@@ -144,7 +151,7 @@ export default function HomePage() {
               <Button
                 variant="outline"
                 onClick={() => navigate("/auth")}
-                className="flex items-center gap-2"
+                className={headerButtonClass}
               >
                 <User size={18} />
                 로그인
@@ -154,16 +161,16 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto lg:overflow-hidden">
-        <div className="max-w-7xl mx-auto h-full p-4">
+      <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden lg:overflow-hidden">
+        <div className="mx-auto h-full w-full max-w-7xl min-w-0 p-3 sm:p-4">
           {toiletLoadError && (
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <AlertCircle size={18} />
               {toiletLoadError}
             </div>
           )}
-          <div className="grid lg:grid-cols-4 gap-4 lg:h-full">
-            <div className="lg:col-span-1 space-y-3">
+          <div className="grid min-w-0 gap-4 lg:h-full lg:grid-cols-4">
+            <div className="min-w-0 space-y-3 lg:col-span-1">
               <div className="rounded-lg border bg-white p-4 shadow-sm">
                 <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
                   <Search size={17} />
@@ -205,7 +212,7 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="lg:col-span-3 h-[600px] lg:h-full">
+            <div className="min-w-0 h-[600px] lg:col-span-3 lg:h-full">
               <MapView
                 toilets={filteredToilets}
                 selectedToilet={selectedToilet}
