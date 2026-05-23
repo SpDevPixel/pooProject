@@ -1,8 +1,8 @@
-package com.yeogi.toilet.emergency_toilet.Notice.service;
+package com.yeogi.toilet.emergency_toilet.notice.service;
 
 
-import com.yeogi.toilet.emergency_toilet.Notice.domain.Notice;
-import com.yeogi.toilet.emergency_toilet.Notice.repository.NoticeRepository;
+import com.yeogi.toilet.emergency_toilet.notice.domain.Notice;
+import com.yeogi.toilet.emergency_toilet.notice.repository.NoticeRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
@@ -28,9 +28,9 @@ public class NoticeService {
     }
 
     //공지사항 등록
-    public void addNotice(Notice noticeDto,String token){
+    public Notice addNotice(Notice noticeDto,String token){
         String pureToken = token.substring(7);
-        String id = jwtUtil.extractId(pureToken);
+        Long id = jwtUtil.extractId(pureToken);
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
@@ -41,14 +41,14 @@ public class NoticeService {
 
         Notice notice = new Notice(noticeDto.getTitle(),noticeDto.getContent(),noticeDto.getAuthor());
 
-        noticeRepository.save(notice);
+        return noticeRepository.save(notice);
 
     }
 
     //공지사항 삭제
     public void deleteNotice(Long noticeId,String token){
         String pureToken = token.substring(7);
-        String id = jwtUtil.extractId(pureToken);
+        Long id = jwtUtil.extractId(pureToken);
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
@@ -68,7 +68,7 @@ public class NoticeService {
     @Transactional
     public void updateNotice(Long noticeId,Notice noticeDto,String token){
         String pureToken = token.substring(7);
-        String id = jwtUtil.extractId(pureToken);
+        Long id = jwtUtil.extractId(pureToken);
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));

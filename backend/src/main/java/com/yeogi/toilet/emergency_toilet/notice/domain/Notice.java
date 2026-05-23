@@ -1,4 +1,4 @@
-package com.yeogi.toilet.emergency_toilet.Notice.domain;
+package com.yeogi.toilet.emergency_toilet.notice.domain;
 
 import jakarta.persistence.*;
 import lombok.Builder;
