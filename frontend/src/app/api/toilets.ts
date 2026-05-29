@@ -43,6 +43,17 @@ export type CreateUserToiletRequest = {
   isUserSubmitted: boolean;
 };
 
+export type UpdateUserToiletRequest = {
+  openTime: string;
+  openTimeDetail: string;
+  managingOrg: string;
+  phoneNumber: string;
+  wasteDisposal: string;
+  emergencyBell: boolean;
+  diaperTable: boolean;
+  entranceCctv: boolean;
+};
+
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";
 
 const toNumber = (value: BackendToilet["lat"]) => {
@@ -166,5 +177,31 @@ export const deleteUserToilet = async (
     }
 
     throw new Error("화장실 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+  }
+};
+
+export const updateUserToilet = async (
+  managementNo: string,
+  payload: UpdateUserToiletRequest,
+  token: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/toilets/${encodeURIComponent(managementNo)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("수정 권한이 없거나 로그인이 만료되었습니다.");
+    }
+
+    throw new Error("화장실 정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
   }
 };
