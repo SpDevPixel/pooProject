@@ -5,13 +5,14 @@
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, MapPin, Star, Mail, LogOut, MessageSquare, Settings } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Mail, LogOut, MessageSquare, Settings, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
-import { mockToilets } from "../data/mockToilets";
 import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 import { loginWithAnyIdentifier } from "../api/users";
+import { deleteUserToilet, fetchUserToilets } from "../api/toilets";
+import { toast } from "sonner";
 
 interface Review {
   id: string;
@@ -21,16 +22,6 @@ interface Review {
   comment: string;
   createdAt: string;
 }
-
-// Mock 데이터 - 사용자가 등록한 화장실
-const getUserToilets = (userEmail: string): Toilet[] => {
-  // TODO: 실제 구현 시 백엔드 API 호출
-  // const response = await fetch(`/api/toilets/user/${userEmail}`);
-  // return await response.json();
-  
-  // Mock: isUserSubmitted가 true인 화장실들 반환
-  return mockToilets.filter((toilet) => toilet.isUserSubmitted);
-};
 
 // Mock 데이터 - 사용자가 작성한 리뷰
 const getUserReviews = (userEmail: string): Review[] => {
@@ -72,6 +63,10 @@ export default function MyPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"toilets" | "reviews">("toilets");
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [userToilets, setUserToilets] = useState<Toilet[]>([]);
+  const [isLoadingToilets, setIsLoadingToilets] = useState(false);
+  const [toiletLoadError, setToiletLoadError] = useState<string | null>(null);
+  const [deletingToiletId, setDeletingToiletId] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -80,11 +75,47 @@ export default function MyPage() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (!user?.token) return;
+
+    let isMounted = true;
+
+    const loadUserToilets = async () => {
+      setIsLoadingToilets(true);
+      setToiletLoadError(null);
+
+      try {
+        const toilets = await fetchUserToilets(user.token);
+        if (isMounted) {
+          setUserToilets(toilets);
+        }
+      } catch (error) {
+        console.error(error);
+        if (isMounted) {
+          setToiletLoadError(
+            error instanceof Error
+              ? error.message
+              : "등록한 화장실을 불러오지 못했습니다."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingToilets(false);
+        }
+      }
+    };
+
+    loadUserToilets();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
+
   if (!user) {
     return null;
   }
 
-  const userToilets = getUserToilets(user.email);
   const userReviews = getUserReviews(user.email);
 
   const handleLogout = () => {
@@ -100,6 +131,54 @@ export default function MyPage() {
     await loginWithAnyIdentifier([user.userId], password);
     setShowPasswordConfirm(false);
     navigate("/edit-profile");
+  };
+
+  const handleRefreshUserToilets = async () => {
+    if (!user.token) return;
+
+    setIsLoadingToilets(true);
+    setToiletLoadError(null);
+
+    try {
+      const toilets = await fetchUserToilets(user.token);
+      setUserToilets(toilets);
+    } catch (error) {
+      console.error(error);
+      setToiletLoadError(
+        error instanceof Error
+          ? error.message
+          : "등록한 화장실을 불러오지 못했습니다."
+      );
+    } finally {
+      setIsLoadingToilets(false);
+    }
+  };
+
+  const handleDeleteToilet = async (toilet: Toilet, event: React.MouseEvent) => {
+    event.stopPropagation();
+
+    if (!window.confirm(`"${toilet.name}" 화장실을 삭제할까요?`)) {
+      return;
+    }
+
+    setDeletingToiletId(toilet.managementNo);
+
+    try {
+      await deleteUserToilet(toilet.managementNo, user.token);
+      setUserToilets((current) =>
+        current.filter((item) => item.managementNo !== toilet.managementNo)
+      );
+      toast.success("등록한 화장실이 삭제되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "화장실 삭제에 실패했습니다."
+      );
+    } finally {
+      setDeletingToiletId(null);
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -207,7 +286,27 @@ export default function MyPage() {
           <div className="p-4">
             {activeTab === "toilets" && (
               <div className="space-y-3">
-                {userToilets.length === 0 ? (
+                {toiletLoadError && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <span>{toiletLoadError}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshUserToilets}
+                      disabled={isLoadingToilets}
+                    >
+                      <RefreshCw size={14} className="mr-2" />
+                      다시 시도
+                    </Button>
+                  </div>
+                )}
+
+                {isLoadingToilets ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <RefreshCw size={36} className="mx-auto mb-4 animate-spin opacity-40" />
+                    <p>등록한 화장실을 불러오는 중입니다.</p>
+                  </div>
+                ) : userToilets.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <MapPin size={48} className="mx-auto mb-4 opacity-20" />
                     <p>등록한 화장실이 없습니다.</p>
@@ -254,7 +353,22 @@ export default function MyPage() {
                             )}
                           </div>
                         </div>
-                        <MapPin size={20} className="text-blue-600 flex-shrink-0 ml-4" />
+                        <div className="ml-4 flex flex-shrink-0 items-center gap-2">
+                          <MapPin size={20} className="text-blue-600" />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(event) => handleDeleteToilet(toilet, event)}
+                            disabled={deletingToiletId === toilet.managementNo}
+                            aria-label={`${toilet.name} 삭제`}
+                          >
+                            {deletingToiletId === toilet.managementNo ? (
+                              <RefreshCw size={16} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={16} className="text-red-500" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
