@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface ToiletRepository extends JpaRepository<Toilet, String> {
+public interface ToiletRepository extends JpaRepository<Toilet, Long> {
     List<Toilet> findByIsUserSubmitted(Boolean isUserSubmitted);
 
     List<Toilet> findByUser(User user);

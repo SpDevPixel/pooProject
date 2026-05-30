@@ -84,8 +84,8 @@ public class ToiletService {
     }
 
     @Transactional
-    public void deleteAToilet(String managementNo, Long id){ // 1. 타입을 String에서 Long으로 변경
-        Toilet toilet = toiletRepository.findById(managementNo)
+    public void deleteAToilet(Long toiletId, Long id){ // 1. 타입을 String에서 Long으로 변경
+        Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
 
         // 2. 이제 Long 대 Long의 올바른 비교가 이루어집니다.
@@ -97,8 +97,8 @@ public class ToiletService {
     }
 
     @Transactional
-    public void updateToiletInfo(String managementNo, Long id, ToiletUpdateDto dto) {
-        Toilet toilet = toiletRepository.findById(managementNo)
+    public void updateToiletInfo(Long toiletId, Long id, ToiletUpdateDto dto) {
+        Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new EntityNotFoundException("화장실을 찾을 수 없습니다."));
 
         if (!toilet.getUser().getId().equals(id)) {

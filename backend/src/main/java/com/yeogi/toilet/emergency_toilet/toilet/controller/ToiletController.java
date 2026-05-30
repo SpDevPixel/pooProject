@@ -67,24 +67,24 @@ public class ToiletController {
 //    }
 
     //사용자의 화장실 정보 삭제
-    @DeleteMapping("/toilet/{managementNo}")
-    public ResponseEntity<Void> deleteToilet(@PathVariable String managementNo,
+    @DeleteMapping("/toilet/{toiletId}")
+    public ResponseEntity<Void> deleteToilet(@PathVariable Long toiletId,
                                              @RequestHeader("Authorization") String token){
         if (token == null || !token.startsWith("Bearer ")) {
             throw new RuntimeException("유효하지 않은 토큰");
         }
         String rawToken = token.substring(7);
         Long id = jwtUtil.extractId(rawToken);
-        toiletService.deleteAToilet(managementNo,id);
+        toiletService.deleteAToilet(toiletId,id);
 
 
         return ResponseEntity.noContent().build();
     }
 
     //화장실 정보 수정
-    @PatchMapping("/{managementNo}")
+    @PatchMapping("/{toiletId}")
     public ResponseEntity<Void> updateToilet(
-            @PathVariable String managementNo,
+            @PathVariable Long toiletId,
             @RequestHeader("Authorization") String token,
             @RequestBody ToiletUpdateDto updateDto) {
 
@@ -95,7 +95,7 @@ public class ToiletController {
         String rawToken = token.substring(7);
         Long userSn = jwtUtil.extractId(rawToken);
 
-        toiletService.updateToiletInfo(managementNo, userSn, updateDto);
+        toiletService.updateToiletInfo(toiletId, userSn, updateDto);
 
         return ResponseEntity.noContent().build();
     }
