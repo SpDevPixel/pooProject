@@ -43,6 +43,17 @@ export type CreateUserToiletRequest = {
   isUserSubmitted: boolean;
 };
 
+export type UpdateUserToiletRequest = {
+  openTime: string;
+  openTimeDetail: string;
+  managingOrg: string;
+  phoneNumber: string;
+  wasteDisposal: string;
+  emergencyBell: boolean;
+  diaperTable: boolean;
+  entranceCctv: boolean;
+};
+
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";
 
 const toNumber = (value: BackendToilet["lat"]) => {
@@ -124,4 +135,73 @@ export const createUserToilet = async (
   }
 
   return toilet;
+};
+
+export const fetchUserToilets = async (token: string): Promise<Toilet[]> => {
+  const response = await fetch(`${API_BASE_URL}/toilets/userToilets`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("로그인이 만료되었습니다. 다시 로그인해주세요.");
+    }
+
+    throw new Error("등록한 화장실을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+  }
+
+  const data = (await response.json()) as BackendToilet[];
+
+  return data.map(normalizeToilet).filter((toilet): toilet is Toilet => toilet !== null);
+};
+
+export const deleteUserToilet = async (
+  managementNo: string,
+  token: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/toilets/toilet/${encodeURIComponent(managementNo)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("삭제 권한이 없거나 로그인이 만료되었습니다.");
+    }
+
+    throw new Error("화장실 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.");
+  }
+};
+
+export const updateUserToilet = async (
+  managementNo: string,
+  payload: UpdateUserToiletRequest,
+  token: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/toilets/${encodeURIComponent(managementNo)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("수정 권한이 없거나 로그인이 만료되었습니다.");
+    }
+
+    throw new Error("화장실 정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
+  }
 };

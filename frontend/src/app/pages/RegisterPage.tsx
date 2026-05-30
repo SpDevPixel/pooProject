@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, LocateFixed, MapPin } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -112,6 +112,7 @@ export default function RegisterPage() {
 
   const [isSelectingLocation, setIsSelectingLocation] = useState(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [isMovingToCurrentLocation, setIsMovingToCurrentLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSelectedLocation, setHasSelectedLocation] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -309,6 +310,70 @@ export default function RegisterPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const movePreviewToLocation = async (lat: number, lng: number) => {
+    const newPosition = new window.kakao.maps.LatLng(lat, lng);
+    markerRef.current?.setPosition(newPosition);
+    mapInstanceRef.current?.setCenter(newPosition);
+    mapInstanceRef.current?.setLevel(3);
+
+    setFormData((prev) => ({ ...prev, lat, lng }));
+    setHasSelectedLocation(true);
+
+    setIsLoadingAddress(true);
+    try {
+      const address = await reverseGeocode(lat, lng);
+      setFormData((prev) => ({ ...prev, roadAddress: address }));
+      toast.success("현재 위치와 주소가 입력되었습니다");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "주소를 불러오지 못했습니다. 주소를 직접 입력해주세요."
+      );
+    } finally {
+      setIsLoadingAddress(false);
+    }
+  };
+
+  const handleMoveToCurrentLocation = () => {
+    if (!window.kakao?.maps || !mapInstanceRef.current || !markerRef.current) {
+      toast.error("지도가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      toast.error("현재 위치를 사용할 수 없는 브라우저입니다.");
+      return;
+    }
+
+    setIsMovingToCurrentLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await movePreviewToLocation(
+            position.coords.latitude,
+            position.coords.longitude
+          );
+          setIsSelectingLocation(false);
+        } finally {
+          setIsMovingToCurrentLocation(false);
+        }
+      },
+      (error) => {
+        console.error(error);
+        toast.error("현재 위치를 가져오지 못했습니다. 브라우저 위치 권한을 확인해주세요.");
+        setIsMovingToCurrentLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000,
+      }
+    );
   };
 
   // ──────────────────────────────────────────
@@ -516,11 +581,23 @@ export default function RegisterPage() {
           <div className="bg-white rounded-lg border p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-medium">위치 미리보기</h2>
-              {isSelectingLocation && (
-                <span className="text-xs text-blue-600 font-medium animate-pulse">
-                  지도를 클릭해 위치를 선택하세요
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {isSelectingLocation && (
+                  <span className="hidden text-xs text-blue-600 font-medium animate-pulse sm:inline">
+                    지도를 클릭해 위치를 선택하세요
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMoveToCurrentLocation}
+                  disabled={!mapLoaded || isMovingToCurrentLocation}
+                >
+                  <LocateFixed size={15} className="mr-2" />
+                  {isMovingToCurrentLocation ? "이동 중..." : "현재 위치"}
+                </Button>
+              </div>
             </div>
 
             {/* 카카오맵 컨테이너 */}

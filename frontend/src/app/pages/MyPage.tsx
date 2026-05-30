@@ -3,15 +3,21 @@
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
  * 역할: 사용자 프로필, 등록한 화장실, 작성 리뷰를 확인하는 마이페이지입니다.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, MapPin, Star, Mail, LogOut, MessageSquare, Settings } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Mail, LogOut, MessageSquare, Settings, Trash2, RefreshCw, Save } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Switch } from "../components/ui/switch";
+import { Textarea } from "../components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { useAuth } from "../contexts/AuthContext";
-import { mockToilets } from "../data/mockToilets";
 import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 import { loginWithAnyIdentifier } from "../api/users";
+import { deleteUserToilet, fetchUserToilets, updateUserToilet } from "../api/toilets";
+import { toast } from "sonner";
 
 interface Review {
   id: string;
@@ -22,15 +28,27 @@ interface Review {
   createdAt: string;
 }
 
-// Mock 데이터 - 사용자가 등록한 화장실
-const getUserToilets = (userEmail: string): Toilet[] => {
-  // TODO: 실제 구현 시 백엔드 API 호출
-  // const response = await fetch(`/api/toilets/user/${userEmail}`);
-  // return await response.json();
-  
-  // Mock: isUserSubmitted가 true인 화장실들 반환
-  return mockToilets.filter((toilet) => toilet.isUserSubmitted);
+type ToiletEditForm = {
+  openTime: string;
+  openTimeDetail: string;
+  managingOrg: string;
+  phoneNumber: string;
+  wasteDisposal: string;
+  emergencyBell: boolean;
+  diaperTable: boolean;
+  entranceCctv: boolean;
 };
+
+const toEditForm = (toilet: Toilet): ToiletEditForm => ({
+  openTime: toilet.openTime ?? "",
+  openTimeDetail: toilet.openTimeDetail ?? "",
+  managingOrg: toilet.managingOrg ?? "",
+  phoneNumber: toilet.phoneNumber ?? "",
+  wasteDisposal: toilet.wasteDisposal ?? "",
+  emergencyBell: toilet.hasEmergencyBell,
+  diaperTable: toilet.hasDiaperTable,
+  entranceCctv: toilet.hasEntranceCctv,
+});
 
 // Mock 데이터 - 사용자가 작성한 리뷰
 const getUserReviews = (userEmail: string): Review[] => {
@@ -72,6 +90,13 @@ export default function MyPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<"toilets" | "reviews">("toilets");
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [userToilets, setUserToilets] = useState<Toilet[]>([]);
+  const [isLoadingToilets, setIsLoadingToilets] = useState(false);
+  const [toiletLoadError, setToiletLoadError] = useState<string | null>(null);
+  const [deletingToiletId, setDeletingToiletId] = useState<string | null>(null);
+  const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
+  const [editForm, setEditForm] = useState<ToiletEditForm | null>(null);
+  const [isSavingToilet, setIsSavingToilet] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -80,11 +105,47 @@ export default function MyPage() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (!user?.token) return;
+
+    let isMounted = true;
+
+    const loadUserToilets = async () => {
+      setIsLoadingToilets(true);
+      setToiletLoadError(null);
+
+      try {
+        const toilets = await fetchUserToilets(user.token);
+        if (isMounted) {
+          setUserToilets(toilets);
+        }
+      } catch (error) {
+        console.error(error);
+        if (isMounted) {
+          setToiletLoadError(
+            error instanceof Error
+              ? error.message
+              : "등록한 화장실을 불러오지 못했습니다."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingToilets(false);
+        }
+      }
+    };
+
+    loadUserToilets();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
+
   if (!user) {
     return null;
   }
 
-  const userToilets = getUserToilets(user.email);
   const userReviews = getUserReviews(user.email);
 
   const handleLogout = () => {
@@ -100,6 +161,117 @@ export default function MyPage() {
     await loginWithAnyIdentifier([user.userId], password);
     setShowPasswordConfirm(false);
     navigate("/edit-profile");
+  };
+
+  const handleRefreshUserToilets = async () => {
+    if (!user.token) return;
+
+    setIsLoadingToilets(true);
+    setToiletLoadError(null);
+
+    try {
+      const toilets = await fetchUserToilets(user.token);
+      setUserToilets(toilets);
+    } catch (error) {
+      console.error(error);
+      setToiletLoadError(
+        error instanceof Error
+          ? error.message
+          : "등록한 화장실을 불러오지 못했습니다."
+      );
+    } finally {
+      setIsLoadingToilets(false);
+    }
+  };
+
+  const handleOpenToiletDetail = (toilet: Toilet) => {
+    setSelectedToilet(toilet);
+    setEditForm(toEditForm(toilet));
+  };
+
+  const handleCloseToiletDetail = () => {
+    if (isSavingToilet) return;
+    setSelectedToilet(null);
+    setEditForm(null);
+  };
+
+  const handleSaveToilet = async () => {
+    if (!selectedToilet || !editForm) return;
+
+    setIsSavingToilet(true);
+
+    try {
+      await updateUserToilet(
+        selectedToilet.managementNo,
+        {
+          openTime: editForm.openTime,
+          openTimeDetail: editForm.openTimeDetail,
+          managingOrg: editForm.managingOrg,
+          phoneNumber: editForm.phoneNumber,
+          wasteDisposal: editForm.wasteDisposal,
+          emergencyBell: editForm.emergencyBell,
+          diaperTable: editForm.diaperTable,
+          entranceCctv: editForm.entranceCctv,
+        },
+        user.token
+      );
+
+      const updatedToilet: Toilet = {
+        ...selectedToilet,
+        openTime: editForm.openTime || undefined,
+        openTimeDetail: editForm.openTimeDetail || undefined,
+        managingOrg: editForm.managingOrg || undefined,
+        phoneNumber: editForm.phoneNumber || undefined,
+        wasteDisposal: editForm.wasteDisposal || undefined,
+        hasEmergencyBell: editForm.emergencyBell,
+        hasDiaperTable: editForm.diaperTable,
+        hasEntranceCctv: editForm.entranceCctv,
+      };
+
+      setUserToilets((current) =>
+        current.map((toilet) =>
+          toilet.managementNo === updatedToilet.managementNo ? updatedToilet : toilet
+        )
+      );
+      setSelectedToilet(updatedToilet);
+      toast.success("화장실 정보가 수정되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "화장실 정보 수정에 실패했습니다."
+      );
+    } finally {
+      setIsSavingToilet(false);
+    }
+  };
+
+  const handleDeleteToilet = async (toilet: Toilet, event: MouseEvent) => {
+    event.stopPropagation();
+
+    if (!window.confirm(`"${toilet.name}" 화장실을 삭제할까요?`)) {
+      return;
+    }
+
+    setDeletingToiletId(toilet.managementNo);
+
+    try {
+      await deleteUserToilet(toilet.managementNo, user.token);
+      setUserToilets((current) =>
+        current.filter((item) => item.managementNo !== toilet.managementNo)
+      );
+      toast.success("등록한 화장실이 삭제되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "화장실 삭제에 실패했습니다."
+      );
+    } finally {
+      setDeletingToiletId(null);
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -207,7 +379,27 @@ export default function MyPage() {
           <div className="p-4">
             {activeTab === "toilets" && (
               <div className="space-y-3">
-                {userToilets.length === 0 ? (
+                {toiletLoadError && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <span>{toiletLoadError}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshUserToilets}
+                      disabled={isLoadingToilets}
+                    >
+                      <RefreshCw size={14} className="mr-2" />
+                      다시 시도
+                    </Button>
+                  </div>
+                )}
+
+                {isLoadingToilets ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <RefreshCw size={36} className="mx-auto mb-4 animate-spin opacity-40" />
+                    <p>등록한 화장실을 불러오는 중입니다.</p>
+                  </div>
+                ) : userToilets.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <MapPin size={48} className="mx-auto mb-4 opacity-20" />
                     <p>등록한 화장실이 없습니다.</p>
@@ -223,7 +415,7 @@ export default function MyPage() {
                     <div
                       key={toilet.managementNo}
                       className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => navigate("/")}
+                      onClick={() => handleOpenToiletDetail(toilet)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -254,7 +446,32 @@ export default function MyPage() {
                             )}
                           </div>
                         </div>
-                        <MapPin size={20} className="text-blue-600 flex-shrink-0 ml-4" />
+                        <div className="ml-4 flex flex-shrink-0 items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenToiletDetail(toilet);
+                            }}
+                            aria-label={`${toilet.name} 정보 보기`}
+                          >
+                            <MapPin size={16} className="text-blue-600" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(event) => handleDeleteToilet(toilet, event)}
+                            disabled={deletingToiletId === toilet.managementNo}
+                            aria-label={`${toilet.name} 삭제`}
+                          >
+                            {deletingToiletId === toilet.managementNo ? (
+                              <RefreshCw size={16} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={16} className="text-red-500" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -305,6 +522,153 @@ export default function MyPage() {
         title="비밀번호 확인"
         description="회원정보 수정을 위해 비밀번호를 입력해주세요."
       />
+
+      <Dialog open={!!selectedToilet} onOpenChange={(open) => !open && handleCloseToiletDetail()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>{selectedToilet?.name}</DialogTitle>
+            <DialogDescription>
+              등록한 화장실 정보를 확인하고 수정할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedToilet && editForm && (
+            <div className="space-y-5">
+              <div className="rounded-lg border bg-gray-50 p-4 text-sm">
+                <div className="space-y-2">
+                  <div>
+                    <p className="font-medium text-gray-900">주소</p>
+                    <p className="text-muted-foreground">{selectedToilet.roadAddress}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="font-medium text-gray-900">위도</p>
+                      <p className="text-muted-foreground">{selectedToilet.lat}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">경도</p>
+                      <p className="text-muted-foreground">{selectedToilet.lng}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-open-time">운영 시간</Label>
+                  <Input
+                    id="edit-open-time"
+                    value={editForm.openTime}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, openTime: event.target.value })
+                    }
+                    placeholder="예: 24시간, 09:00-18:00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-managing-org">관리기관</Label>
+                  <Input
+                    id="edit-managing-org"
+                    value={editForm.managingOrg}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, managingOrg: event.target.value })
+                    }
+                    placeholder="예: 서울시 강남구청"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone-number">관리기관 연락처</Label>
+                  <Input
+                    id="edit-phone-number"
+                    value={editForm.phoneNumber}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, phoneNumber: event.target.value })
+                    }
+                    placeholder="예: 02-1234-5678"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-waste-disposal">화장실 방식</Label>
+                  <Input
+                    id="edit-waste-disposal"
+                    value={editForm.wasteDisposal}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, wasteDisposal: event.target.value })
+                    }
+                    placeholder="예: 수세식"
+                  />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="edit-open-time-detail">운영 시간 상세</Label>
+                  <Textarea
+                    id="edit-open-time-detail"
+                    value={editForm.openTimeDetail}
+                    onChange={(event) =>
+                      setEditForm({ ...editForm, openTimeDetail: event.target.value })
+                    }
+                    placeholder="예: 연중무휴, 주말 휴무 등"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-lg border p-4">
+                <h3 className="text-sm font-medium">시설 특징</h3>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="edit-emergency-bell">비상벨</Label>
+                    <Switch
+                      id="edit-emergency-bell"
+                      checked={editForm.emergencyBell}
+                      onCheckedChange={(checked) =>
+                        setEditForm({ ...editForm, emergencyBell: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="edit-diaper-table">기저귀 교환대</Label>
+                    <Switch
+                      id="edit-diaper-table"
+                      checked={editForm.diaperTable}
+                      onCheckedChange={(checked) =>
+                        setEditForm({ ...editForm, diaperTable: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="edit-entrance-cctv">입구 CCTV</Label>
+                    <Switch
+                      id="edit-entrance-cctv"
+                      checked={editForm.entranceCctv}
+                      onCheckedChange={(checked) =>
+                        setEditForm({ ...editForm, entranceCctv: checked })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleCloseToiletDetail} disabled={isSavingToilet}>
+                  닫기
+                </Button>
+                <Button onClick={handleSaveToilet} disabled={isSavingToilet}>
+                  {isSavingToilet ? (
+                    <RefreshCw size={16} className="mr-2 animate-spin" />
+                  ) : (
+                    <Save size={16} className="mr-2" />
+                  )}
+                  저장
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
