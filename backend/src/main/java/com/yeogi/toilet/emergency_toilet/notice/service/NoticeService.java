@@ -27,6 +27,10 @@ public class NoticeService {
         return noticeRepository.findAll();
     }
 
+    public Long getNoticeCount(){
+        return noticeRepository.noticeCount();
+    }
+
     //공지사항 등록
     public Notice addNotice(Notice noticeDto,String token){
         String pureToken = token.substring(7);

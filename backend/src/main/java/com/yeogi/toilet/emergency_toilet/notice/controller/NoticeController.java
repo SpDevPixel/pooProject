@@ -23,6 +23,13 @@ public class NoticeController {
         return noticeService.getNotices();
     }
 
+    //공지사항 갯수 전송
+    @GetMapping("/count")
+    public Long getNoticeCount() {
+        return noticeService.getNoticeCount();
+    }
+
+
     //공지사항 등록
     @PostMapping("/add")
     public Notice addNotice(@RequestBody Notice notice,@RequestHeader("Authorization") String token){
