@@ -18,22 +18,41 @@ import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
 import { toast } from "sonner";
 import type { Toilet } from "../types/toilet";
+import { createReview, getBackendToiletId } from "../api/reviews";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ReviewDialogProps {
   open: boolean;
   onClose: () => void;
   toilet: Toilet | null;
+  onCreated?: () => void;
 }
 
-export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
+export function ReviewDialog({ open, onClose, toilet, onCreated }: ReviewDialogProps) {
   const [rating, setRating] = useState(0);
   const [cleanliness, setCleanliness] = useState(0);
   const [hasTissuePaper, setHasTissuePaper] = useState(false);
   const [hasDoorLock, setHasDoorLock] = useState(false);
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const resetForm = () => {
+    setRating(0);
+    setCleanliness(0);
+    setHasTissuePaper(false);
+    setHasDoorLock(false);
+    setComment("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!toilet) return;
+
+    if (!user?.token) {
+      toast.error("로그인 후 리뷰를 작성할 수 있습니다.");
+      return;
+    }
 
     if (rating === 0) {
       toast.error("전체 평점을 선택해주세요");
@@ -45,16 +64,36 @@ export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
       return;
     }
 
-    // Mock review submission - 실제로는 백엔드 API 호출
-    toast.success("리뷰가 등록되었습니다!");
-    
-    // Reset form
-    setRating(0);
-    setCleanliness(0);
-    setHasTissuePaper(false);
-    setHasDoorLock(false);
-    setComment("");
-    onClose();
+    const toiletId = getBackendToiletId(toilet);
+    if (!toiletId) {
+      toast.error("화장실 정보를 다시 불러온 뒤 리뷰를 작성해주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await createReview(
+        {
+          toiletId,
+          rating,
+          cleanliness,
+          hasTissuePaper,
+          hasDoorLock,
+          comment: comment.trim(),
+        },
+        user.token
+      );
+      toast.success("리뷰가 등록되었습니다!");
+      resetForm();
+      onCreated?.();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "리뷰 등록에 실패했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStars = (
@@ -91,7 +130,7 @@ export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
   if (!toilet) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -149,6 +188,7 @@ export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
                 id="tissue"
                 checked={hasTissuePaper}
                 onCheckedChange={setHasTissuePaper}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -163,6 +203,7 @@ export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
                 id="doorlock"
                 checked={hasDoorLock}
                 onCheckedChange={setHasDoorLock}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -176,6 +217,7 @@ export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
+              disabled={isSubmitting}
             />
             <p className="text-xs text-muted-foreground">
               다른 사용자들에게 도움이 되는 정보를 공유해주세요
@@ -189,11 +231,12 @@ export function ReviewDialog({ open, onClose, toilet }: ReviewDialogProps) {
               variant="outline"
               onClick={onClose}
               className="flex-1"
+              disabled={isSubmitting}
             >
               취소
             </Button>
-            <Button type="submit" className="flex-1">
-              리뷰 등록
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? "등록 중..." : "리뷰 등록"}
             </Button>
           </div>
         </form>

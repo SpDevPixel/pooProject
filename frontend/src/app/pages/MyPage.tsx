@@ -17,16 +17,9 @@ import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 import { loginWithAnyIdentifier } from "../api/users";
 import { deleteUserToilet, fetchUserToilets, updateUserToilet } from "../api/toilets";
+import { deleteMyReview, fetchMyReviews } from "../api/reviews";
 import { toast } from "sonner";
-
-interface Review {
-  id: string;
-  toiletId: string;
-  toiletName: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-}
+import type { Review } from "../types/toilet";
 
 type ToiletEditForm = {
   openTime: string;
@@ -59,41 +52,6 @@ const getBackendToiletId = (toilet: Toilet) => {
   return Number.isFinite(numericId) ? numericId : null;
 };
 
-// Mock 데이터 - 사용자가 작성한 리뷰
-const getUserReviews = (userEmail: string): Review[] => {
-  // TODO: 실제 구현 시 백엔드 API 호출
-  // const response = await fetch(`/api/reviews/user/${userEmail}`);
-  // return await response.json();
-  
-  // Mock 리뷰 데이터
-  return [
-    {
-      id: "1",
-      toiletId: "1",
-      toiletName: "강남역 공중화장실",
-      rating: 5,
-      comment: "매우 깨끗하고 관리가 잘 되어있습니다. 접근성도 좋아요!",
-      createdAt: "2024-03-15",
-    },
-    {
-      id: "2",
-      toiletId: "2",
-      toiletName: "서울시청 화장실",
-      rating: 4,
-      comment: "시설은 좋은데 가끔 사람이 많아서 대기시간이 있어요.",
-      createdAt: "2024-03-10",
-    },
-    {
-      id: "3",
-      toiletId: "5",
-      toiletName: "여의도공원 공중화장실",
-      rating: 5,
-      comment: "장애인 시설이 잘 갖춰져 있고 깨끗합니다.",
-      createdAt: "2024-03-05",
-    },
-  ];
-};
-
 export default function MyPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -106,6 +64,10 @@ export default function MyPage() {
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [editForm, setEditForm] = useState<ToiletEditForm | null>(null);
   const [isSavingToilet, setIsSavingToilet] = useState(false);
+  const [userReviews, setUserReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewLoadError, setReviewLoadError] = useState<string | null>(null);
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -151,11 +113,46 @@ export default function MyPage() {
     };
   }, [user?.token]);
 
+  useEffect(() => {
+    if (!user?.token) return;
+
+    let isMounted = true;
+
+    const loadUserReviews = async () => {
+      setIsLoadingReviews(true);
+      setReviewLoadError(null);
+
+      try {
+        const reviews = await fetchMyReviews(user.token);
+        if (isMounted) {
+          setUserReviews(reviews);
+        }
+      } catch (error) {
+        console.error(error);
+        if (isMounted) {
+          setReviewLoadError(
+            error instanceof Error
+              ? error.message
+              : "작성한 리뷰를 불러오지 못했습니다."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingReviews(false);
+        }
+      }
+    };
+
+    loadUserReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.token]);
+
   if (!user) {
     return null;
   }
-
-  const userReviews = getUserReviews(user.email);
 
   const handleLogout = () => {
     logout();
@@ -190,6 +187,27 @@ export default function MyPage() {
       );
     } finally {
       setIsLoadingToilets(false);
+    }
+  };
+
+  const handleRefreshUserReviews = async () => {
+    if (!user.token) return;
+
+    setIsLoadingReviews(true);
+    setReviewLoadError(null);
+
+    try {
+      const reviews = await fetchMyReviews(user.token);
+      setUserReviews(reviews);
+    } catch (error) {
+      console.error(error);
+      setReviewLoadError(
+        error instanceof Error
+          ? error.message
+          : "작성한 리뷰를 불러오지 못했습니다."
+      );
+    } finally {
+      setIsLoadingReviews(false);
     }
   };
 
@@ -292,6 +310,25 @@ export default function MyPage() {
       );
     } finally {
       setDeletingToiletId(null);
+    }
+  };
+
+  const handleDeleteReview = async (review: Review) => {
+    if (!window.confirm("작성한 리뷰를 삭제할까요?")) {
+      return;
+    }
+
+    setDeletingReviewId(review.id);
+
+    try {
+      await deleteMyReview(review.id, user.token);
+      setUserReviews((current) => current.filter((item) => item.id !== review.id));
+      toast.success("리뷰가 삭제되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "리뷰 삭제에 실패했습니다.");
+    } finally {
+      setDeletingReviewId(null);
     }
   };
 
@@ -491,7 +528,27 @@ export default function MyPage() {
 
             {activeTab === "reviews" && (
               <div className="space-y-3">
-                {userReviews.length === 0 ? (
+                {reviewLoadError && (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <span>{reviewLoadError}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshUserReviews}
+                      disabled={isLoadingReviews}
+                    >
+                      <RefreshCw size={14} className="mr-2" />
+                      다시 시도
+                    </Button>
+                  </div>
+                )}
+
+                {isLoadingReviews ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <RefreshCw size={36} className="mx-auto mb-4 animate-spin opacity-40" />
+                    <p>작성한 리뷰를 불러오는 중입니다.</p>
+                  </div>
+                ) : userReviews.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <MessageSquare size={48} className="mx-auto mb-4 opacity-20" />
                     <p>작성한 리뷰가 없습니다.</p>
@@ -507,13 +564,31 @@ export default function MyPage() {
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="font-medium">{review.toiletName}</h3>
+                          <h3 className="font-medium">{review.toiletName ?? "화장실 정보 없음"}</h3>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {review.createdAt}
+                            {review.createdAt.toLocaleDateString()}
                           </p>
                         </div>
-                        {renderStars(review.rating)}
+                        <div className="flex items-center gap-2">
+                          {renderStars(review.rating)}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteReview(review)}
+                            disabled={deletingReviewId === review.id}
+                            aria-label="리뷰 삭제"
+                          >
+                            {deletingReviewId === review.id ? (
+                              <RefreshCw size={16} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={16} className="text-red-500" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
+                      {review.roadAddress && (
+                        <p className="text-xs text-muted-foreground">{review.roadAddress}</p>
+                      )}
                       <p className="text-sm text-gray-700 mt-2">{review.comment}</p>
                     </div>
                   ))

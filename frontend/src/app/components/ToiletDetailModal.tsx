@@ -3,7 +3,7 @@
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
  * 역할: 선택한 화장실의 상세 정보, 편의시설, 리뷰 액션을 보여주는 모달입니다.
  */
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { 
   Accessibility, 
   Baby, 
@@ -27,12 +27,13 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ReviewDialog } from "./ReviewDialog";
-import { mockReviews } from "../data/mockReviews";
 import { Separator } from "./ui/separator";
 import { useFavorites } from "../contexts/FavoritesContext";
 import { useAuth } from "../contexts/AuthContext";
 import { addToiletRequest, type ToiletRequestType } from "../api/toiletRequests";
+import { fetchToiletReviews } from "../api/reviews";
 import { toast } from "sonner";
+import type { Review } from "../types/toilet";
 
 interface ToiletDetailModalProps {
   toilet: Toilet | null;
@@ -54,12 +55,43 @@ export function ToiletDetailModal({
   const [requestMessage, setRequestMessage] = useState("");
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [toiletReviews, setToiletReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { user, isAuthenticated } = useAuth();
 
-  if (!toilet) return null;
+  const loadReviews = useCallback(async () => {
+    if (!toilet?.managementNo) {
+      setToiletReviews([]);
+      return;
+    }
 
-  const toiletReviews = mockReviews.filter((review) => review.toiletId === toilet.id);
+    setIsLoadingReviews(true);
+    setReviewError(null);
+
+    try {
+      const reviews = await fetchToiletReviews(toilet.managementNo);
+      setToiletReviews(reviews);
+    } catch (error) {
+      console.error(error);
+      setReviewError(error instanceof Error ? error.message : "리뷰를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  }, [toilet?.managementNo]);
+
+  useEffect(() => {
+    if (!open || !toilet) {
+      setToiletReviews([]);
+      setReviewError(null);
+      return;
+    }
+
+    void loadReviews();
+  }, [loadReviews, open, toilet]);
+
+  if (!toilet) return null;
 
   const renderStars = (rating: number) => {
     return (
@@ -347,44 +379,53 @@ export function ToiletDetailModal({
               </div>
             </div>
 
-            {/* Reviews Section */}
-            {toiletReviews.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                      <MessageSquare size={16} />
-                      최근 리뷰 ({toiletReviews.length})
-                    </h3>
-                  </div>
-                  
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {toiletReviews.slice(0, 3).map((review) => (
-                      <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-sm">{review.userName}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {renderStars(review.rating)}
-                              <span className="text-xs text-muted-foreground">
-                                청결도: {review.cleanliness}/5
-                              </span>
-                            </div>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {review.createdAt.toLocaleDateString()}
-                          </span>
-                        </div>
-                        {review.comment && (
-                          <p className="text-sm text-muted-foreground">{review.comment}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+            <Separator />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+                  <MessageSquare size={16} />
+                  최근 리뷰 ({toiletReviews.length})
+                </h3>
+              </div>
+
+              {isLoadingReviews ? (
+                <div className="rounded-lg bg-gray-50 p-4 text-center text-sm text-muted-foreground">
+                  리뷰를 불러오는 중입니다.
                 </div>
-              </>
-            )}
+              ) : reviewError ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  {reviewError}
+                </div>
+              ) : toiletReviews.length === 0 ? (
+                <div className="rounded-lg bg-gray-50 p-4 text-center text-sm text-muted-foreground">
+                  아직 작성된 리뷰가 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {toiletReviews.slice(0, 3).map((review) => (
+                    <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <p className="font-medium text-sm">{review.userName}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {renderStars(review.rating)}
+                            <span className="text-xs text-muted-foreground">
+                              청결도: {review.cleanliness}/5
+                            </span>
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {review.createdAt.toLocaleDateString()}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-muted-foreground">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2 pt-2">
@@ -423,6 +464,7 @@ export function ToiletDetailModal({
         open={isReviewDialogOpen}
         onClose={() => setIsReviewDialogOpen(false)}
         toilet={toilet}
+        onCreated={() => void loadReviews()}
       />
 
       <Dialog open={!!requestType} onOpenChange={(isOpen) => !isOpen && closeRequestDialog()}>

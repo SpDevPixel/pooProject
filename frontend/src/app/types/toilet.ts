@@ -31,6 +31,9 @@ export interface Toilet {
 export interface Review {
   id: string;
   toiletId: string;
+  toiletBackendId?: number;
+  toiletName?: string;
+  roadAddress?: string;
   userId: string;
   userName: string;
   rating: number;
