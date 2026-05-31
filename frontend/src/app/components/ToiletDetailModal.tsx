@@ -17,15 +17,20 @@ import {
   Heart,
   Building2,
   Trash2,
+  FilePenLine,
+  Send,
 } from "lucide-react";
 import type { Toilet } from "../types/toilet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
 import { ReviewDialog } from "./ReviewDialog";
 import { mockReviews } from "../data/mockReviews";
 import { Separator } from "./ui/separator";
 import { useFavorites } from "../contexts/FavoritesContext";
+import { useAuth } from "../contexts/AuthContext";
+import { addToiletRequest, type ToiletRequestType } from "../api/toiletRequests";
 import { toast } from "sonner";
 
 interface ToiletDetailModalProps {
@@ -36,7 +41,11 @@ interface ToiletDetailModalProps {
 
 export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalProps) {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [requestType, setRequestType] = useState<ToiletRequestType | null>(null);
+  const [requestMessage, setRequestMessage] = useState("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { user, isAuthenticated } = useAuth();
 
   if (!toilet) return null;
 
@@ -67,6 +76,84 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
       toast.success("즐겨찾기에서 제거되었습니다");
     } else {
       toast.success("즐겨찾기에 추가되었습니다");
+    }
+  };
+
+  const getRequestContext = () => {
+    if (!isAuthenticated || !user) {
+      toast.error("로그인 후 요청을 보낼 수 있습니다.");
+      return null;
+    }
+
+    const requesterId = Number(user.id);
+    if (!Number.isFinite(requesterId)) {
+      toast.error("사용자 정보를 확인하지 못했습니다. 다시 로그인해주세요.");
+      return null;
+    }
+
+    if (!toilet.backendId) {
+      toast.error("화장실 정보를 다시 불러온 뒤 요청해주세요.");
+      return null;
+    }
+
+    return {
+      requesterId,
+      token: user.token,
+    };
+  };
+
+  const openRequestDialog = (type: ToiletRequestType) => {
+    if (!getRequestContext()) return;
+    setRequestType(type);
+    setRequestMessage("");
+  };
+
+  const closeRequestDialog = () => {
+    setRequestType(null);
+    setRequestMessage("");
+  };
+
+  const handleSubmitRequest = async () => {
+    if (!requestType) return;
+
+    const requestContext = getRequestContext();
+    if (!requestContext) return;
+
+    const trimmedMessage = requestMessage.trim();
+    if (!trimmedMessage) {
+      toast.error(
+        requestType === "UPDATE"
+          ? "수정 요청 내용을 입력해주세요."
+          : "삭제 요청 사유를 입력해주세요."
+      );
+      return;
+    }
+
+    setIsSubmittingRequest(true);
+
+    try {
+      const request = await addToiletRequest({
+        toilet,
+        type: requestType,
+        message: trimmedMessage,
+        ...requestContext,
+      });
+
+      toast.success(
+        `${request.recipientLabel}에게 ${
+          requestType === "UPDATE" ? "수정" : "삭제"
+        } 요청을 보냈습니다.`
+      );
+      closeRequestDialog();
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `${requestType === "UPDATE" ? "수정" : "삭제"} 요청에 실패했습니다.`
+      );
+    } finally {
+      setIsSubmittingRequest(false);
     }
   };
 
@@ -281,6 +368,14 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
               <Button onClick={onClose}>
                 닫기
               </Button>
+              <Button onClick={() => openRequestDialog("UPDATE")} variant="outline">
+                <FilePenLine size={16} className="mr-2" />
+                수정요청
+              </Button>
+              <Button onClick={() => openRequestDialog("DELETE")} variant="outline">
+                <Send size={16} className="mr-2" />
+                삭제요청
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -291,6 +386,41 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
         onClose={() => setIsReviewDialogOpen(false)}
         toilet={toilet}
       />
+
+      <Dialog open={!!requestType} onOpenChange={(isOpen) => !isOpen && closeRequestDialog()}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle>
+              {requestType === "UPDATE" ? "수정 요청" : "삭제 요청"}
+            </DialogTitle>
+            <DialogDescription>
+              요청 내용을 입력하면 알림으로 전달됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Textarea
+              value={requestMessage}
+              onChange={(event) => setRequestMessage(event.target.value)}
+              rows={4}
+              autoFocus
+              placeholder={
+                requestType === "UPDATE"
+                  ? "수정이 필요한 내용을 입력해주세요."
+                  : "삭제가 필요한 이유를 입력해주세요."
+              }
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeRequestDialog} disabled={isSubmittingRequest}>
+                취소
+              </Button>
+              <Button onClick={handleSubmitRequest} disabled={isSubmittingRequest}>
+                {isSubmittingRequest ? "전송 중..." : "확인"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

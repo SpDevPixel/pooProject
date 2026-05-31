@@ -6,6 +6,7 @@
 import type { Toilet } from "../types/toilet";
 
 type BackendToilet = {
+  id?: number | string | null;
   managementNo?: string | number | null;
   name?: string | null;
   roadAddress?: string | null;
@@ -65,6 +66,7 @@ const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lat = toNumber(toilet.lat);
   const lng = toNumber(toilet.lng);
   const managementNo = toilet.managementNo?.toString();
+  const backendId = toNumber(toilet.id);
 
   // 좌표로만 찍기
   // if (!managementNo || !toilet.name || !toilet.roadAddress) {
@@ -74,6 +76,7 @@ const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
 
   return {
     id: managementNo,
+    backendId: backendId ?? undefined,
     managementNo,
     name: toilet.name,
     roadAddress: toilet.roadAddress ?? "",
@@ -158,11 +161,11 @@ export const fetchUserToilets = async (token: string): Promise<Toilet[]> => {
 };
 
 export const deleteUserToilet = async (
-  managementNo: string,
+  toiletId: string | number,
   token: string
 ): Promise<void> => {
   const response = await fetch(
-    `${API_BASE_URL}/toilets/toilet/${encodeURIComponent(managementNo)}`,
+    `${API_BASE_URL}/toilets/toilet/${encodeURIComponent(String(toiletId))}`,
     {
       method: "DELETE",
       headers: {
@@ -181,12 +184,12 @@ export const deleteUserToilet = async (
 };
 
 export const updateUserToilet = async (
-  managementNo: string,
+  toiletId: string | number,
   payload: UpdateUserToiletRequest,
   token: string
 ): Promise<void> => {
   const response = await fetch(
-    `${API_BASE_URL}/toilets/${encodeURIComponent(managementNo)}`,
+    `${API_BASE_URL}/toilets/${encodeURIComponent(String(toiletId))}`,
     {
       method: "PATCH",
       headers: {

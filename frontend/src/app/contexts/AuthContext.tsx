@@ -26,6 +26,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const isTokenExpired = (token?: string | null) => {
+  if (!token) return true;
+
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return true;
+
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decodedPayload = JSON.parse(atob(normalizedPayload)) as { exp?: number };
+
+    return typeof decodedPayload.exp !== "number" || decodedPayload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     // 로컬 스토리지에서 사용자 정보 복원
@@ -33,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!savedUser) return null;
 
     const parsedUser = JSON.parse(savedUser);
+    if (isTokenExpired(parsedUser.token)) {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
+
     return {
       ...parsedUser,
       id: String(parsedUser.id ?? ""),

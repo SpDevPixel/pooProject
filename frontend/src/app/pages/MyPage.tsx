@@ -50,6 +50,15 @@ const toEditForm = (toilet: Toilet): ToiletEditForm => ({
   entranceCctv: toilet.hasEntranceCctv,
 });
 
+const getBackendToiletId = (toilet: Toilet) => {
+  if (typeof toilet.backendId === "number" && Number.isFinite(toilet.backendId)) {
+    return toilet.backendId;
+  }
+
+  const numericId = Number(toilet.id);
+  return Number.isFinite(numericId) ? numericId : null;
+};
+
 // Mock 데이터 - 사용자가 작성한 리뷰
 const getUserReviews = (userEmail: string): Review[] => {
   // TODO: 실제 구현 시 백엔드 API 호출
@@ -198,11 +207,17 @@ export default function MyPage() {
   const handleSaveToilet = async () => {
     if (!selectedToilet || !editForm) return;
 
+    const toiletId = getBackendToiletId(selectedToilet);
+    if (!toiletId) {
+      toast.error("화장실 정보를 다시 불러온 뒤 수정해주세요.");
+      return;
+    }
+
     setIsSavingToilet(true);
 
     try {
       await updateUserToilet(
-        selectedToilet.managementNo,
+        toiletId,
         {
           openTime: editForm.openTime,
           openTimeDetail: editForm.openTimeDetail,
@@ -254,10 +269,16 @@ export default function MyPage() {
       return;
     }
 
+    const toiletId = getBackendToiletId(toilet);
+    if (!toiletId) {
+      toast.error("화장실 정보를 다시 불러온 뒤 삭제해주세요.");
+      return;
+    }
+
     setDeletingToiletId(toilet.managementNo);
 
     try {
-      await deleteUserToilet(toilet.managementNo, user.token);
+      await deleteUserToilet(toiletId, user.token);
       setUserToilets((current) =>
         current.filter((item) => item.managementNo !== toilet.managementNo)
       );
@@ -447,17 +468,6 @@ export default function MyPage() {
                           </div>
                         </div>
                         <div className="ml-4 flex flex-shrink-0 items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleOpenToiletDetail(toilet);
-                            }}
-                            aria-label={`${toilet.name} 정보 보기`}
-                          >
-                            <MapPin size={16} className="text-blue-600" />
-                          </Button>
                           <Button
                             variant="outline"
                             size="icon"

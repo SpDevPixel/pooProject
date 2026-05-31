@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   AlertCircle,
+  Bell,
   Heart,
   ListFilter,
   Megaphone,
@@ -24,19 +25,31 @@ import { ToiletDetailModal } from "../components/ToiletDetailModal";
 import { NavigationDialog } from "../components/NavigationDialog";
 import { MapView } from "../components/MapView";
 import { fetchToilets } from "../api/toilets";
+import {
+  deleteToiletRequestNotification,
+  getToiletRequests,
+  type ToiletRequestNotification,
+} from "../api/toiletRequests";
 import { mockToilets } from "../data/mockToilets";
 import type { Toilet, ToiletFilters as Filters } from "../types/toilet";
 import { useAuth } from "../contexts/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Badge } from "../components/ui/badge";
+import { toast } from "sonner";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [isLoadingToilets, setIsLoadingToilets] = useState(true);
   const [toiletLoadError, setToiletLoadError] = useState<string | null>(null);
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isNavigationDialogOpen, setIsNavigationDialogOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [requestNotifications, setRequestNotifications] = useState<ToiletRequestNotification[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
   const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Filters>({
@@ -69,6 +82,34 @@ export default function HomePage() {
     loadToilets();
   }, [loadToilets]);
 
+  const loadRequestNotifications = useCallback(async () => {
+    if (!user?.token) {
+      setRequestNotifications([]);
+      return;
+    }
+
+    setIsLoadingNotifications(true);
+    setNotificationError(null);
+
+    try {
+      const requests = await getToiletRequests(user.token);
+      setRequestNotifications(requests);
+    } catch (error) {
+      console.error(error);
+      setNotificationError(
+        error instanceof Error
+          ? error.message
+          : "요청 알림을 불러오지 못했습니다."
+      );
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  }, [user?.token]);
+
+  useEffect(() => {
+    loadRequestNotifications();
+  }, [loadRequestNotifications]);
+
   const filteredToilets = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
 
@@ -91,6 +132,35 @@ export default function HomePage() {
     setSelectedToilet(toilet);
     setIsDetailModalOpen(true);
   }, []);
+
+  const handleOpenNotifications = () => {
+    if (!user?.token) {
+      toast.error("로그인 후 요청 알림을 확인할 수 있습니다.");
+      return;
+    }
+
+    setIsNotificationsOpen(true);
+    loadRequestNotifications();
+  };
+
+  const handleDeleteRequestNotification = async (requestId: string) => {
+    if (!user?.token) return;
+
+    try {
+      await deleteToiletRequestNotification(requestId, user.token);
+      toast.success("요청 알림을 삭제했습니다.");
+      await loadRequestNotifications();
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "요청 삭제 처리에 실패했습니다."
+      );
+    }
+  };
+
+  const pendingNotificationCount = requestNotifications.length;
 
   const headerButtonClass =
     "min-w-[5.5rem] flex-1 basis-[30%] shrink justify-center gap-1 whitespace-nowrap px-2 text-xs sm:min-w-0 sm:flex-none sm:basis-auto sm:gap-2 sm:px-3 sm:text-sm";
@@ -121,6 +191,15 @@ export default function HomePage() {
                 다시 불러오기
               </Button>
             )}
+            <Button variant="outline" onClick={handleOpenNotifications} className={`${headerButtonClass} relative`}>
+              <Bell size={18} />
+              알림
+              {pendingNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
+                  {pendingNotificationCount}
+                </span>
+              )}
+            </Button>
             <Button variant="outline" onClick={() => navigate("/notices")} className={headerButtonClass}>
               <Megaphone size={18} />
               공지사항
@@ -235,6 +314,64 @@ export default function HomePage() {
         onClose={() => setIsNavigationDialogOpen(false)}
         toilets={filteredToilets}
       />
+
+      <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[680px]">
+          <DialogHeader>
+            <DialogTitle>요청 알림</DialogTitle>
+            <DialogDescription>
+              화장실 수정요청과 삭제요청을 확인합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          {notificationError && (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span>{notificationError}</span>
+              <Button variant="outline" size="sm" onClick={loadRequestNotifications}>
+                다시 시도
+              </Button>
+            </div>
+          )}
+
+          {isLoadingNotifications ? (
+            <div className="rounded-lg border bg-gray-50 p-8 text-center text-sm text-muted-foreground">
+              요청 알림을 불러오는 중입니다.
+            </div>
+          ) : requestNotifications.length === 0 ? (
+            <div className="rounded-lg border bg-gray-50 p-8 text-center text-sm text-muted-foreground">
+              아직 도착한 요청 알림이 없습니다.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {requestNotifications.map((request) => (
+                <div key={request.id} className="rounded-lg border bg-white p-4">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Badge variant={request.type === "UPDATE" ? "secondary" : "destructive"}>
+                      {request.type === "UPDATE" ? "수정요청" : "삭제요청"}
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold">{request.toiletName}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{request.roadAddress}</p>
+                  <p className="mt-3 rounded-md bg-gray-50 p-3 text-sm">{request.message}</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span>요청자: {request.requesterName}</span>
+                      <span>아이디: {request.requesterUserId}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteRequestNotification(request.id)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

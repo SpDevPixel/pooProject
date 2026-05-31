@@ -5,6 +5,7 @@
  */
 export interface Toilet {
   id: string; // managementNo를 id로 사용
+  backendId?: number; // 백엔드 DB PK
   managementNo: string;
   name: string;
   roadAddress: string;
