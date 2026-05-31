@@ -183,9 +183,22 @@ export default function HomePage() {
     });
   }, [filters, searchQuery, toilets]);
 
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+
+    return filteredToilets
+      .filter(hasValidToiletCoordinates)
+      .slice(0, 6);
+  }, [filteredToilets, searchQuery]);
+
   const handleToiletClick = useCallback((toilet: Toilet) => {
     setSelectedToilet(toilet);
     setIsDetailModalOpen(true);
+  }, []);
+
+  const handleSearchSuggestionClick = useCallback((toilet: Toilet) => {
+    setSelectedToilet(toilet);
+    setIsDetailModalOpen(false);
   }, []);
 
   const startRouteToToilet = useCallback(
@@ -385,6 +398,34 @@ export default function HomePage() {
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="화장실 이름 또는 주소"
                 />
+                {searchQuery.trim() && (
+                  <div className="mt-3 overflow-hidden rounded-lg border bg-white">
+                    {searchSuggestions.length > 0 ? (
+                      searchSuggestions.map((toilet) => (
+                        <button
+                          key={toilet.managementNo}
+                          type="button"
+                          className="flex w-full items-start gap-2 border-b px-3 py-3 text-left last:border-b-0 hover:bg-blue-50"
+                          onClick={() => handleSearchSuggestionClick(toilet)}
+                        >
+                          <Search size={15} className="mt-0.5 shrink-0 text-blue-600" />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-semibold text-slate-900">
+                              {toilet.name}
+                            </span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {toilet.roadAddress || "주소 정보 없음"}
+                            </span>
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                        검색 결과가 없습니다.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <ActionButton
                 icon={Navigation}

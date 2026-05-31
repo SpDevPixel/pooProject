@@ -234,6 +234,9 @@ export function MapView({
       selectedToilet.lng
     );
     mapInstanceRef.current.panTo(position);
+    if (typeof mapInstanceRef.current.setLevel === "function") {
+      mapInstanceRef.current.setLevel(3);
+    }
   }, [selectedToilet, hasValidToiletCoordinates]);
 
   useEffect(() => {
