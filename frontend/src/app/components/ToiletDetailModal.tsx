@@ -11,6 +11,7 @@ import {
   Camera, 
   Clock, 
   MapPin, 
+  Navigation,
   Phone, 
   Star,
   MessageSquare,
@@ -21,6 +22,7 @@ import {
   Send,
 } from "lucide-react";
 import type { Toilet } from "../types/toilet";
+import type { RoutePoint } from "../api/tmapRoutes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -37,9 +39,17 @@ interface ToiletDetailModalProps {
   toilet: Toilet | null;
   open: boolean;
   onClose: () => void;
+  onStartNavigation?: (toilet: Toilet, start?: RoutePoint) => void;
+  isStartingNavigation?: boolean;
 }
 
-export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalProps) {
+export function ToiletDetailModal({
+  toilet,
+  open,
+  onClose,
+  onStartNavigation,
+  isStartingNavigation = false,
+}: ToiletDetailModalProps) {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [requestType, setRequestType] = useState<ToiletRequestType | null>(null);
   const [requestMessage, setRequestMessage] = useState("");
@@ -365,7 +375,14 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
                 />
                 즐겨찾기
               </Button>
-              <Button onClick={onClose}>
+              <Button
+                onClick={() => toilet && onStartNavigation?.(toilet)}
+                disabled={!onStartNavigation || isStartingNavigation}
+              >
+                <Navigation size={16} className="mr-2" />
+                {isStartingNavigation ? "경로 찾는 중" : "길 안내"}
+              </Button>
+              <Button onClick={onClose} variant="outline">
                 닫기
               </Button>
               <Button onClick={() => openRequestDialog("UPDATE")} variant="outline">

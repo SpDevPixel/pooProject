@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/pages/HomePage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 메인 화면입니다. 화장실 목록을 불러오고 지도, 필터, 주요 이동 버튼을 보여줍니다.
+ * 역할: 메인 지도 화면입니다. 화장실 목록, 필터, 알림, 길 안내를 제공합니다.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -18,11 +18,13 @@ import {
   Shield,
   User,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Badge } from "../components/ui/badge";
 import { ToiletFilters } from "../components/ToiletFilters";
 import { ToiletDetailModal } from "../components/ToiletDetailModal";
-import { NavigationDialog } from "../components/NavigationDialog";
 import { MapView } from "../components/MapView";
 import { fetchToilets } from "../api/toilets";
 import {
@@ -30,12 +32,64 @@ import {
   getToiletRequests,
   type ToiletRequestNotification,
 } from "../api/toiletRequests";
+import {
+  fetchPedestrianRoute,
+  type RoutePoint,
+  type TmapRouteResult,
+} from "../api/tmapRoutes";
 import { mockToilets } from "../data/mockToilets";
 import type { Toilet, ToiletFilters as Filters } from "../types/toilet";
 import { useAuth } from "../contexts/AuthContext";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { Badge } from "../components/ui/badge";
-import { toast } from "sonner";
+
+const hasValidToiletCoordinates = (toilet: Toilet) =>
+  typeof toilet.lat === "number" &&
+  typeof toilet.lng === "number" &&
+  Number.isFinite(toilet.lat) &&
+  Number.isFinite(toilet.lng) &&
+  toilet.lat >= -90 &&
+  toilet.lat <= 90 &&
+  toilet.lng >= -180 &&
+  toilet.lng <= 180;
+
+const getCurrentRoutePoint = (): Promise<RoutePoint> =>
+  new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("현재 브라우저에서 위치 정보를 사용할 수 없습니다."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        if (error.code === 1) {
+          reject(new Error("위치 권한을 허용한 뒤 다시 시도해주세요."));
+        } else {
+          reject(new Error("현재 위치를 확인하지 못했습니다. 잠시 후 다시 시도해주세요."));
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+
+const getDistanceMeters = (from: RoutePoint, toilet: Toilet) => {
+  if (!hasValidToiletCoordinates(toilet)) return Number.POSITIVE_INFINITY;
+
+  const earthRadius = 6371000;
+  const fromLat = (from.lat * Math.PI) / 180;
+  const toLat = ((toilet.lat as number) * Math.PI) / 180;
+  const deltaLat = (((toilet.lat as number) - from.lat) * Math.PI) / 180;
+  const deltaLng = (((toilet.lng as number) - from.lng) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(fromLat) * Math.cos(toLat) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -45,11 +99,13 @@ export default function HomePage() {
   const [toiletLoadError, setToiletLoadError] = useState<string | null>(null);
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isNavigationDialogOpen, setIsNavigationDialogOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [requestNotifications, setRequestNotifications] = useState<ToiletRequestNotification[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [activeRoute, setActiveRoute] = useState<TmapRouteResult | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<RoutePoint | null>(null);
+  const [isStartingRoute, setIsStartingRoute] = useState(false);
   const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<Filters>({
@@ -133,6 +189,81 @@ export default function HomePage() {
     setIsDetailModalOpen(true);
   }, []);
 
+  const startRouteToToilet = useCallback(
+    async (destination: Toilet, start?: RoutePoint) => {
+      if (isStartingRoute) return;
+
+      if (!hasValidToiletCoordinates(destination)) {
+        toast.error("선택한 화장실의 좌표가 없어 길 안내를 시작할 수 없습니다.");
+        return;
+      }
+
+      setIsStartingRoute(true);
+
+      try {
+        const routeStart = start ?? (await getCurrentRoutePoint());
+        setCurrentLocation(routeStart);
+        const route = await fetchPedestrianRoute({
+          start: routeStart,
+          destination,
+        });
+
+        setActiveRoute(route);
+        setSelectedToilet(destination);
+        setIsDetailModalOpen(false);
+        toast.success(`${destination.name}까지 길 안내를 시작합니다.`);
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "길 안내를 시작하지 못했습니다."
+        );
+      } finally {
+        setIsStartingRoute(false);
+      }
+    },
+    [isStartingRoute]
+  );
+
+  const handleNavigateToNearestToilet = useCallback(async () => {
+    if (isStartingRoute) return;
+
+    const candidates = filteredToilets.filter(hasValidToiletCoordinates);
+    if (candidates.length === 0) {
+      toast.error("길 안내할 수 있는 화장실 좌표가 없습니다.");
+      return;
+    }
+
+    setIsStartingRoute(true);
+
+    try {
+      const start = await getCurrentRoutePoint();
+      setCurrentLocation(start);
+      const nearestToilet = [...candidates].sort(
+        (a, b) => getDistanceMeters(start, a) - getDistanceMeters(start, b)
+      )[0];
+      const route = await fetchPedestrianRoute({
+        start,
+        destination: nearestToilet,
+      });
+
+      setActiveRoute(route);
+      setSelectedToilet(nearestToilet);
+      setIsDetailModalOpen(false);
+      toast.success(`가장 가까운 ${nearestToilet.name}까지 길 안내를 시작합니다.`);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "가장 가까운 화장실 경로를 찾지 못했습니다."
+      );
+    } finally {
+      setIsStartingRoute(false);
+    }
+  }, [filteredToilets, isStartingRoute]);
+
   const handleOpenNotifications = () => {
     if (!user?.token) {
       toast.error("로그인 후 요청 알림을 확인할 수 있습니다.");
@@ -161,7 +292,6 @@ export default function HomePage() {
   };
 
   const pendingNotificationCount = requestNotifications.length;
-
   const headerButtonClass =
     "min-w-[5.5rem] flex-1 basis-[30%] shrink justify-center gap-1 whitespace-nowrap px-2 text-xs sm:min-w-0 sm:flex-none sm:basis-auto sm:gap-2 sm:px-3 sm:text-sm";
 
@@ -263,10 +393,10 @@ export default function HomePage() {
               </div>
               <ActionButton
                 icon={Navigation}
-                label="길찾기"
+                label={isStartingRoute ? "경로 찾는 중" : "길찾기"}
                 description="가까운 화장실로 경로 안내"
                 color="blue"
-                onClick={() => setIsNavigationDialogOpen(true)}
+                onClick={handleNavigateToNearestToilet}
               />
               <ActionButton
                 icon={Plus}
@@ -295,6 +425,10 @@ export default function HomePage() {
               <MapView
                 toilets={filteredToilets}
                 selectedToilet={selectedToilet}
+                activeRoute={activeRoute}
+                currentLocation={currentLocation}
+                onClearRoute={() => setActiveRoute(null)}
+                onCurrentLocationChange={setCurrentLocation}
                 onMarkerClick={handleToiletClick}
                 onAddressMarkerStatusChange={setAddressMarkerStatus}
               />
@@ -307,12 +441,8 @@ export default function HomePage() {
         toilet={selectedToilet}
         open={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-      />
-
-      <NavigationDialog
-        open={isNavigationDialogOpen}
-        onClose={() => setIsNavigationDialogOpen(false)}
-        toilets={filteredToilets}
+        onStartNavigation={startRouteToToilet}
+        isStartingNavigation={isStartingRoute}
       />
 
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>

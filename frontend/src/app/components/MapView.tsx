@@ -4,12 +4,18 @@
  * 역할: 카카오맵을 렌더링하고 좌표가 있는 화장실 마커와 현재 위치 표시를 관리합니다.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Navigation } from "lucide-react";
+import { Loader2, Navigation, X } from "lucide-react";
 import type { Toilet } from "../types/toilet";
+import type { RoutePoint, TmapRouteResult } from "../api/tmapRoutes";
+import { Button } from "./ui/button";
 
 interface MapViewProps {
   toilets: Toilet[];
   selectedToilet: Toilet | null;
+  activeRoute?: TmapRouteResult | null;
+  currentLocation?: RoutePoint | null;
+  onClearRoute?: () => void;
+  onCurrentLocationChange?: (location: RoutePoint) => void;
   onMarkerClick: (toilet: Toilet) => void;
   onAddressMarkerStatusChange?: (status: "loading" | "complete") => void;
 }
@@ -17,6 +23,10 @@ interface MapViewProps {
 export function MapView({
   toilets,
   selectedToilet,
+  activeRoute,
+  currentLocation,
+  onClearRoute,
+  onCurrentLocationChange,
   onMarkerClick,
   onAddressMarkerStatusChange,
 }: MapViewProps) {
@@ -25,8 +35,21 @@ export function MapView({
   const markersRef = useRef<any[]>([]);
   const markerClustererRef = useRef<any>(null);
   const currentLocationMarkerRef = useRef<any>(null);
+  const routePolylineRef = useRef<any>(null);
+  const routeStartOverlayRef = useRef<any>(null);
+  const routeEndOverlayRef = useRef<any>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [mapLoadFailed, setMapLoadFailed] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [internalCurrentLocation, setInternalCurrentLocation] = useState<RoutePoint | null>(null);
+  const visibleCurrentLocation = currentLocation ?? internalCurrentLocation;
+
+  const routeDistanceText = activeRoute?.distance
+    ? `${activeRoute.distance >= 1000 ? `${(activeRoute.distance / 1000).toFixed(1)}km` : `${Math.round(activeRoute.distance)}m`}`
+    : "";
+  const routeTimeText = activeRoute?.duration
+    ? `도보 약 ${Math.max(1, Math.ceil(activeRoute.duration / 60))}분`
+    : "";
 
   const hasValidToiletCoordinates = useCallback((toilet: Toilet) => {
     return (
@@ -47,6 +70,38 @@ export function MapView({
     markersRef.current = [];
   }, []);
 
+  const clearRouteOverlay = useCallback(() => {
+    routePolylineRef.current?.setMap(null);
+    routePolylineRef.current = null;
+    routeStartOverlayRef.current?.setMap(null);
+    routeStartOverlayRef.current = null;
+    routeEndOverlayRef.current?.setMap(null);
+    routeEndOverlayRef.current = null;
+  }, []);
+
+  const clearCurrentLocationMarker = useCallback(() => {
+    currentLocationMarkerRef.current?.setMap(null);
+    currentLocationMarkerRef.current = null;
+  }, []);
+
+  const renderCurrentLocationMarker = useCallback(
+    (location: RoutePoint) => {
+      if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
+
+      clearCurrentLocationMarker();
+      currentLocationMarkerRef.current = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(location.lat, location.lng),
+        content:
+          '<div style="width:16px;height:16px;border-radius:9999px;background:#dc2626;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);pointer-events:none;"></div>',
+        yAnchor: 0.5,
+        xAnchor: 0.5,
+        zIndex: 30,
+        map: mapInstanceRef.current,
+      });
+    },
+    [clearCurrentLocationMarker, isMapReady]
+  );
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -65,6 +120,7 @@ export function MapView({
         window.setTimeout(() => {
           mapInstanceRef.current?.relayout();
         }, 0);
+        setIsMapReady(true);
         markerClustererRef.current = new window.kakao.maps.MarkerClusterer({
           map: mapInstanceRef.current,
           averageCenter: true,
@@ -180,6 +236,75 @@ export function MapView({
     mapInstanceRef.current.panTo(position);
   }, [selectedToilet, hasValidToiletCoordinates]);
 
+  useEffect(() => {
+    if (!visibleCurrentLocation) {
+      clearCurrentLocationMarker();
+      return;
+    }
+
+    renderCurrentLocationMarker(visibleCurrentLocation);
+  }, [
+    clearCurrentLocationMarker,
+    renderCurrentLocationMarker,
+    visibleCurrentLocation,
+  ]);
+
+  useEffect(() => {
+    if (!activeRoute) {
+      clearRouteOverlay();
+      return;
+    }
+
+    if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
+
+    clearRouteOverlay();
+
+    const path = activeRoute.path.map(
+      (point) => new window.kakao.maps.LatLng(point.lat, point.lng)
+    );
+
+    routePolylineRef.current = new window.kakao.maps.Polyline({
+      path,
+      strokeWeight: 6,
+      strokeColor: "#2563eb",
+      strokeOpacity: 0.9,
+      strokeStyle: "solid",
+    });
+    routePolylineRef.current.setMap(mapInstanceRef.current);
+
+    routeStartOverlayRef.current = new window.kakao.maps.CustomOverlay({
+      position: new window.kakao.maps.LatLng(activeRoute.start.lat, activeRoute.start.lng),
+      content:
+        '<div style="padding:5px 9px;border-radius:9999px;background:#16a34a;color:white;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.25);">출발</div>',
+      yAnchor: 0.5,
+      xAnchor: 0.5,
+      map: mapInstanceRef.current,
+    });
+
+    if (
+      typeof activeRoute.destination.lat === "number" &&
+      typeof activeRoute.destination.lng === "number"
+    ) {
+      routeEndOverlayRef.current = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(
+          activeRoute.destination.lat,
+          activeRoute.destination.lng
+        ),
+        content:
+          '<div style="padding:5px 9px;border-radius:9999px;background:#dc2626;color:white;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.25);">도착</div>',
+        yAnchor: 0.5,
+        xAnchor: 0.5,
+        map: mapInstanceRef.current,
+      });
+    }
+
+    const bounds = new window.kakao.maps.LatLngBounds();
+    path.forEach((point) => bounds.extend(point));
+    mapInstanceRef.current.setBounds(bounds);
+
+    return clearRouteOverlay;
+  }, [activeRoute, clearRouteOverlay, isMapReady]);
+
   const moveToCurrentLocation = () => {
     if (!mapInstanceRef.current || !window.kakao?.maps || isLocating) return;
 
@@ -193,17 +318,12 @@ export function MapView({
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        const location = { lat, lng };
         const locPosition = new window.kakao.maps.LatLng(lat, lng);
 
-        currentLocationMarkerRef.current?.setMap(null);
-        currentLocationMarkerRef.current = new window.kakao.maps.CustomOverlay({
-          position: locPosition,
-          content:
-            '<div style="width:16px;height:16px;border-radius:9999px;background:#dc2626;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>',
-          yAnchor: 0.5,
-          xAnchor: 0.5,
-          map: mapInstanceRef.current,
-        });
+        setInternalCurrentLocation(location);
+        onCurrentLocationChange?.(location);
+        renderCurrentLocationMarker(location);
 
         mapInstanceRef.current.panTo(locPosition);
         setIsLocating(false);
@@ -236,6 +356,43 @@ export function MapView({
             <h3 className="font-semibold">지도를 불러올 수 없습니다</h3>
             <p className="mt-2 text-sm">카카오맵 설정 또는 네트워크 상태를 확인해주세요.</p>
           </div>
+        </div>
+      )}
+
+      {activeRoute && (
+        <div className="absolute left-4 right-4 top-4 z-10 rounded-lg border bg-white p-4 shadow-lg sm:left-6 sm:right-auto sm:w-[320px]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-blue-600">길 안내 중</p>
+              <h3 className="mt-1 truncate font-semibold">{activeRoute.destination.name}</h3>
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {activeRoute.destination.roadAddress}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearRoute}
+              className="h-8 shrink-0 gap-1 px-2"
+            >
+              <X size={16} />
+              취소
+            </Button>
+          </div>
+          {(routeDistanceText || routeTimeText) && (
+            <div className="mt-3 flex gap-2 text-sm">
+              {routeTimeText && (
+                <span className="rounded-md bg-blue-50 px-2 py-1 font-medium text-blue-700">
+                  {routeTimeText}
+                </span>
+              )}
+              {routeDistanceText && (
+                <span className="rounded-md bg-gray-100 px-2 py-1 text-gray-700">
+                  {routeDistanceText}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
