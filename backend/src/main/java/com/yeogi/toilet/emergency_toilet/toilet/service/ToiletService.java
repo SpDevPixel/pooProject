@@ -84,8 +84,8 @@ public class ToiletService {
     }
 
     @Transactional
-    public void deleteAToilet(String managementNo, Long id){ // 1. 타입을 String에서 Long으로 변경
-        Toilet toilet = toiletRepository.findById(managementNo)
+    public void deleteAToilet(Long toiletId, Long id){ // 1. 타입을 String에서 Long으로 변경
+        Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
 
         // 2. 이제 Long 대 Long의 올바른 비교가 이루어집니다.
@@ -97,8 +97,8 @@ public class ToiletService {
     }
 
     @Transactional
-    public void updateToiletInfo(String managementNo, Long id, ToiletUpdateDto dto) {
-        Toilet toilet = toiletRepository.findById(managementNo)
+    public void updateToiletInfo(Long toiletId, Long id, ToiletUpdateDto dto) {
+        Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new EntityNotFoundException("화장실을 찾을 수 없습니다."));
 
         if (!toilet.getUser().getId().equals(id)) {
@@ -135,7 +135,6 @@ public class ToiletService {
         int totalCount = 0;
 
         try {
-            // 1. 전체 데이터 개수 파악 (mgisToiletPoi 사용)
             String initialUrl = String.format("%s/%s/json/mgisToiletPoi/1/1", baseUrl, apiKey);
             ResponseEntity<SeoulToiletApiResponse> initialResponse = restTemplate.getForEntity(initialUrl, SeoulToiletApiResponse.class);
 
@@ -145,13 +144,9 @@ public class ToiletService {
 
             log.info("서울시 API 총 데이터 개수: {}건", totalCount);
 
-            // 2. 전체 개수만큼 반복하여 페이징 처리
             for (int i = startIndex; i <= totalCount; i += step) {
                 int end = Math.min(i + step - 1, totalCount);
-
-                // 중요: 여기도 mgisToiletPoi로 수정해야 합니다!
                 String url = String.format("%s/%s/json/mgisToiletPoi/%d/%d", baseUrl, apiKey, i, end);
-
                 ResponseEntity<SeoulToiletApiResponse> response = restTemplate.getForEntity(url, SeoulToiletApiResponse.class);
 
                 if (response.getBody() != null && response.getBody().getServiceResult() != null) {
@@ -159,13 +154,14 @@ public class ToiletService {
 
                     if (rows != null && !rows.isEmpty()) {
                         List<Toilet> toiletsToSave = rows.stream()
-                                .filter(row -> !toiletRepository.existsById(row.getManagementNo()))
+                                // 1. 수정: existsByManagementNo를 사용하여 기존 DB에 있는지 검사
+                                .filter(row -> !toiletRepository.existsByManagementNo(row.getManagementNo()))
+                                // 2. 중요: toEntityFromApi 내부에서는 새 PK(id)를 세팅하지 않아야 함
                                 .map(this::toEntityFromApi)
                                 .collect(Collectors.toList());
 
                         if (!toiletsToSave.isEmpty()) {
                             toiletRepository.saveAll(toiletsToSave);
-                            // 변경 내용을 즉시 DB에 반영하기 위해 flush 호출 권장
                             toiletRepository.flush();
                         }
                     }
