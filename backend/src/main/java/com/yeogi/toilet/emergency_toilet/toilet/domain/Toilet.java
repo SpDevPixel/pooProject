@@ -15,7 +15,7 @@ public class Toilet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 👈 이것을 실제 PK로 사용 (자동생성)
+    private Long id;
 
     @Column(name = "management_no")
     private String managementNo;

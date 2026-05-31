@@ -21,7 +21,7 @@ public class Review {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "management_no", nullable = false)
+    @JoinColumn(name = "toilet_id", nullable = false)
     private Toilet toilet;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -5,8 +5,7 @@ import lombok.Getter;
 @Getter
 public class ReviewDto {
 
-    private String managementNo;   // 화장실 번호만 받음 (Toilet 객체 X)
-    private String id;
+    private Long toiletId;
 
     private int rating;
     private int cleanliness;

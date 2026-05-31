@@ -24,8 +24,8 @@ public class ReviewService {
 
     //리뷰 데이터 저장
     public Review addReview(ReviewDto dto){
-        Toilet toilet = toiletRepository.findById
-                (dto.getManagementNo()).orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
+        Toilet toilet = toiletRepository.findById(dto.getToiletId())
+                .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
 
         Review review = new Review();
 

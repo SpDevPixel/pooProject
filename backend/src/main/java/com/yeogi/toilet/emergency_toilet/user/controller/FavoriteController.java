@@ -15,23 +15,23 @@ public class FavoriteController {
     private final FavoriteService favoriteService;
 
     //즐겨찾기 등록
-    @PostMapping("/favorites/{managementNo}")
+    @PostMapping("/favorites/{toilet_id}")
     public ResponseEntity<?> addFavorite(
-            @PathVariable String managementNo,
+            @PathVariable Long toilet_id,
             @RequestHeader("Authorization") String token  // 헤더에서 토큰 받기
     ) {
         Long Id = jwtUtil.extractId(token.replace("Bearer ", ""));
-        favoriteService.addFavorite(Id, managementNo);
+        favoriteService.addFavorite(Id, toilet_id);
         return ResponseEntity.ok().build();
     }
 
     //즐겨찾기 삭제
-    @DeleteMapping("/favorites/{managementNo}")
-    public ResponseEntity<?> deleteFavorite(@PathVariable String managementNo,
+    @DeleteMapping("/favorites/{toilet_id}")
+    public ResponseEntity<?> deleteFavorite(@PathVariable Long toilet_id,
                                             @RequestHeader("Authorization") String token){
         Long Id = jwtUtil.extractId(token.replace("Bearer ", ""));
 
-        favoriteService.deleteFavorite(Id,managementNo);
+        favoriteService.deleteFavorite(Id,toilet_id);
 
         return ResponseEntity.ok().build();
     }

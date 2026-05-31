@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "favorite", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "management_no"})
+        @UniqueConstraint(columnNames = {"user_id", "toilet_id"})
 })
 @Getter
 @Setter
@@ -23,7 +23,7 @@ public class UserFavorite {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "management_no", nullable = false)
+    @JoinColumn(name = "toilet_id", nullable = false)
     private Toilet toilet;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -23,12 +23,12 @@ public class FavoriteService {
     private final ToiletRepository toiletRepository;
 
     //화장실 즐겨찾기
-    public void addFavorite(Long Id, String managementNo) {
+    public void addFavorite(Long Id, Long toilet_id) {
 
         User user = userRepository.findById(Id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
 
-        Toilet toilet = toiletRepository.findById(managementNo)
+        Toilet toilet = toiletRepository.findById(toilet_id)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
 
         // 3. 중복 체크
@@ -44,11 +44,11 @@ public class FavoriteService {
     }
 
     //화장실 즐겨찾기 취소
-    public void deleteFavorite(Long Id, String managementNo) {
+    public void deleteFavorite(Long Id, Long toilet_id) {
         User user = userRepository.findById(Id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
 
-        Toilet toilet = toiletRepository.findById(managementNo)
+        Toilet toilet = toiletRepository.findById(toilet_id)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
         if (!favoriteRepository.existsByUserAndToilet(user, toilet)) {
             throw new RuntimeException("즐겨찾기한 화장실이 아닙니다.");
