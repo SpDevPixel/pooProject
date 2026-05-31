@@ -15,7 +15,6 @@ import {
   Phone, 
   Star,
   MessageSquare,
-  Heart,
   Building2,
   Trash2,
   FilePenLine,
@@ -54,6 +53,7 @@ export function ToiletDetailModal({
   const [requestType, setRequestType] = useState<ToiletRequestType | null>(null);
   const [requestMessage, setRequestMessage] = useState("");
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { user, isAuthenticated } = useAuth();
 
@@ -79,13 +79,23 @@ export function ToiletDetailModal({
     );
   };
 
-  const handleToggleFavorite = () => {
-    const wasFavorite = isFavorite(toilet.id);
-    toggleFavorite(toilet.id);
-    if (wasFavorite) {
-      toast.success("즐겨찾기에서 제거되었습니다");
-    } else {
-      toast.success("즐겨찾기에 추가되었습니다");
+  const handleToggleFavorite = async () => {
+    if (isTogglingFavorite) return;
+
+    setIsTogglingFavorite(true);
+
+    try {
+      const added = await toggleFavorite(toilet);
+      toast.success(added ? "즐겨찾기에 추가되었습니다." : "즐겨찾기에서 제거되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "즐겨찾기 처리에 실패했습니다."
+      );
+    } finally {
+      setIsTogglingFavorite(false);
     }
   };
 
@@ -172,7 +182,28 @@ export function ToiletDetailModal({
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">{toilet.name}</DialogTitle>
+            <DialogTitle className="flex min-w-0 items-center gap-2 text-xl">
+              <span className="min-w-0 truncate">{toilet.name}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleToggleFavorite}
+                disabled={isTogglingFavorite}
+                aria-label={
+                  isFavorite(toilet) ? "즐겨찾기 취소" : "즐겨찾기 추가"
+                }
+                className="h-10 w-10 shrink-0"
+              >
+                <Star
+                  size={30}
+                  className={
+                    isFavorite(toilet)
+                      ? "fill-yellow-400 text-yellow-500"
+                      : "text-gray-400"
+                  }
+                />
+              </Button>
+            </DialogTitle>
             <DialogDescription>
               화장실의 상세 정보를 확인하세요
             </DialogDescription>
@@ -364,16 +395,6 @@ export function ToiletDetailModal({
               >
                 <MessageSquare size={16} className="mr-2" />
                 리뷰 작성
-              </Button>
-              <Button
-                onClick={handleToggleFavorite}
-                variant="outline"
-              >
-                <Heart
-                  size={16}
-                  className={`mr-2 ${isFavorite(toilet.id) ? "fill-red-500 text-red-500" : ""}`}
-                />
-                즐겨찾기
               </Button>
               <Button
                 onClick={() => toilet && onStartNavigation?.(toilet)}

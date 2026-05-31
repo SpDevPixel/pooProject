@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Bell,
   Heart,
-  ListFilter,
   Megaphone,
   Navigation,
   Plus,
@@ -333,10 +332,6 @@ export default function HomePage() {
             <Button variant="outline" onClick={() => navigate("/notices")} className={headerButtonClass}>
               <Megaphone size={18} />
               공지사항
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/toilets")} className={headerButtonClass}>
-              <ListFilter size={18} />
-              목록
             </Button>
             <Button variant="outline" onClick={() => navigate("/admin")} className={headerButtonClass}>
               <Shield size={18} />

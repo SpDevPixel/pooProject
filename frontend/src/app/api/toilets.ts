@@ -5,7 +5,7 @@
  */
 import type { Toilet } from "../types/toilet";
 
-type BackendToilet = {
+export type BackendToilet = {
   id?: number | string | null;
   managementNo?: string | number | null;
   name?: string | null;
@@ -62,7 +62,7 @@ const toNumber = (value: BackendToilet["lat"]) => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
-const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
+export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lat = toNumber(toilet.lat);
   const lng = toNumber(toilet.lng);
   const managementNo = toilet.managementNo?.toString();
