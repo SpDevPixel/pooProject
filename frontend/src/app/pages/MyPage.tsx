@@ -55,7 +55,6 @@ const getBackendToiletId = (toilet: Toilet) => {
 export default function MyPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"toilets" | "reviews">("toilets");
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [userToilets, setUserToilets] = useState<Toilet[]>([]);
   const [isLoadingToilets, setIsLoadingToilets] = useState(false);
@@ -68,6 +67,8 @@ export default function MyPage() {
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [reviewLoadError, setReviewLoadError] = useState<string | null>(null);
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+  const [showAllToilets, setShowAllToilets] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -153,6 +154,9 @@ export default function MyPage() {
   if (!user) {
     return null;
   }
+
+  const visibleUserToilets = showAllToilets ? userToilets : userToilets.slice(0, 5);
+  const visibleUserReviews = showAllReviews ? userReviews : userReviews.slice(0, 5);
 
   const handleLogout = () => {
     logout();
@@ -409,33 +413,11 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="bg-white rounded-lg border">
-          <div className="flex border-b">
-            <button
-              className={`flex-1 px-4 py-3 font-medium transition-colors ${
-                activeTab === "toilets"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              onClick={() => setActiveTab("toilets")}
-            >
-              등록한 화장실 ({userToilets.length})
-            </button>
-            <button
-              className={`flex-1 px-4 py-3 font-medium transition-colors ${
-                activeTab === "reviews"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              onClick={() => setActiveTab("reviews")}
-            >
-              작성한 리뷰 ({userReviews.length})
-            </button>
+          <div className="border-b px-4 py-3">
+            <h3 className="font-medium text-blue-600">등록한 화장실 ({userToilets.length})</h3>
           </div>
-
           <div className="p-4">
-            {activeTab === "toilets" && (
               <div className="space-y-3">
                 {toiletLoadError && (
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -469,7 +451,7 @@ export default function MyPage() {
                     </Button>
                   </div>
                 ) : (
-                  userToilets.map((toilet) => (
+                  visibleUserToilets.map((toilet) => (
                     <div
                       key={toilet.managementNo}
                       className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -523,10 +505,24 @@ export default function MyPage() {
                     </div>
                   ))
                 )}
+                {!isLoadingToilets && userToilets.length > 5 && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setShowAllToilets((current) => !current)}
+                  >
+                    {showAllToilets ? "접기" : `더보기 (${userToilets.length - 5}개)`}
+                  </Button>
+                )}
               </div>
-            )}
+          </div>
+        </div>
 
-            {activeTab === "reviews" && (
+        <div className="bg-white rounded-lg border">
+          <div className="border-b px-4 py-3">
+            <h3 className="font-medium text-blue-600">작성한 리뷰 ({userReviews.length})</h3>
+          </div>
+          <div className="p-4">
               <div className="space-y-3">
                 {reviewLoadError && (
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -557,7 +553,7 @@ export default function MyPage() {
                     </p>
                   </div>
                 ) : (
-                  userReviews.map((review) => (
+                  visibleUserReviews.map((review) => (
                     <div
                       key={review.id}
                       className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
@@ -593,8 +589,16 @@ export default function MyPage() {
                     </div>
                   ))
                 )}
+                {!isLoadingReviews && userReviews.length > 5 && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setShowAllReviews((current) => !current)}
+                  >
+                    {showAllReviews ? "접기" : `더보기 (${userReviews.length - 5}개)`}
+                  </Button>
+                )}
               </div>
-            )}
           </div>
         </div>
       </div>
