@@ -2,6 +2,7 @@ package com.yeogi.toilet.emergency_toilet.toilet.repository;
 
 import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,5 +25,9 @@ public interface ToiletRequestRepository extends JpaRepository<ToiletRequest, Lo
             "AND tr.updateToiletRequest = true " +
             "AND tr.status = 'PENDING'")
     List<ToiletRequest> findUpdateRequestsByApproverId(@Param("approverId") Long approverId);
+
+    @Modifying
+    @Query("DELETE FROM ToiletRequest tr WHERE tr.toilet.id = :toiletId")
+    void deleteByToiletId(@Param("toiletId") Long toiletId);
 
 }

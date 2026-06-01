@@ -1,11 +1,15 @@
 package com.yeogi.toilet.emergency_toilet.toilet.service;
 
+import com.yeogi.toilet.emergency_toilet.review.domain.Review;
+import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.SeoulToiletApiResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletApiRow;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
+import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
+import com.yeogi.toilet.emergency_toilet.user.repository.UserFavoriteRepository;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
@@ -29,6 +33,9 @@ public class ToiletService {
 
     private final ToiletRepository toiletRepository;
     private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository;
+    private final UserFavoriteRepository favoriteRepository;
+    private final ToiletRequestRepository toiletRequestRepository;
     private final JwtUtil jwtUtil;
     private final RestTemplate restTemplate;
 
@@ -92,6 +99,10 @@ public class ToiletService {
         if(!toilet.getUser().getId().equals(id)){
             throw new AccessDeniedException("본인이 등록한 데이터만 삭제할 수 있습니다.");
         }
+
+        reviewRepository.deleteByToiletId(toiletId);         // 연관된 리뷰 삭제
+        favoriteRepository.deleteByToiletId(toiletId);       // 연관된 즐겨찾기 삭제
+        toiletRequestRepository.deleteByToiletId(toiletId);
 
         toiletRepository.delete(toilet);
     }
