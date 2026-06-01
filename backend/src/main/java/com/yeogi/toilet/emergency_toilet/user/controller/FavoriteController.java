@@ -1,10 +1,13 @@
 package com.yeogi.toilet.emergency_toilet.user.controller;
 
+import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.user.service.FavoriteService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/favorite")
@@ -38,12 +41,12 @@ public class FavoriteController {
 
     //즐겨찾기한 화장실 정보 전송
     @GetMapping("/toilets")
-    public ResponseEntity<?> getFavoriteToilet(@RequestHeader("Authorization") String token){
-        Long Id = jwtUtil.extractId(token.replace("Bearer ", ""));
+    public ResponseEntity<List<Toilet>> getFavoriteToilet(@RequestHeader("Authorization") String token) {
+        Long id = jwtUtil.extractId(token.replace("Bearer ", ""));
+        
+        List<Toilet> favoriteToilets = favoriteService.getUserFavoriteToilets(id);
 
-        favoriteService.getUserFavoriteToilets(Id);
-
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(favoriteToilets);
     }
 
 }
