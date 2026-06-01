@@ -3,7 +3,7 @@
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
  * 역할: 선택한 화장실의 상세 정보, 편의시설, 리뷰 액션을 보여주는 모달입니다.
  */
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { 
   Accessibility, 
   Baby, 
@@ -11,36 +11,87 @@ import {
   Camera, 
   Clock, 
   MapPin, 
+  Navigation,
   Phone, 
   Star,
   MessageSquare,
-  Heart,
   Building2,
   Trash2,
+  FilePenLine,
+  Send,
 } from "lucide-react";
 import type { Toilet } from "../types/toilet";
+import type { RoutePoint } from "../api/tmapRoutes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
 import { ReviewDialog } from "./ReviewDialog";
-import { mockReviews } from "../data/mockReviews";
 import { Separator } from "./ui/separator";
 import { useFavorites } from "../contexts/FavoritesContext";
+import { useAuth } from "../contexts/AuthContext";
+import { addToiletRequest, type ToiletRequestType } from "../api/toiletRequests";
+import { fetchToiletReviews } from "../api/reviews";
 import { toast } from "sonner";
+import type { Review } from "../types/toilet";
 
 interface ToiletDetailModalProps {
   toilet: Toilet | null;
   open: boolean;
   onClose: () => void;
+  onStartNavigation?: (toilet: Toilet, start?: RoutePoint) => void;
+  isStartingNavigation?: boolean;
 }
 
-export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalProps) {
+export function ToiletDetailModal({
+  toilet,
+  open,
+  onClose,
+  onStartNavigation,
+  isStartingNavigation = false,
+}: ToiletDetailModalProps) {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [requestType, setRequestType] = useState<ToiletRequestType | null>(null);
+  const [requestMessage, setRequestMessage] = useState("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [toiletReviews, setToiletReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { user, isAuthenticated } = useAuth();
+
+  const loadReviews = useCallback(async () => {
+    if (!toilet?.managementNo) {
+      setToiletReviews([]);
+      return;
+    }
+
+    setIsLoadingReviews(true);
+    setReviewError(null);
+
+    try {
+      const reviews = await fetchToiletReviews(toilet.managementNo);
+      setToiletReviews(reviews);
+    } catch (error) {
+      console.error(error);
+      setReviewError(error instanceof Error ? error.message : "리뷰를 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  }, [toilet?.managementNo]);
+
+  useEffect(() => {
+    if (!open || !toilet) {
+      setToiletReviews([]);
+      setReviewError(null);
+      return;
+    }
+
+    void loadReviews();
+  }, [loadReviews, open, toilet]);
 
   if (!toilet) return null;
-
-  const toiletReviews = mockReviews.filter((review) => review.toiletId === toilet.id);
 
   const renderStars = (rating: number) => {
     return (
@@ -60,13 +111,101 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
     );
   };
 
-  const handleToggleFavorite = () => {
-    const wasFavorite = isFavorite(toilet.id);
-    toggleFavorite(toilet.id);
-    if (wasFavorite) {
-      toast.success("즐겨찾기에서 제거되었습니다");
-    } else {
-      toast.success("즐겨찾기에 추가되었습니다");
+  const handleToggleFavorite = async () => {
+    if (isTogglingFavorite) return;
+
+    setIsTogglingFavorite(true);
+
+    try {
+      const added = await toggleFavorite(toilet);
+      toast.success(added ? "즐겨찾기에 추가되었습니다." : "즐겨찾기에서 제거되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "즐겨찾기 처리에 실패했습니다."
+      );
+    } finally {
+      setIsTogglingFavorite(false);
+    }
+  };
+
+  const getRequestContext = () => {
+    if (!isAuthenticated || !user) {
+      toast.error("로그인 후 요청을 보낼 수 있습니다.");
+      return null;
+    }
+
+    const requesterId = Number(user.id);
+    if (!Number.isFinite(requesterId)) {
+      toast.error("사용자 정보를 확인하지 못했습니다. 다시 로그인해주세요.");
+      return null;
+    }
+
+    if (!toilet.backendId) {
+      toast.error("화장실 정보를 다시 불러온 뒤 요청해주세요.");
+      return null;
+    }
+
+    return {
+      requesterId,
+      token: user.token,
+    };
+  };
+
+  const openRequestDialog = (type: ToiletRequestType) => {
+    if (!getRequestContext()) return;
+    setRequestType(type);
+    setRequestMessage("");
+  };
+
+  const closeRequestDialog = () => {
+    setRequestType(null);
+    setRequestMessage("");
+  };
+
+  const handleSubmitRequest = async () => {
+    if (!requestType) return;
+
+    const requestContext = getRequestContext();
+    if (!requestContext) return;
+
+    const trimmedMessage = requestMessage.trim();
+    if (!trimmedMessage) {
+      toast.error(
+        requestType === "UPDATE"
+          ? "수정 요청 내용을 입력해주세요."
+          : "삭제 요청 사유를 입력해주세요."
+      );
+      return;
+    }
+
+    setIsSubmittingRequest(true);
+
+    try {
+      const request = await addToiletRequest({
+        toilet,
+        type: requestType,
+        message: trimmedMessage,
+        ...requestContext,
+      });
+
+      toast.success(
+        `${request.recipientLabel}에게 ${
+          requestType === "UPDATE" ? "수정" : "삭제"
+        } 요청을 보냈습니다.`
+      );
+      closeRequestDialog();
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `${requestType === "UPDATE" ? "수정" : "삭제"} 요청에 실패했습니다.`
+      );
+    } finally {
+      setIsSubmittingRequest(false);
     }
   };
 
@@ -75,7 +214,28 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">{toilet.name}</DialogTitle>
+            <DialogTitle className="flex min-w-0 items-center gap-2 text-xl">
+              <span className="min-w-0 truncate">{toilet.name}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleToggleFavorite}
+                disabled={isTogglingFavorite}
+                aria-label={
+                  isFavorite(toilet) ? "즐겨찾기 취소" : "즐겨찾기 추가"
+                }
+                className="h-10 w-10 shrink-0"
+              >
+                <Star
+                  size={30}
+                  className={
+                    isFavorite(toilet)
+                      ? "fill-yellow-400 text-yellow-500"
+                      : "text-gray-400"
+                  }
+                />
+              </Button>
+            </DialogTitle>
             <DialogDescription>
               화장실의 상세 정보를 확인하세요
             </DialogDescription>
@@ -219,44 +379,53 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
               </div>
             </div>
 
-            {/* Reviews Section */}
-            {toiletReviews.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                      <MessageSquare size={16} />
-                      최근 리뷰 ({toiletReviews.length})
-                    </h3>
-                  </div>
-                  
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {toiletReviews.slice(0, 3).map((review) => (
-                      <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-sm">{review.userName}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {renderStars(review.rating)}
-                              <span className="text-xs text-muted-foreground">
-                                청결도: {review.cleanliness}/5
-                              </span>
-                            </div>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {review.createdAt.toLocaleDateString()}
-                          </span>
-                        </div>
-                        {review.comment && (
-                          <p className="text-sm text-muted-foreground">{review.comment}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+            <Separator />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+                  <MessageSquare size={16} />
+                  최근 리뷰 ({toiletReviews.length})
+                </h3>
+              </div>
+
+              {isLoadingReviews ? (
+                <div className="rounded-lg bg-gray-50 p-4 text-center text-sm text-muted-foreground">
+                  리뷰를 불러오는 중입니다.
                 </div>
-              </>
-            )}
+              ) : reviewError ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  {reviewError}
+                </div>
+              ) : toiletReviews.length === 0 ? (
+                <div className="rounded-lg bg-gray-50 p-4 text-center text-sm text-muted-foreground">
+                  아직 작성된 리뷰가 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {toiletReviews.slice(0, 3).map((review) => (
+                    <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <p className="font-medium text-sm">{review.userName}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {renderStars(review.rating)}
+                            <span className="text-xs text-muted-foreground">
+                              청결도: {review.cleanliness}/5
+                            </span>
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {review.createdAt.toLocaleDateString()}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-muted-foreground">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2 pt-2">
@@ -269,17 +438,22 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
                 리뷰 작성
               </Button>
               <Button
-                onClick={handleToggleFavorite}
-                variant="outline"
+                onClick={() => toilet && onStartNavigation?.(toilet)}
+                disabled={!onStartNavigation || isStartingNavigation}
               >
-                <Heart
-                  size={16}
-                  className={`mr-2 ${isFavorite(toilet.id) ? "fill-red-500 text-red-500" : ""}`}
-                />
-                즐겨찾기
+                <Navigation size={16} className="mr-2" />
+                {isStartingNavigation ? "경로 찾는 중" : "길 안내"}
               </Button>
-              <Button onClick={onClose}>
+              <Button onClick={onClose} variant="outline">
                 닫기
+              </Button>
+              <Button onClick={() => openRequestDialog("UPDATE")} variant="outline">
+                <FilePenLine size={16} className="mr-2" />
+                수정요청
+              </Button>
+              <Button onClick={() => openRequestDialog("DELETE")} variant="outline">
+                <Send size={16} className="mr-2" />
+                삭제요청
               </Button>
             </div>
           </div>
@@ -290,7 +464,43 @@ export function ToiletDetailModal({ toilet, open, onClose }: ToiletDetailModalPr
         open={isReviewDialogOpen}
         onClose={() => setIsReviewDialogOpen(false)}
         toilet={toilet}
+        onCreated={() => void loadReviews()}
       />
+
+      <Dialog open={!!requestType} onOpenChange={(isOpen) => !isOpen && closeRequestDialog()}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle>
+              {requestType === "UPDATE" ? "수정 요청" : "삭제 요청"}
+            </DialogTitle>
+            <DialogDescription>
+              요청 내용을 입력하면 알림으로 전달됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Textarea
+              value={requestMessage}
+              onChange={(event) => setRequestMessage(event.target.value)}
+              rows={4}
+              autoFocus
+              placeholder={
+                requestType === "UPDATE"
+                  ? "수정이 필요한 내용을 입력해주세요."
+                  : "삭제가 필요한 이유를 입력해주세요."
+              }
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={closeRequestDialog} disabled={isSubmittingRequest}>
+                취소
+              </Button>
+              <Button onClick={handleSubmitRequest} disabled={isSubmittingRequest}>
+                {isSubmittingRequest ? "전송 중..." : "확인"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

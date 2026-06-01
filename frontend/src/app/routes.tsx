@@ -12,7 +12,6 @@ import MyPage from "./pages/MyPage";
 import EditProfilePage from "./pages/EditProfilePage";
 import NoticesPage from "./pages/NoticesPage";
 import NoticeDetailPage from "./pages/NoticeDetailPage";
-import ToiletListPage from "./pages/ToiletListPage";
 import AdminPage from "./pages/AdminPage";
 
 export const router = createBrowserRouter([
@@ -47,10 +46,6 @@ export const router = createBrowserRouter([
   {
     path: "/notices/:noticeId",
     element: <NoticeDetailPage />,
-  },
-  {
-    path: "/toilets",
-    element: <ToiletListPage />,
   },
   {
     path: "/admin",

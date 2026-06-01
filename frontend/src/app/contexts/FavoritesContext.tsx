@@ -1,59 +1,143 @@
-﻿/*
+/*
  * 파일 위치: src/app/contexts/FavoritesContext.tsx
  * 상위 폴더: src/app/contexts (전역 상태 Context)
- * 역할: 즐겨찾기 목록을 localStorage 기반으로 관리하는 컨텍스트입니다.
+ * 역할: 백엔드 API 기반으로 사용자의 즐겨찾기 화장실 목록을 관리합니다.
  */
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import type { Toilet } from "../types/toilet";
+import {
+  addFavoriteToilet,
+  deleteFavoriteToilet,
+  fetchFavoriteToilets,
+  getBackendToiletId,
+} from "../api/favorites";
+import { useAuth } from "./AuthContext";
 
 interface FavoritesContextType {
-  favorites: string[]; // toilet IDs
-  addFavorite: (toiletId: string) => void;
-  removeFavorite: (toiletId: string) => void;
-  isFavorite: (toiletId: string) => boolean;
-  toggleFavorite: (toiletId: string) => void;
+  favorites: string[];
+  favoriteToilets: Toilet[];
+  isLoadingFavorites: boolean;
+  favoriteError: string | null;
+  refreshFavorites: () => Promise<void>;
+  addFavorite: (toilet: Toilet) => Promise<void>;
+  removeFavorite: (toilet: Toilet) => Promise<void>;
+  isFavorite: (toilet: Toilet | string) => boolean;
+  toggleFavorite: (toilet: Toilet) => Promise<boolean>;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
+const getFavoriteKey = (toilet: Toilet | string) => {
+  if (typeof toilet === "string") return toilet;
+  return toilet.backendId?.toString() ?? toilet.id;
+};
+
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    // Load from localStorage on mount
-    const saved = localStorage.getItem("toilet-favorites");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { user } = useAuth();
+  const [favoriteToilets, setFavoriteToilets] = useState<Toilet[]>([]);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
-  // Save to localStorage whenever favorites change
-  useEffect(() => {
-    localStorage.setItem("toilet-favorites", JSON.stringify(favorites));
-  }, [favorites]);
+  const favorites = useMemo(
+    () => favoriteToilets.map((toilet) => getFavoriteKey(toilet)),
+    [favoriteToilets]
+  );
 
-  const addFavorite = (toiletId: string) => {
-    setFavorites((prev) => {
-      if (prev.includes(toiletId)) return prev;
-      return [...prev, toiletId];
-    });
-  };
-
-  const removeFavorite = (toiletId: string) => {
-    setFavorites((prev) => prev.filter((id) => id !== toiletId));
-  };
-
-  const isFavorite = (toiletId: string) => {
-    return favorites.includes(toiletId);
-  };
-
-  const toggleFavorite = (toiletId: string) => {
-    if (isFavorite(toiletId)) {
-      removeFavorite(toiletId);
-    } else {
-      addFavorite(toiletId);
+  const refreshFavorites = useCallback(async () => {
+    if (!user?.token) {
+      setFavoriteToilets([]);
+      setFavoriteError(null);
+      return;
     }
-  };
+
+    setIsLoadingFavorites(true);
+    setFavoriteError(null);
+
+    try {
+      const toilets = await fetchFavoriteToilets(user.token);
+      setFavoriteToilets(toilets);
+    } catch (error) {
+      console.error(error);
+      setFavoriteError(
+        error instanceof Error
+          ? error.message
+          : "즐겨찾기 목록을 불러오지 못했습니다."
+      );
+    } finally {
+      setIsLoadingFavorites(false);
+    }
+  }, [user?.token]);
+
+  useEffect(() => {
+    refreshFavorites();
+  }, [refreshFavorites]);
+
+  const isFavorite = useCallback(
+    (toilet: Toilet | string) => favorites.includes(getFavoriteKey(toilet)),
+    [favorites]
+  );
+
+  const addFavorite = useCallback(
+    async (toilet: Toilet) => {
+      if (!user?.token) {
+        throw new Error("로그인 후 즐겨찾기를 사용할 수 있습니다.");
+      }
+
+      const toiletId = getBackendToiletId(toilet);
+      if (!toiletId) {
+        throw new Error("화장실 정보를 다시 불러온 뒤 즐겨찾기를 시도해주세요.");
+      }
+
+      await addFavoriteToilet(toiletId, user.token);
+      setFavoriteToilets((current) =>
+        current.some((item) => getFavoriteKey(item) === getFavoriteKey(toilet))
+          ? current
+          : [...current, toilet]
+      );
+    },
+    [user?.token]
+  );
+
+  const removeFavorite = useCallback(
+    async (toilet: Toilet) => {
+      if (!user?.token) {
+        throw new Error("로그인 후 즐겨찾기를 사용할 수 있습니다.");
+      }
+
+      const toiletId = getBackendToiletId(toilet);
+      if (!toiletId) {
+        throw new Error("화장실 정보를 다시 불러온 뒤 즐겨찾기를 취소해주세요.");
+      }
+
+      await deleteFavoriteToilet(toiletId, user.token);
+      setFavoriteToilets((current) =>
+        current.filter((item) => getFavoriteKey(item) !== getFavoriteKey(toilet))
+      );
+    },
+    [user?.token]
+  );
+
+  const toggleFavorite = useCallback(
+    async (toilet: Toilet) => {
+      if (isFavorite(toilet)) {
+        await removeFavorite(toilet);
+        return false;
+      }
+
+      await addFavorite(toilet);
+      return true;
+    },
+    [addFavorite, isFavorite, removeFavorite]
+  );
 
   return (
     <FavoritesContext.Provider
       value={{
         favorites,
+        favoriteToilets,
+        isLoadingFavorites,
+        favoriteError,
+        refreshFavorites,
         addFavorite,
         removeFavorite,
         isFavorite,

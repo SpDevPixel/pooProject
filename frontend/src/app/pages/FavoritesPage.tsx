@@ -1,53 +1,107 @@
-﻿/*
+/*
  * 파일 위치: src/app/pages/FavoritesPage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 사용자가 즐겨찾기한 화장실 목록을 보여주는 화면입니다.
+ * 역할: 백엔드에 저장된 사용자의 즐겨찾기 화장실 목록을 보여주는 화면입니다.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Heart, MapPin, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, Heart, MapPin, RefreshCw, Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { useFavorites } from "../contexts/FavoritesContext";
-import { mockToilets } from "../data/mockToilets";
 import { ToiletDetailModal } from "../components/ToiletDetailModal";
 import type { Toilet } from "../types/toilet";
 import { Badge } from "../components/ui/badge";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function FavoritesPage() {
   const navigate = useNavigate();
-  const { favorites, removeFavorite } = useFavorites();
+  const { user } = useAuth();
+  const {
+    favoriteToilets,
+    isLoadingFavorites,
+    favoriteError,
+    refreshFavorites,
+    removeFavorite,
+  } = useFavorites();
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
+  const [removingToiletId, setRemovingToiletId] = useState<string | null>(null);
 
-  // Get favorite toilets
-  const favoriteToilets = mockToilets.filter((toilet) =>
-    favorites.includes(toilet.id)
-  );
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [navigate, user]);
 
-  const handleRemoveFavorite = (toiletId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    removeFavorite(toiletId);
+  if (!user) {
+    return null;
+  }
+
+  const handleRemoveFavorite = async (toilet: Toilet, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setRemovingToiletId(toilet.id);
+
+    try {
+      await removeFavorite(toilet);
+      toast.success("즐겨찾기에서 제거되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "즐겨찾기 취소에 실패했습니다."
+      );
+    } finally {
+      setRemovingToiletId(null);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft size={20} />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Heart className="fill-red-500 text-red-500" size={24} />
-              <h1 className="text-xl font-semibold">즐겨찾기</h1>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+                <ArrowLeft size={20} />
+              </Button>
+              <div className="flex items-center gap-2">
+                <Heart className="fill-red-500 text-red-500" size={24} />
+                <h1 className="text-xl font-semibold">즐겨찾기</h1>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshFavorites}
+              disabled={isLoadingFavorites}
+            >
+              <RefreshCw
+                size={16}
+                className={`mr-2 ${isLoadingFavorites ? "animate-spin" : ""}`}
+              />
+              새로고침
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {favoriteToilets.length === 0 ? (
+        {favoriteError && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span>{favoriteError}</span>
+            <Button variant="outline" size="sm" onClick={refreshFavorites}>
+              다시 시도
+            </Button>
+          </div>
+        )}
+
+        {isLoadingFavorites ? (
+          <div className="bg-white rounded-lg border p-12 text-center text-muted-foreground">
+            <RefreshCw size={44} className="mx-auto mb-4 animate-spin opacity-40" />
+            즐겨찾기를 불러오는 중입니다.
+          </div>
+        ) : favoriteToilets.length === 0 ? (
           <div className="bg-white rounded-lg border p-12 text-center">
             <Heart size={64} className="mx-auto mb-4 text-gray-300" />
             <h2 className="text-xl font-semibold mb-2">
@@ -71,14 +125,14 @@ export default function FavoritesPage() {
             <div className="grid gap-4">
               {favoriteToilets.map((toilet) => (
                 <div
-                  key={toilet.id}
+                  key={toilet.backendId ?? toilet.id}
                   onClick={() => setSelectedToilet(toilet)}
                   className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold">{toilet.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex items-center gap-2">
+                        <h3 className="truncate font-semibold">{toilet.name}</h3>
                         {toilet.rating && (
                           <div className="flex items-center gap-1">
                             <Star
@@ -91,13 +145,12 @@ export default function FavoritesPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex items-start gap-2 text-sm text-muted-foreground mb-3">
                         <MapPin size={16} className="mt-0.5 flex-shrink-0" />
                         <span>{toilet.roadAddress}</span>
                       </div>
 
-                      {/* Quick Info Badges */}
                       <div className="flex flex-wrap gap-2">
                         {toilet.hasDisabledFacility && (
                           <Badge variant="outline">장애인 시설</Badge>
@@ -117,10 +170,16 @@ export default function FavoritesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => handleRemoveFavorite(toilet.id, e)}
-                      className="flex-shrink-0 ml-2"
+                      onClick={(event) => handleRemoveFavorite(toilet, event)}
+                      disabled={removingToiletId === toilet.id}
+                      className="ml-2 flex-shrink-0"
+                      aria-label={`${toilet.name} 즐겨찾기 삭제`}
                     >
-                      <Trash2 size={18} className="text-red-500" />
+                      {removingToiletId === toilet.id ? (
+                        <RefreshCw size={18} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={18} className="text-red-500" />
+                      )}
                     </Button>
                   </div>
 
@@ -136,7 +195,6 @@ export default function FavoritesPage() {
         )}
       </div>
 
-      {/* Toilet Detail Modal */}
       <ToiletDetailModal
         toilet={selectedToilet}
         open={!!selectedToilet}

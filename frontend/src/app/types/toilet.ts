@@ -5,6 +5,7 @@
  */
 export interface Toilet {
   id: string; // managementNo를 id로 사용
+  backendId?: number; // 백엔드 DB PK
   managementNo: string;
   name: string;
   roadAddress: string;
@@ -30,6 +31,9 @@ export interface Toilet {
 export interface Review {
   id: string;
   toiletId: string;
+  toiletBackendId?: number;
+  toiletName?: string;
+  roadAddress?: string;
   userId: string;
   userName: string;
   rating: number;

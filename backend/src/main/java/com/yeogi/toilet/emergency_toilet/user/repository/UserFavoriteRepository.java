@@ -4,6 +4,7 @@ import com.yeogi.toilet.emergency_toilet.user.domain.UserFavorite;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,4 +23,8 @@ public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long
 
     // 즐겨찾기 해제
     void deleteByUserAndToilet(User user, Toilet toilet);
+
+    @Modifying
+    @Query("DELETE FROM UserFavorite f WHERE f.toilet.id = :toiletId")
+    void deleteByToiletId(@Param("toiletId") Long toiletId);
 }
