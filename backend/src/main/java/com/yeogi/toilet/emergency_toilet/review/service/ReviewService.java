@@ -5,6 +5,7 @@ import com.yeogi.toilet.emergency_toilet.review.dto.ReviewDto;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -19,17 +20,23 @@ import java.util.List;
 @Slf4j
 public class ReviewService {
 
-    private final ReviewRepository reviewrepository;
+    private final ReviewRepository reviewRepository;
+    private final UserRepository userRepository;
     private final ToiletRepository toiletRepository;
 
     //리뷰 데이터 저장
-    public Review addReview(ReviewDto dto){
+    public Review addReview(ReviewDto dto, Long userId) { // 2. userId 파라미터 추가
         Toilet toilet = toiletRepository.findById(dto.getToiletId())
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         Review review = new Review();
 
         review.setToilet(toilet);
+        review.setUser(user);
+
         review.setRating(dto.getRating());
         review.setCleanliness(dto.getCleanliness());
         review.setHasTissuePaper(dto.isHasTissuePaper());
@@ -39,37 +46,37 @@ public class ReviewService {
 
         toilet.updateRatingWhenReviewAdded(dto.getRating());
 
-        return reviewrepository.save(review);
+        return reviewRepository.save(review);
     }
 
     //화장실 리뷰 전달
     public List<Review> getReviewsByToilet(String managementNo) {
-        return reviewrepository.findByToilet_ManagementNo(managementNo);
+        return reviewRepository.findByToilet_ManagementNo(managementNo);
     }
 
     //사용자가 작성한 리뷰 전달
     public List<Review> getReviewsByUser(Long id){
-        return reviewrepository.findByUser_Id(id);
+        return reviewRepository.findByUser_Id(id);
     }
 
     //사용자가 작성한 리뷰 삭제
     public  void deleteUserReview(Long id, Long reviewId){
-        Review review = reviewrepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+        Review review = reviewRepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
         if(!review.getUser().getId().equals(id)){
             throw new RuntimeException("삭제 권한 없음");
         }
 
-        reviewrepository.delete(review);
+        reviewRepository.delete(review);
     }
 
     //관리자 권한으로 리뷰 삭제
 //    public void deleteReviewByAdmin(Long reviewId){
-//        Review review = reviewrepository.findById(reviewId)
+//        Review review = reviewRepository.findById(reviewId)
 //                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
 //
 //        // 소유자 확인 없이 바로 삭제
-//        reviewrepository.delete(review);
+//        reviewRepository.delete(review);
 //    }
 
 }
