@@ -12,7 +12,7 @@ spring:
 #    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: create   # 처음엔 create, 이후 update
+      ddl-auto: update   # 처음엔 create, 이후 update
     show-sql: true
     properties:
       hibernate:
