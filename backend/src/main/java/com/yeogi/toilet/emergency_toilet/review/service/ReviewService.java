@@ -53,6 +53,7 @@ public class ReviewService {
     }
 
     //사용자가 작성한 리뷰 삭제
+    @Transactional
     public  void deleteUserReview(Long id, Long reviewId){
         Review review = reviewrepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
@@ -60,14 +61,23 @@ public class ReviewService {
             throw new RuntimeException("삭제 권한 없음");
         }
 
+        Toilet toilet = review.getToilet();
+        if (toilet != null) {
+            toilet.updateRatingWhenReviewDeleted(review.getRating());
+        }
+
         reviewrepository.delete(review);
     }
 
     //관리자 권한으로 리뷰 삭제
+//    @Transactional
 //    public void deleteReviewByAdmin(Long reviewId){
 //        Review review = reviewrepository.findById(reviewId)
 //                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
-//
+//        Toilet toilet = review.getToilet();
+//        if (toilet != null) {
+//            toilet.updateRatingWhenReviewDeleted(review.getRating());
+//        }
 //        // 소유자 확인 없이 바로 삭제
 //        reviewrepository.delete(review);
 //    }
