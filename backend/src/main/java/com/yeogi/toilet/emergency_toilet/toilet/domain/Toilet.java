@@ -59,4 +59,24 @@ public class Toilet {
         double newAverage = totalRating / this.reviewCount;
         this.rating = Math.round(newAverage * 10.0) / 10.0;
     }
+
+    public void updateRatingWhenReviewDeleted(double deletedRating) {
+        if (this.reviewCount <= 0) {
+            this.reviewCount = 0;
+            this.rating = 0.0;
+            return;
+        }
+
+        // 2. 기존 총점 계산 후 삭제된 평점 차감
+        double totalRating = this.rating * this.reviewCount;
+        totalRating -= deletedRating;
+        this.reviewCount--;
+
+        if (this.reviewCount == 0) {
+            this.rating = 0.0;
+        } else {
+            double newAverage = totalRating / this.reviewCount;
+            this.rating = Math.round(newAverage * 10.0) / 10.0;
+        }
+    }
 }

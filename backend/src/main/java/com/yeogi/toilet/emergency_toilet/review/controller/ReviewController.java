@@ -28,10 +28,15 @@ public class ReviewController {
 
     @PostMapping
     public ResponseEntity<Review> addReview(
-            @RequestHeader("Authorization") String token, // 1. 헤더에서 토큰 받기
-            @RequestBody ReviewDto dto) {
+            @RequestBody ReviewDto dto,
+            @RequestHeader("Authorization") String token) {
 
-        Long userId = jwtUtil.extractId(token.replace("Bearer ", ""));
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("유효하지 않은 토큰입니다.");
+        }
+        String rawToken = token.substring(7);
+
+        Long userId = jwtUtil.extractId(rawToken);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(reviewService.addReview(dto, userId));

@@ -24,8 +24,9 @@ public class ReviewService {
     private final UserRepository userRepository;
     private final ToiletRepository toiletRepository;
 
-    //리뷰 데이터 저장
-    public Review addReview(ReviewDto dto, Long userId) { // 2. userId 파라미터 추가
+    // 리뷰 데이터 저장
+    @Transactional
+    public Review addReview(ReviewDto dto, Long userId) {
         Toilet toilet = toiletRepository.findById(dto.getToiletId())
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
 
@@ -34,8 +35,8 @@ public class ReviewService {
 
         Review review = new Review();
 
-        review.setToilet(toilet);
         review.setUser(user);
+        review.setToilet(toilet);
 
         review.setRating(dto.getRating());
         review.setCleanliness(dto.getCleanliness());
@@ -49,35 +50,44 @@ public class ReviewService {
         return reviewRepository.save(review);
     }
 
-    //화장실 리뷰 전달
+    // 화장실 리뷰 전달
     public List<Review> getReviewsByToilet(String managementNo) {
         return reviewRepository.findByToilet_ManagementNo(managementNo);
     }
 
-    //사용자가 작성한 리뷰 전달
-    public List<Review> getReviewsByUser(Long id){
+    // 사용자가 작성한 리뷰 전달
+    public List<Review> getReviewsByUser(Long id) {
         return reviewRepository.findByUser_Id(id);
     }
 
-    //사용자가 작성한 리뷰 삭제
+    // 사용자가 작성한 리뷰 삭제
     @Transactional
-    public  void deleteUserReview(Long id, Long reviewId){
-        Review review = reviewRepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+    public void deleteUserReview(Long id, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
-        if(!review.getUser().getId().equals(id)){
+        if (!review.getUser().getId().equals(id)) {
             throw new RuntimeException("삭제 권한 없음");
+        }
+
+        Toilet toilet = review.getToilet();
+        if (toilet != null) {
+            toilet.updateRatingWhenReviewDeleted(review.getRating());
         }
 
         reviewRepository.delete(review);
     }
 
-    //관리자 권한으로 리뷰 삭제
+    // 관리자 권한으로 리뷰 삭제
+//    @Transactional
 //    public void deleteReviewByAdmin(Long reviewId){
 //        Review review = reviewRepository.findById(reviewId)
 //                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
-//
+//        Toilet toilet = review.getToilet();
+//        if (toilet != null) {
+//            toilet.updateRatingWhenReviewDeleted(review.getRating());
+//        }
 //        // 소유자 확인 없이 바로 삭제
 //        reviewRepository.delete(review);
 //    }
-
 }
