@@ -60,6 +60,7 @@ public class ReviewService {
     }
 
     //사용자가 작성한 리뷰 삭제
+    @Transactional
     public  void deleteUserReview(Long id, Long reviewId){
         Review review = reviewRepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
