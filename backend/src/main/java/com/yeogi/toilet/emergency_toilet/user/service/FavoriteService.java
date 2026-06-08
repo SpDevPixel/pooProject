@@ -44,6 +44,7 @@ public class FavoriteService {
     }
 
     //화장실 즐겨찾기 취소
+    @Transactional
     public void deleteFavorite(Long Id, Long toilet_id) {
         User user = userRepository.findById(Id)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));

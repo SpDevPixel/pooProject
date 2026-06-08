@@ -21,12 +21,11 @@ public class ReviewController {
     private final JwtUtil jwtUtil;
 
     //리뷰 데이터 전송
-    @GetMapping("/{managementNo}")
-    public ResponseEntity<List<Review>> getReviews(@PathVariable String managementNo) {
-        return ResponseEntity.ok(reviewService.getReviewsByToilet(managementNo));
+    @GetMapping("/{toilet_id}")
+    public ResponseEntity<List<Review>> getReviews(@PathVariable String toilet_id) {
+        return ResponseEntity.ok(reviewService.getReviewsByToilet(toilet_id));
     }
 
-    //리뷰 데이터 저장
     @PostMapping
     public ResponseEntity<Review> addReview(
             @RequestBody ReviewDto dto,

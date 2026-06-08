@@ -20,10 +20,9 @@ import java.util.List;
 @Slf4j
 public class ReviewService {
 
-    private final ReviewRepository reviewrepository;
-    private final ToiletRepository toiletRepository;
+    private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
-
+    private final ToiletRepository toiletRepository;
 
     // 리뷰 데이터 저장
     @Transactional
@@ -36,7 +35,6 @@ public class ReviewService {
 
         Review review = new Review();
 
-        // ✨ 5. 하이버네이트 PropertyValueException 에러 해결을 위한 핵심 로직 (유저 매핑)
         review.setUser(user);
         review.setToilet(toilet);
 
@@ -47,26 +45,25 @@ public class ReviewService {
         review.setHasDoorLock(dto.isHasDoorLock());
         review.setCreatedAt(LocalDateTime.now());
 
-        // 화장실 평점 추가 로직 반영
         toilet.updateRatingWhenReviewAdded(dto.getRating());
 
-        return reviewrepository.save(review);
+        return reviewRepository.save(review);
     }
 
     // 화장실 리뷰 전달
     public List<Review> getReviewsByToilet(String managementNo) {
-        return reviewrepository.findByToilet_ManagementNo(managementNo);
+        return reviewRepository.findByToilet_ManagementNo(managementNo);
     }
 
     // 사용자가 작성한 리뷰 전달
     public List<Review> getReviewsByUser(Long id) {
-        return reviewrepository.findByUser_Id(id);
+        return reviewRepository.findByUser_Id(id);
     }
 
     // 사용자가 작성한 리뷰 삭제
     @Transactional
     public void deleteUserReview(Long id, Long reviewId) {
-        Review review = reviewrepository.findById(reviewId)
+        Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
         if (!review.getUser().getId().equals(id)) {
@@ -78,20 +75,19 @@ public class ReviewService {
             toilet.updateRatingWhenReviewDeleted(review.getRating());
         }
 
-        reviewrepository.delete(review);
+        reviewRepository.delete(review);
     }
 
-    //관리자 권한으로 리뷰 삭제
+    // 관리자 권한으로 리뷰 삭제
 //    @Transactional
 //    public void deleteReviewByAdmin(Long reviewId){
-//        Review review = reviewrepository.findById(reviewId)
+//        Review review = reviewRepository.findById(reviewId)
 //                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
 //        Toilet toilet = review.getToilet();
 //        if (toilet != null) {
 //            toilet.updateRatingWhenReviewDeleted(review.getRating());
 //        }
 //        // 소유자 확인 없이 바로 삭제
-//        reviewrepository.delete(review);
+//        reviewRepository.delete(review);
 //    }
-
 }

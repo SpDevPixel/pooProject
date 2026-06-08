@@ -3,7 +3,7 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-const AWS_API_TARGET = 'http://52.79.148.88'
+const AWS_API_TARGET = 'http://15.164.97.76'
 const LOCAL_API_TARGET = 'http://localhost:8080'
 
 export default defineConfig(({ mode }) => {

@@ -4,7 +4,7 @@ The frontend always calls `/api`.
 
 - Vercel keeps using the rewrite in `vercel.json`, so deployed traffic goes to the AWS backend.
 - `npm run dev` runs the Vite dev server and proxies `/api` to `http://localhost:8080`.
-- `npm run dev:aws` runs the Vite dev server and proxies `/api` to `http://52.79.148.88`.
+- `npm run dev:aws` runs the Vite dev server and proxies `/api` to `http://15.164.97.76`.
 
 ## Local API testing
 
