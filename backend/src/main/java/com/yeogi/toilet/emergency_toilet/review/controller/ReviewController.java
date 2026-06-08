@@ -28,9 +28,19 @@ public class ReviewController {
 
     //리뷰 데이터 저장
     @PostMapping
-    public ResponseEntity<Review> addReview(@RequestBody ReviewDto dto) {
+    public ResponseEntity<Review> addReview(
+            @RequestBody ReviewDto dto,
+            @RequestHeader("Authorization") String token) {
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("유효하지 않은 토큰입니다.");
+        }
+        String rawToken = token.substring(7);
+
+        Long userId = jwtUtil.extractId(rawToken);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(reviewService.addReview(dto));
+                .body(reviewService.addReview(dto, userId));
     }
 
     //유저의 리뷰 정보 전송

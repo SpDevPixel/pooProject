@@ -5,6 +5,7 @@ import com.yeogi.toilet.emergency_toilet.review.dto.ReviewDto;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,15 +22,24 @@ public class ReviewService {
 
     private final ReviewRepository reviewrepository;
     private final ToiletRepository toiletRepository;
+    private final UserRepository userRepository;
 
-    //리뷰 데이터 저장
-    public Review addReview(ReviewDto dto){
+
+    // 리뷰 데이터 저장
+    @Transactional
+    public Review addReview(ReviewDto dto, Long userId) {
         Toilet toilet = toiletRepository.findById(dto.getToiletId())
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
         Review review = new Review();
 
+        // ✨ 5. 하이버네이트 PropertyValueException 에러 해결을 위한 핵심 로직 (유저 매핑)
+        review.setUser(user);
         review.setToilet(toilet);
+
         review.setRating(dto.getRating());
         review.setCleanliness(dto.getCleanliness());
         review.setHasTissuePaper(dto.isHasTissuePaper());
@@ -37,27 +47,29 @@ public class ReviewService {
         review.setHasDoorLock(dto.isHasDoorLock());
         review.setCreatedAt(LocalDateTime.now());
 
+        // 화장실 평점 추가 로직 반영
         toilet.updateRatingWhenReviewAdded(dto.getRating());
 
         return reviewrepository.save(review);
     }
 
-    //화장실 리뷰 전달
+    // 화장실 리뷰 전달
     public List<Review> getReviewsByToilet(String managementNo) {
         return reviewrepository.findByToilet_ManagementNo(managementNo);
     }
 
-    //사용자가 작성한 리뷰 전달
-    public List<Review> getReviewsByUser(Long id){
+    // 사용자가 작성한 리뷰 전달
+    public List<Review> getReviewsByUser(Long id) {
         return reviewrepository.findByUser_Id(id);
     }
 
-    //사용자가 작성한 리뷰 삭제
+    // 사용자가 작성한 리뷰 삭제
     @Transactional
-    public  void deleteUserReview(Long id, Long reviewId){
-        Review review = reviewrepository.findById(reviewId).orElseThrow(() -> new RuntimeException("리뷰 없음"));
+    public void deleteUserReview(Long id, Long reviewId) {
+        Review review = reviewrepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("리뷰 없음"));
 
-        if(!review.getUser().getId().equals(id)){
+        if (!review.getUser().getId().equals(id)) {
             throw new RuntimeException("삭제 권한 없음");
         }
 
