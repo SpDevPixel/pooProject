@@ -1,4 +1,4 @@
-// Progress는 작업 진행률을 막대 형태로 보여주는 UI입니다.
+// Progress는 작업 진행률을 막대 형태로 표시하는 UI
 "use client";
 
 import * as React from "react";

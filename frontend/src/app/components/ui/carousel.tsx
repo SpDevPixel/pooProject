@@ -1,4 +1,4 @@
-// Carousel은 여러 콘텐츠를 좌우로 넘겨 볼 수 있게 해주는 UI입니다.
+// Carousel은 여러 콘텐츠를 좌우로 넘겨 볼 수 있게 하는 UI
 "use client";
 
 import * as React from "react";

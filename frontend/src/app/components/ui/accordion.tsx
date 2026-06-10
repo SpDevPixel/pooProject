@@ -1,4 +1,4 @@
-// Accordion은 여러 내용을 접었다 펼칠 수 있게 해주는 UI입니다.
+// Accordion은 여러 내용을 접었다 펼칠 수 있게 하는 UI
 "use client";
 
 import * as React from "react";

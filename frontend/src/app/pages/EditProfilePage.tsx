@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/pages/EditProfilePage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 사용자 정보 확인, 비밀번호 변경, 회원 탈퇴를 처리하는 프로필 수정 화면입니다.
+ * 역할: 사용자 정보 확인, 비밀번호 변경, 회원 탈퇴를 처리 프로필 수정 화면
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";

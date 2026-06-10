@@ -1,4 +1,4 @@
-// Textarea는 여러 줄의 긴 텍스트를 입력하는 UI입니다.
+// Textarea는 여러 줄의 긴 텍스트를 입력하는 UI
 import * as React from "react";
 
 import { cn } from "./utils";

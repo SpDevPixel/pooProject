@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/pages/MyPage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 사용자 프로필, 등록한 화장실, 작성 리뷰를 확인하는 마이페이지입니다.
+ * 역할: 사용자 프로필, 등록한 화장실, 작성 리뷰를 확인하는 마이페이지
  */
 import { useState, useEffect, type MouseEvent } from "react";
 import { useNavigate } from "react-router";
@@ -84,6 +84,7 @@ export default function MyPage() {
 
     let isMounted = true;
 
+    // 등록 화장실 조회
     const loadUserToilets = async () => {
       setIsLoadingToilets(true);
       setToiletLoadError(null);
@@ -121,6 +122,7 @@ export default function MyPage() {
 
     let isMounted = true;
 
+    // 작성 리뷰 조회
     const loadUserReviews = async () => {
       setIsLoadingReviews(true);
       setReviewLoadError(null);
@@ -228,6 +230,7 @@ export default function MyPage() {
     setEditForm(null);
   };
 
+  // 화장실 수정 저장
   const handleSaveToilet = async () => {
     if (!selectedToilet || !editForm) return;
 
@@ -321,6 +324,7 @@ export default function MyPage() {
     }
   };
 
+  // 리뷰 삭제
   const handleDeleteReview = async (review: Review) => {
     if (!window.confirm("작성한 리뷰를 삭제할까요?")) {
       return;
@@ -358,6 +362,7 @@ export default function MyPage() {
     );
   };
 
+  // 마이페이지 렌더링
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

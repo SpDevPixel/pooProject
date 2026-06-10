@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/data/mockNotices.ts
  * 상위 폴더: src/app/data (샘플 데이터)
- * 역할: 백엔드 연결 전 공지사항 목록과 상세 화면에 보여줄 샘플 데이터입니다.
+ * 역할: 백엔드 연결 전 공지사항 목록과 상세 화면에 보여줄 샘플 데이터
  */
 import { Notice } from "../types/notice";
 

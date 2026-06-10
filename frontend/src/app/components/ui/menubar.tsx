@@ -1,4 +1,4 @@
-// Menubar는 여러 메뉴를 가로로 배치해 탐색하거나 명령을 선택하는 UI입니다.
+// Menubar는 여러 메뉴를 가로로 배치해 탐색하거나 명령을 선택하는 UI
 "use client";
 
 import * as React from "react";

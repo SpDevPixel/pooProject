@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/pages/FavoritesPage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 백엔드에 저장된 사용자의 즐겨찾기 화장실 목록을 보여주는 화면입니다.
+ * 역할: 백엔드에 저장된 사용자의 즐겨찾기 화장실 목록을 표시하는 화면
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";

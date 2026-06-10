@@ -1,4 +1,4 @@
-// Tooltip은 마우스를 올렸을 때 짧은 설명을 보여주는 UI입니다.
+// Tooltip은 마우스를 올렸을 때 짧은 설명을 표시하는 UI
 "use client";
 
 import * as React from "react";

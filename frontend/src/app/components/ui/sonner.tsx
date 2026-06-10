@@ -1,4 +1,4 @@
-// Sonner는 저장 완료나 오류 같은 알림을 토스트로 보여주는 UI입니다.
+// Sonner는 저장 완료나 오류 같은 알림을 토스트로 표시하는 UI
 "use client";
 
 import { useTheme } from "next-themes";

@@ -1,4 +1,4 @@
-// ToggleGroup은 여러 토글 버튼을 묶어 선택 상태를 관리하는 UI입니다.
+// ToggleGroup은 여러 토글 버튼을 묶어 선택 상태를 관리 UI
 "use client";
 
 import * as React from "react";

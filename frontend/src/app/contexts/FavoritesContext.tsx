@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/contexts/FavoritesContext.tsx
  * 상위 폴더: src/app/contexts (전역 상태 Context)
- * 역할: 백엔드 API 기반으로 사용자의 즐겨찾기 화장실 목록을 관리합니다.
+ * 역할: 백엔드 API 기반으로 사용자의 즐겨찾기 화장실 목록을 관리
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import type { Toilet } from "../types/toilet";

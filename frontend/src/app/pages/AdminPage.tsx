@@ -41,6 +41,7 @@ export default function AdminPage() {
   const [noticeError, setNoticeError] = useState<string | null>(null);
   const [userError, setUserError] = useState<string | null>(null);
 
+  // 공지 목록 조회
   const loadNotices = async () => {
     setIsLoadingNotices(true);
     setNoticeError(null);
@@ -55,6 +56,7 @@ export default function AdminPage() {
     }
   };
 
+  // 회원 목록 조회
   const loadUsers = async () => {
     if (!user?.token || !isAdmin) return;
 
@@ -83,6 +85,7 @@ export default function AdminPage() {
     void loadUsers();
   }, [isAdmin, user?.token]);
 
+  // 공지 검색
   const filteredNotices = useMemo(() => {
     const keyword = noticeQuery.trim().toLowerCase();
     if (!keyword) return notices;
@@ -110,6 +113,7 @@ export default function AdminPage() {
     );
   }, [userQuery, users]);
 
+  // 공지 등록
   const handleAddNotice = async () => {
     if (!user?.token || isSubmittingNotice) return;
 
@@ -196,6 +200,7 @@ export default function AdminPage() {
     return null;
   }
 
+  // 관리자 권한 안내
   if (!isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -211,6 +216,7 @@ export default function AdminPage() {
     );
   }
 
+  // 관리자 콘솔 렌더링
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-white/10 bg-slate-900">

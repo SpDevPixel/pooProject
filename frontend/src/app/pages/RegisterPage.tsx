@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/pages/RegisterPage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 사용자가 새 화장실 위치와 정보를 등록하는 화면입니다.
+ * 역할: 사용자가 새 화장실 위치와 정보를 등록하는 화면
  */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
@@ -63,6 +63,7 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   return address;
 };
 
+// 주소 좌표 변환
 const geocodeAddress = async (
   roadAddress: string
 ): Promise<{ lat: number; lng: number }> => {
@@ -247,6 +248,7 @@ export default function RegisterPage() {
   // ──────────────────────────────────────────
   // 폼 제출
   // ──────────────────────────────────────────
+  // 화장실 등록 저장
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -312,6 +314,7 @@ export default function RegisterPage() {
     }
   };
 
+  // 지도 미리보기 이동
   const movePreviewToLocation = async (lat: number, lng: number) => {
     const newPosition = new window.kakao.maps.LatLng(lat, lng);
     markerRef.current?.setPosition(newPosition);
@@ -379,6 +382,7 @@ export default function RegisterPage() {
   // ──────────────────────────────────────────
   // 렌더링
   // ──────────────────────────────────────────
+  // 등록 화면 렌더링
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

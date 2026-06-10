@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/api/users.ts
  * 상위 폴더: src/app/api (백엔드 API 통신 함수)
- * 역할: 백엔드 사용자 API를 호출합니다.
+ * 역할: 백엔드 사용자 API를 호출
  */
 
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";

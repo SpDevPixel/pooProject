@@ -1,4 +1,4 @@
-// Resizable은 사용자가 영역 크기를 드래그해서 조절하게 해주는 UI입니다.
+// Resizable은 사용자가 영역 크기를 드래그해서 조절하게 하는 UI
 "use client";
 
 import * as React from "react";

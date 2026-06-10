@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/routes.tsx
  * 상위 폴더: src/app (앱 실행 구조와 화면 로직)
- * 역할: 페이지 URL 경로와 각 화면 컴포넌트를 연결하는 라우터 설정 파일입니다.
+ * 역할: 페이지 URL 경로와 각 화면 컴포넌트를 연결 라우터 설정 파일
  */
 import { createBrowserRouter } from "react-router";
 import HomePage from "./pages/HomePage";

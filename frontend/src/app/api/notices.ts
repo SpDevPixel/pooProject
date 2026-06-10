@@ -1,3 +1,7 @@
+/*
+ * 파일 위치: frontend/src/app/api/notices.ts
+ * 역할: 공지사항 API 호출, 응답 정규화
+ */
 import type { Notice } from "../types/notice";
 
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";
@@ -11,6 +15,7 @@ type BackendNotice = {
   updatedAt?: string | null;
 };
 
+// 날짜 포맷
 const formatDate = (value?: string | null) => {
   if (!value) return "";
 
@@ -24,6 +29,7 @@ const formatDate = (value?: string | null) => {
   });
 };
 
+// 오늘 날짜
 const getToday = () =>
   new Date().toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -31,6 +37,7 @@ const getToday = () =>
     day: "2-digit",
   });
 
+// 응답 정규화
 const normalizeNotice = (notice: BackendNotice, useTodayFallback = false): Notice => ({
   id: String(notice.id ?? ""),
   title: notice.title ?? "제목 없음",
@@ -40,6 +47,7 @@ const normalizeNotice = (notice: BackendNotice, useTodayFallback = false): Notic
   updatedAt: formatDate(notice.updatedAt),
 });
 
+// 오류 메시지 변환
 const getNoticeApiErrorMessage = (response: Response, fallback: string) => {
   if (response.status === 401 || response.status === 403) {
     return "관리자 권한이 없거나 로그인이 만료되었습니다.";
@@ -52,6 +60,7 @@ const getNoticeApiErrorMessage = (response: Response, fallback: string) => {
   return fallback;
 };
 
+// 공지 목록 조회
 export const fetchNotices = async (): Promise<Notice[]> => {
   const response = await fetch(`${API_BASE_URL}/notice/all`);
 
@@ -67,11 +76,13 @@ export const fetchNotices = async (): Promise<Notice[]> => {
     .sort((a, b) => Number(b.id) - Number(a.id));
 };
 
+// 단일 공지 조회
 export const fetchNoticeById = async (noticeId: string): Promise<Notice | null> => {
   const notices = await fetchNotices();
   return notices.find((notice) => notice.id === noticeId) ?? null;
 };
 
+// 공지 등록
 export const createNotice = async (
   payload: { title: string; content: string; author: string },
   token: string
@@ -92,6 +103,7 @@ export const createNotice = async (
   return normalizeNotice((await response.json()) as BackendNotice, true);
 };
 
+// 공지 삭제
 export const deleteNotice = async (noticeId: string, token: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/notice/delete/${encodeURIComponent(noticeId)}`, {
     method: "DELETE",

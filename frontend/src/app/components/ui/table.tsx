@@ -1,4 +1,4 @@
-// Table은 데이터를 행과 열로 정리해서 보여주는 표 UI입니다.
+// Table은 데이터를 행과 열로 정리해서 표시하는 표 UI
 "use client";
 
 import * as React from "react";

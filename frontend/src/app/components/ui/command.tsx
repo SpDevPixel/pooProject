@@ -1,4 +1,4 @@
-// Command는 검색창처럼 명령이나 항목을 빠르게 찾아 선택하는 UI입니다.
+// Command는 검색창처럼 명령이나 항목을 빠르게 찾아 선택하는 UI
 "use client";
 
 import * as React from "react";

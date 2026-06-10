@@ -1,4 +1,4 @@
-// Avatar는 사용자 프로필 이미지나 이름 대체 표시를 보여주는 UI입니다.
+// Avatar는 사용자 프로필 이미지나 이름 대체 표시를 표시하는 UI
 "use client";
 
 import * as React from "react";

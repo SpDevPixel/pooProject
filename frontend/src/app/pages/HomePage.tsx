@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/pages/HomePage.tsx
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 메인 지도 화면입니다. 화장실 목록, 필터, 알림, 길 안내를 제공합니다.
+ * 역할: 메인 지도 화면 화장실 목록, 필터, 알림, 길 안내를 제공
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -116,6 +116,7 @@ export default function HomePage() {
     isUserSubmitted: null,
   });
 
+  // 화장실 목록 조회
   const loadToilets = useCallback(async () => {
     setIsLoadingToilets(true);
     setToiletLoadError(null);
@@ -166,6 +167,7 @@ export default function HomePage() {
     loadRequestNotifications();
   }, [loadRequestNotifications]);
 
+  // 검색/필터 적용
   const filteredToilets = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
 
@@ -223,6 +225,7 @@ export default function HomePage() {
     []
   );
 
+  // 선택 화장실 길 안내
   const startRouteToToilet = useCallback(
     async (destination: Toilet, start?: RoutePoint) => {
       if (isStartingRoute) return;
@@ -398,6 +401,7 @@ export default function HomePage() {
   const headerButtonClass =
     "min-w-[5.5rem] flex-1 basis-[30%] shrink justify-center gap-1 whitespace-nowrap px-2 text-xs sm:min-w-0 sm:flex-none sm:basis-auto sm:gap-2 sm:px-3 sm:text-sm";
 
+  // 홈 화면 렌더링
   return (
     <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden flex flex-col bg-gray-50">
       <div className="bg-white border-b px-3 py-4 flex-shrink-0 shadow-sm sm:px-4">

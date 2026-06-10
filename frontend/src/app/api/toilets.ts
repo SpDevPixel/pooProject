@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/api/toilets.ts
  * 상위 폴더: src/app/api (백엔드 API 통신 함수)
- * 역할: 백엔드 화장실 API를 호출하고 응답 데이터를 프론트 타입으로 변환합니다.
+ * 역할: 백엔드 화장실 API를 호출, 응답 데이터를 프론트 타입으로 변환
  */
 import type { Toilet } from "../types/toilet";
 

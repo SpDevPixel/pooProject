@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/components/MapView.tsx
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
- * 역할: 카카오맵을 렌더링하고 좌표가 있는 화장실 마커와 현재 위치 표시를 관리합니다.
+ * 역할: 카카오맵을 렌더링, 좌표가 있는 화장실 마커와 현재 위치 표시를 관리
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Navigation, X } from "lucide-react";

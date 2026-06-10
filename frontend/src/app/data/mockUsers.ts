@@ -1,7 +1,7 @@
 /*
  * 파일 위치: src/app/data/mockUsers.ts
  * 상위 폴더: src/app/data (샘플 데이터)
- * 역할: 관리자 페이지에서 회원 현황을 보여주기 위한 샘플 사용자 데이터입니다.
+ * 역할: 관리자 페이지에서 회원 현황을 보여주기 위한 샘플 사용자 데이터
  */
 export interface MockUser {
   id: string;

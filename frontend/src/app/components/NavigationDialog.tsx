@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/components/NavigationDialog.tsx
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
- * 역할: 선택한 화장실까지의 경로 안내 옵션을 보여주는 다이얼로그입니다.
+ * 역할: 선택한 화장실까지의 경로 안내 옵션을 표시하는 다이얼로그
  */
 import { useState, useEffect } from "react";
 import { Navigation, Star, MapPin, Clock, ArrowRight } from "lucide-react";

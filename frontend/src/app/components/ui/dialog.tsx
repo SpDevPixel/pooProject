@@ -1,4 +1,4 @@
-// Dialog는 화면 위에 별도 창을 띄워 내용을 보여주는 모달 UI입니다.
+// Dialog는 화면 위에 별도 창을 띄워 내용을 표시하는 모달 UI
 "use client";
 
 import * as React from "react";

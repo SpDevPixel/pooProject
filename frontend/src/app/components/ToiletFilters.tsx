@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/components/ToiletFilters.tsx
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
- * 역할: 화장실 검색 결과를 편의시설과 등록 유형으로 필터링하는 UI입니다.
+ * 역할: 화장실 검색 결과를 편의시설과 등록 유형으로 필터링하는 UI
  */
 import { Accessibility, Baby, Bell, Camera, Database, Filter, Sparkles } from "lucide-react";
 import type { ToiletFilters as Filters } from "../types/toilet";

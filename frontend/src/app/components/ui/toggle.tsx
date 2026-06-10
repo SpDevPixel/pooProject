@@ -1,4 +1,4 @@
-// Toggle은 누를 때마다 선택 상태가 바뀌는 버튼 UI입니다.
+// Toggle은 누를 때마다 선택 상태가 바뀌는 버튼 UI
 "use client";
 
 import * as React from "react";

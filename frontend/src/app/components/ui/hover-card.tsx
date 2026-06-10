@@ -1,4 +1,4 @@
-// HoverCard는 마우스를 올렸을 때 추가 정보를 보여주는 작은 카드 UI입니다.
+// HoverCard는 마우스를 올렸을 때 추가 정보를 표시하는 작은 카드 UI
 "use client";
 
 import * as React from "react";

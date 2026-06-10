@@ -1,4 +1,4 @@
-// Collapsible은 특정 영역을 접거나 펼칠 수 있게 해주는 UI입니다.
+// Collapsible은 특정 영역을 접거나 펼칠 수 있게 하는 UI
 "use client";
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";

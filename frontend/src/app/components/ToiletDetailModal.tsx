@@ -1,7 +1,7 @@
-﻿/*
+/*
  * 파일 위치: src/app/components/ToiletDetailModal.tsx
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
- * 역할: 선택한 화장실의 상세 정보, 편의시설, 리뷰 액션을 보여주는 모달입니다.
+ * 역할: 선택한 화장실의 상세 정보, 편의시설, 리뷰 액션을 표시하는 모달
  */
 import { useCallback, useEffect, useState } from "react";
 import { 
@@ -81,6 +81,7 @@ export function ToiletDetailModal({
   const { isFavorite, toggleFavorite } = useFavorites();
   const { user, isAuthenticated } = useAuth();
 
+  // 리뷰 조회와 평점 갱신
   const loadReviews = useCallback(async () => {
     if (!toilet?.managementNo) {
       setToiletReviews([]);
@@ -133,6 +134,7 @@ export function ToiletDetailModal({
     );
   };
 
+  // 즐겨찾기 토글
   const handleToggleFavorite = async () => {
     if (isTogglingFavorite) return;
 
@@ -231,6 +233,7 @@ export function ToiletDetailModal({
     }
   };
 
+  // 새 리뷰 즉시 반영
   const handleReviewCreated = (review: Review) => {
     const nextReviews = [review, ...toiletReviews];
     setToiletReviews(nextReviews);
@@ -240,6 +243,7 @@ export function ToiletDetailModal({
     void loadReviews();
   };
 
+  // 상세 모달 렌더링
   return (
     <>
       <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
