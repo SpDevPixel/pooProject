@@ -37,7 +37,6 @@ import {
   type RoutePoint,
   type TmapRouteResult,
 } from "../api/tmapRoutes";
-import { mockToilets } from "../data/mockToilets";
 import type { Toilet, ToiletFilters as Filters } from "../types/toilet";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -126,10 +125,8 @@ export default function HomePage() {
       setToilets(loadedToilets);
     } catch (error) {
       console.error(error);
-      setToilets(mockToilets);
-      setToiletLoadError(
-        "화장실 정보를 불러오지 못해 임시 데이터로 보여주고 있습니다. 잠시 후 다시 시도해주세요."
-      );
+      setToilets([]);
+      setToiletLoadError("화장실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setIsLoadingToilets(false);
     }

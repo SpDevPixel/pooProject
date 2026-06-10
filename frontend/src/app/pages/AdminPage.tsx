@@ -91,9 +91,7 @@ export default function AdminPage() {
     if (!keyword) return notices;
 
     return notices.filter((notice) =>
-      [notice.title, notice.content, notice.author].some((value) =>
-        value.toLowerCase().includes(keyword)
-      )
+      [notice.title, notice.content].some((value) => value.toLowerCase().includes(keyword))
     );
   }, [noticeQuery, notices]);
 
@@ -296,7 +294,7 @@ export default function AdminPage() {
                         <div className="min-w-0">
                           <h3 className="truncate font-semibold text-slate-950">{notice.title}</h3>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {notice.createdAt || "날짜 없음"} · {notice.author}
+                            {notice.createdAt || "날짜 없음"}
                           </p>
                         </div>
                         <Button
