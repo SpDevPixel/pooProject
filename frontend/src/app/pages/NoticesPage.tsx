@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Calendar, Megaphone, RefreshCw, Search, User } from "lucide-react";
+import { ArrowLeft, Calendar, Megaphone, RefreshCw, Search } from "lucide-react";
 import { fetchNotices } from "../api/notices";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -18,15 +18,10 @@ export default function NoticesPage() {
     setErrorMessage(null);
 
     try {
-      const loadedNotices = await fetchNotices();
-      setNotices(loadedNotices);
+      setNotices(await fetchNotices());
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "공지사항을 불러오지 못했습니다."
-      );
+      setErrorMessage(error instanceof Error ? error.message : "공지사항을 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -41,9 +36,7 @@ export default function NoticesPage() {
     if (!keyword) return notices;
 
     return notices.filter((notice) =>
-      [notice.title, notice.content, notice.author].some((value) =>
-        value.toLowerCase().includes(keyword)
-      )
+      [notice.title, notice.content].some((value) => value.toLowerCase().includes(keyword))
     );
   }, [notices, query]);
 
@@ -69,7 +62,7 @@ export default function NoticesPage() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="공지 제목, 내용, 작성자 검색"
+              placeholder="공지 제목, 내용 검색"
               className="border-0 px-0 shadow-none focus-visible:ring-0"
             />
           </div>
@@ -104,16 +97,12 @@ export default function NoticesPage() {
                 onClick={() => navigate(`/notices/${notice.id}`)}
                 className="w-full rounded-lg border bg-white p-5 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md"
               >
-                <div className="mb-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
+                {notice.createdAt && (
+                  <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar size={15} />
-                    {notice.createdAt || "날짜 없음"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <User size={15} />
-                    {notice.author}
-                  </span>
-                </div>
+                    {notice.createdAt}
+                  </div>
+                )}
                 <h2 className="mb-2 text-lg font-semibold text-slate-900">{notice.title}</h2>
                 <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
                   {notice.content || "내용이 없습니다."}

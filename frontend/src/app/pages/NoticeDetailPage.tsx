@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Calendar, Megaphone, RefreshCw, User } from "lucide-react";
+import { ArrowLeft, Calendar, Megaphone, RefreshCw } from "lucide-react";
 import { fetchNoticeById } from "../api/notices";
 import { Button } from "../components/ui/button";
 import type { Notice } from "../types/notice";
@@ -23,15 +23,10 @@ export default function NoticeDetailPage() {
     setErrorMessage(null);
 
     try {
-      const loadedNotice = await fetchNoticeById(noticeId);
-      setNotice(loadedNotice);
+      setNotice(await fetchNoticeById(noticeId));
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "공지사항을 불러오지 못했습니다."
-      );
+      setErrorMessage(error instanceof Error ? error.message : "공지사항을 불러오지 못했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -73,16 +68,12 @@ export default function NoticeDetailPage() {
           </section>
         ) : (
           <article className="rounded-lg border bg-white p-6 shadow-sm">
-            <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <User size={15} />
-                {notice.author}
-              </span>
-              <span className="flex items-center gap-1">
+            {notice.createdAt && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar size={15} />
-                {notice.createdAt || "날짜 없음"}
-              </span>
-            </div>
+                {notice.createdAt}
+              </div>
+            )}
 
             <h1 className="mb-5 border-b pb-5 text-3xl font-bold text-slate-950">
               {notice.title}

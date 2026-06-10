@@ -1,132 +1,245 @@
-/*
- * 파일 위치: src/app/pages/AdminPage.tsx
- * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 공지, 회원, 등록 요청을 임시 데이터로 관리하는 관리자 화면입니다.
- */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft,
-  CheckCircle2,
-  ClipboardList,
   Megaphone,
+  RefreshCw,
+  Search,
   Shield,
   Trash2,
+  UserX,
   Users,
-  XCircle,
 } from "lucide-react";
-import { mockNotices } from "../data/mockNotices";
-import { mockToilets } from "../data/mockToilets";
-import { MockUser, mockUsers } from "../data/mockUsers";
-import { Notice } from "../types/notice";
-import type { Toilet } from "../types/toilet";
+import { toast } from "sonner";
+import { fetchAdminUsers, forceWithdrawUser, type AdminUser } from "../api/admin";
+import { createNotice, deleteNotice, fetchNotices } from "../api/notices";
+import { useAuth } from "../contexts/AuthContext";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
+import type { Notice } from "../types/notice";
 
-type AdminTab = "notices" | "toilets" | "users";
-type RequestStatus = "대기" | "승인" | "반려";
-
-interface ToiletRequest {
-  toilet: Toilet;
-  status: RequestStatus;
-}
+type AdminTab = "notices" | "users";
 
 export default function AdminPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [activeTab, setActiveTab] = useState<AdminTab>("notices");
-  const [notices, setNotices] = useState<Notice[]>(mockNotices);
-  const [users, setUsers] = useState<MockUser[]>(mockUsers);
-  const [requests, setRequests] = useState<ToiletRequest[]>(
-    mockToilets
-      .filter((toilet) => toilet.isUserSubmitted)
-      .map((toilet) => ({ toilet, status: "대기" }))
-  );
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [noticeQuery, setNoticeQuery] = useState("");
+  const [userQuery, setUserQuery] = useState("");
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
+  const [isLoadingNotices, setIsLoadingNotices] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isSubmittingNotice, setIsSubmittingNotice] = useState(false);
+  const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null);
+  const [withdrawingUserId, setWithdrawingUserId] = useState<string | null>(null);
+  const [noticeError, setNoticeError] = useState<string | null>(null);
+  const [userError, setUserError] = useState<string | null>(null);
 
-  const stats = useMemo(
-    () => [
-      { label: "공지", value: notices.length, icon: Megaphone },
-      { label: "등록 요청", value: requests.filter((item) => item.status === "대기").length, icon: ClipboardList },
-      { label: "회원", value: users.length, icon: Users },
-    ],
-    [notices.length, requests, users.length]
-  );
+  const loadNotices = async () => {
+    setIsLoadingNotices(true);
+    setNoticeError(null);
 
-  const addNotice = () => {
-    if (!noticeTitle.trim() || !noticeContent.trim()) return;
-
-    const newNotice: Notice = {
-      id: `notice-${Date.now()}`,
-      title: noticeTitle.trim(),
-      content: noticeContent.trim(),
-      category: "안내",
-      author: "관리자",
-      createdAt: new Date().toISOString().slice(0, 10),
-      viewCount: 0,
-      isImportant: false,
-    };
-
-    setNotices((current) => [newNotice, ...current]);
-    setNoticeTitle("");
-    setNoticeContent("");
+    try {
+      setNotices(await fetchNotices());
+    } catch (error) {
+      console.error(error);
+      setNoticeError(error instanceof Error ? error.message : "공지사항을 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingNotices(false);
+    }
   };
 
-  const updateRequestStatus = (toiletId: string, status: RequestStatus) => {
-    setRequests((current) =>
-      current.map((item) => (item.toilet.id === toiletId ? { ...item, status } : item))
-    );
+  const loadUsers = async () => {
+    if (!user?.token || !isAdmin) return;
+
+    setIsLoadingUsers(true);
+    setUserError(null);
+
+    try {
+      setUsers(await fetchAdminUsers(user.token));
+    } catch (error) {
+      console.error(error);
+      setUserError(error instanceof Error ? error.message : "회원 목록을 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingUsers(false);
+    }
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers((current) =>
-      current.map((user) =>
-        user.id === userId ? { ...user, status: user.status === "활성" ? "정지" : "활성" } : user
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+
+    if (!isAdmin) return;
+
+    void loadNotices();
+    void loadUsers();
+  }, [isAdmin, user?.token]);
+
+  const filteredNotices = useMemo(() => {
+    const keyword = noticeQuery.trim().toLowerCase();
+    if (!keyword) return notices;
+
+    return notices.filter((notice) =>
+      [notice.title, notice.content, notice.author].some((value) =>
+        value.toLowerCase().includes(keyword)
       )
     );
+  }, [noticeQuery, notices]);
+
+  const filteredUsers = useMemo(() => {
+    const keyword = userQuery.trim().toLowerCase();
+    if (!keyword) return users;
+
+    return users.filter((adminUser) =>
+      [
+        adminUser.id,
+        adminUser.userId,
+        adminUser.name,
+        adminUser.nickname ?? "",
+        adminUser.email,
+        adminUser.role,
+      ].some((value) => value.toLowerCase().includes(keyword))
+    );
+  }, [userQuery, users]);
+
+  const handleAddNotice = async () => {
+    if (!user?.token || isSubmittingNotice) return;
+
+    const title = noticeTitle.trim();
+    const content = noticeContent.trim();
+
+    if (!title || !content) {
+      toast.error("공지 제목과 내용을 입력해주세요.");
+      return;
+    }
+
+    setIsSubmittingNotice(true);
+
+    try {
+      const notice = await createNotice(
+        {
+          title,
+          content,
+          author: user.name || "관리자",
+        },
+        user.token
+      );
+
+      setNotices((current) => [notice, ...current]);
+      setNoticeTitle("");
+      setNoticeContent("");
+      toast.success("공지사항이 등록되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "공지사항 등록에 실패했습니다.");
+    } finally {
+      setIsSubmittingNotice(false);
+    }
   };
+
+  const handleDeleteNotice = async (notice: Notice) => {
+    if (!user?.token || deletingNoticeId) return;
+
+    if (!window.confirm(`"${notice.title}" 공지사항을 삭제할까요?`)) {
+      return;
+    }
+
+    setDeletingNoticeId(notice.id);
+
+    try {
+      await deleteNotice(notice.id, user.token);
+      setNotices((current) => current.filter((item) => item.id !== notice.id));
+      toast.success("공지사항이 삭제되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "공지사항 삭제에 실패했습니다.");
+    } finally {
+      setDeletingNoticeId(null);
+    }
+  };
+
+  const handleForceWithdrawUser = async (targetUser: AdminUser) => {
+    if (!user?.token || withdrawingUserId) return;
+
+    if (targetUser.id === user.id) {
+      toast.error("현재 로그인한 관리자 계정은 강제탈퇴할 수 없습니다.");
+      return;
+    }
+
+    if (!window.confirm(`${targetUser.name || targetUser.userId} 사용자를 강제탈퇴 처리할까요?`)) {
+      return;
+    }
+
+    setWithdrawingUserId(targetUser.id);
+
+    try {
+      await forceWithdrawUser(targetUser.id, user.token);
+      setUsers((current) => current.filter((item) => item.id !== targetUser.id));
+      toast.success("회원이 강제탈퇴 처리되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "회원 강제탈퇴에 실패했습니다.");
+    } finally {
+      setWithdrawingUserId(null);
+    }
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-md rounded-lg border bg-white p-8 text-center shadow-sm">
+          <Shield size={44} className="mx-auto mb-4 text-slate-400" />
+          <h1 className="mb-2 text-xl font-bold text-slate-950">관리자 권한이 필요합니다</h1>
+          <p className="mb-6 text-sm text-muted-foreground">
+            관리자 계정으로 로그인한 사용자만 접근할 수 있습니다.
+          </p>
+          <Button onClick={() => navigate("/")}>홈으로 돌아가기</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-white/10 bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate("/")} className="gap-2 text-white hover:text-slate-900">
+          <Button variant="ghost" onClick={() => navigate("/")} className="gap-2 text-white hover:text-slate-950">
             <ArrowLeft size={18} />
             홈으로
           </Button>
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-600 p-2">
+            <div className="rounded-lg bg-blue-600 p-2 text-white">
               <Shield size={22} />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">관리자 페이지</h1>
-              <p className="text-sm text-slate-300">백엔드 연결 전 임시 운영 화면</p>
+            <div className="text-right">
+              <h1 className="text-xl font-bold text-white">관리자 페이지</h1>
+              <p className="text-sm text-slate-300">공지사항과 회원을 관리합니다</p>
             </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <section className="mb-6 grid gap-3 md:grid-cols-3">
-          {stats.map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-lg border border-white/10 bg-white/10 p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm text-slate-300">{label}</span>
-                <Icon size={20} className="text-blue-300" />
-              </div>
-              <strong className="text-3xl">{value}</strong>
-            </div>
-          ))}
+        <section className="mb-6 grid gap-3 md:grid-cols-2">
+          <StatPanel icon={Megaphone} label="공지사항" value={notices.length} />
+          <StatPanel icon={Users} label="회원" value={users.length} />
         </section>
 
         <div className="mb-5 flex flex-wrap gap-2">
           <AdminTabButton active={activeTab === "notices"} onClick={() => setActiveTab("notices")}>
             공지 관리
-          </AdminTabButton>
-          <AdminTabButton active={activeTab === "toilets"} onClick={() => setActiveTab("toilets")}>
-            등록 요청
           </AdminTabButton>
           <AdminTabButton active={activeTab === "users"} onClick={() => setActiveTab("users")}>
             회원 관리
@@ -135,8 +248,8 @@ export default function AdminPage() {
 
         {activeTab === "notices" && (
           <section className="grid gap-4 lg:grid-cols-[420px_1fr]">
-            <div className="rounded-lg border border-white/10 bg-white p-5 text-slate-950">
-              <h2 className="mb-4 font-semibold">새 공지 작성</h2>
+            <div className="rounded-lg border bg-white p-5 shadow-sm">
+              <h2 className="mb-4 font-semibold text-slate-950">새 공지 등록</h2>
               <div className="space-y-3">
                 <Input
                   value={noticeTitle}
@@ -147,81 +260,120 @@ export default function AdminPage() {
                   value={noticeContent}
                   onChange={(event) => setNoticeContent(event.target.value)}
                   placeholder="공지 내용"
-                  rows={7}
+                  rows={8}
                 />
-                <Button onClick={addNotice} className="w-full">공지 등록</Button>
+                <Button onClick={handleAddNotice} disabled={isSubmittingNotice} className="w-full">
+                  {isSubmittingNotice && <RefreshCw size={16} className="mr-2 animate-spin" />}
+                  공지 등록
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-3">
-              {notices.map((notice) => (
-                <div key={notice.id} className="rounded-lg border border-white/10 bg-white p-4 text-slate-950">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="font-semibold">{notice.title}</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setNotices((current) => current.filter((item) => item.id !== notice.id))}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{notice.content}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {activeTab === "toilets" && (
-          <section className="space-y-3">
-            {requests.map(({ toilet, status }) => (
-              <div key={toilet.id} className="rounded-lg border border-white/10 bg-white p-5 text-slate-950">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <h3 className="font-semibold">{toilet.name}</h3>
-                      <Badge variant={status === "승인" ? "default" : "secondary"}>{status}</Badge>
+            <div className="space-y-4">
+              <SearchBox
+                value={noticeQuery}
+                onChange={setNoticeQuery}
+                placeholder="공지 제목, 내용, 작성자 검색"
+              />
+              {noticeError && (
+                <ErrorPanel message={noticeError} onRetry={loadNotices} loading={isLoadingNotices} />
+              )}
+              {isLoadingNotices ? (
+                <LoadingPanel message="공지사항을 불러오는 중입니다." />
+              ) : filteredNotices.length === 0 ? (
+                <EmptyPanel message={noticeQuery.trim() ? "검색 결과가 없습니다." : "등록된 공지사항이 없습니다."} />
+              ) : (
+                <div className="space-y-3">
+                  {filteredNotices.map((notice) => (
+                    <div key={notice.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate font-semibold text-slate-950">{notice.title}</h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {notice.createdAt || "날짜 없음"} · {notice.author}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteNotice(notice)}
+                          disabled={deletingNoticeId === notice.id}
+                          aria-label={`${notice.title} 삭제`}
+                        >
+                          {deletingNoticeId === notice.id ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={16} className="text-red-500" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                        {notice.content || "내용이 없습니다."}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">{toilet.roadAddress}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={() => updateRequestStatus(toilet.id, "승인")} className="gap-2">
-                      <CheckCircle2 size={16} />
-                      승인
-                    </Button>
-                    <Button variant="outline" onClick={() => updateRequestStatus(toilet.id, "반려")} className="gap-2">
-                      <XCircle size={16} />
-                      반려
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
           </section>
         )}
 
         {activeTab === "users" && (
-          <section className="space-y-3">
-            {users.map((user) => (
-              <div key={user.id} className="rounded-lg border border-white/10 bg-white p-5 text-slate-950">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <h3 className="font-semibold">{user.name}</h3>
-                      <Badge variant={user.role === "관리자" ? "default" : "secondary"}>{user.role}</Badge>
-                      <Badge variant={user.status === "활성" ? "secondary" : "destructive"}>{user.status}</Badge>
+          <section className="space-y-4">
+            <SearchBox
+              value={userQuery}
+              onChange={setUserQuery}
+              placeholder="회원 이름, 아이디, 이메일, 권한 검색"
+            />
+            {userError && <ErrorPanel message={userError} onRetry={loadUsers} loading={isLoadingUsers} />}
+            {isLoadingUsers ? (
+              <LoadingPanel message="회원 목록을 불러오는 중입니다." />
+            ) : filteredUsers.length === 0 ? (
+              <EmptyPanel message={userQuery.trim() ? "검색 결과가 없습니다." : "회원이 없습니다."} />
+            ) : (
+              <div className="space-y-3">
+                {filteredUsers.map((adminUser) => (
+                  <div key={adminUser.id} className="rounded-lg border bg-white p-5 shadow-sm">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-slate-950">
+                            {adminUser.name || adminUser.userId || "이름 없음"}
+                          </h3>
+                          <Badge variant={adminUser.role === "ADMIN" ? "default" : "secondary"}>
+                            {adminUser.role}
+                          </Badge>
+                          {adminUser.id === user.id && <Badge variant="outline">현재 계정</Badge>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          ID {adminUser.id} · 로그인 ID {adminUser.userId || "-"} · {adminUser.email || "이메일 없음"}
+                        </p>
+                        {(adminUser.nickname || adminUser.address) && (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {adminUser.nickname && `닉네임 ${adminUser.nickname}`}
+                            {adminUser.nickname && adminUser.address && " · "}
+                            {adminUser.address && `주소 ${adminUser.address}`}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleForceWithdrawUser(adminUser)}
+                        disabled={withdrawingUserId === adminUser.id || adminUser.id === user.id}
+                        className="gap-2 text-red-600 hover:text-red-700"
+                      >
+                        {withdrawingUserId === adminUser.id ? (
+                          <RefreshCw size={16} className="animate-spin" />
+                        ) : (
+                          <UserX size={16} />
+                        )}
+                        강제탈퇴
+                      </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {user.email} · 가입일 {user.joinedAt} · 리뷰 {user.reviewCount}개
-                    </p>
                   </div>
-                  <Button variant="outline" onClick={() => toggleUserStatus(user.id)}>
-                    {user.status === "활성" ? "정지" : "활성화"}
-                  </Button>
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </section>
         )}
       </main>
@@ -240,12 +392,96 @@ function AdminTabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-        active ? "bg-white text-slate-950" : "bg-white/10 text-white hover:bg-white/20"
+        active
+          ? "bg-white text-slate-950"
+          : "bg-white/10 text-white hover:bg-white/20"
       }`}
     >
       {children}
     </button>
+  );
+}
+
+function StatPanel({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/10 p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-sm text-slate-300">{label}</span>
+        <Icon size={20} className="text-blue-300" />
+      </div>
+      <strong className="text-3xl text-white">{value}</strong>
+    </div>
+  );
+}
+
+function SearchBox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="rounded-lg border bg-white px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <Search size={18} className="text-slate-400" />
+        <Input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="border-0 px-0 shadow-none focus-visible:ring-0"
+        />
+      </div>
+    </div>
+  );
+}
+
+function LoadingPanel({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border bg-white p-10 text-center text-muted-foreground">
+      <RefreshCw size={32} className="mx-auto mb-4 animate-spin opacity-40" />
+      {message}
+    </div>
+  );
+}
+
+function EmptyPanel({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border bg-white p-10 text-center text-muted-foreground">
+      {message}
+    </div>
+  );
+}
+
+function ErrorPanel({
+  message,
+  onRetry,
+  loading,
+}: {
+  message: string;
+  onRetry: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <span>{message}</span>
+      <Button variant="outline" size="sm" onClick={onRetry} disabled={loading}>
+        <RefreshCw size={14} className="mr-2" />
+        다시 시도
+      </Button>
+    </div>
   );
 }
