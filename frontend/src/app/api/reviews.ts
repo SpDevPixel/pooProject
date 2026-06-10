@@ -2,11 +2,19 @@ import type { Review, Toilet } from "../types/toilet";
 
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";
 
+type BackendReviewToilet = {
+  id?: number | string | null;
+  managementNo?: number | string | null;
+  name?: string | null;
+  roadAddress?: string | null;
+};
+
 type BackendReview = {
   id?: number | string | null;
   toiletId?: number | string | null;
   toiletManagementNo?: string | null;
   toiletName?: string | null;
+  toilet?: BackendReviewToilet | null;
   roadAddress?: string | null;
   userId?: number | string | null;
   userLoginId?: string | null;
@@ -49,24 +57,29 @@ export const getBackendToiletId = (toilet: Toilet) => {
   return Number.isFinite(numericId) ? numericId : null;
 };
 
-const normalizeReview = (review: BackendReview): Review => ({
-  id: String(review.id ?? ""),
-  toiletId: String(review.toiletManagementNo ?? review.toiletId ?? ""),
-  toiletBackendId:
-    review.toiletId !== undefined && review.toiletId !== null
-      ? Number(review.toiletId)
-      : undefined,
-  toiletName: review.toiletName ?? "화장실 정보 없음",
-  roadAddress: review.roadAddress ?? "",
-  userId: String(review.userLoginId ?? review.userId ?? ""),
-  userName: review.userName ?? review.userLoginId ?? "사용자",
-  rating: review.rating ?? 0,
-  cleanliness: review.cleanliness ?? 0,
-  hasTissuePaper: Boolean(review.hasTissuePaper),
-  hasDoorLock: Boolean(review.hasDoorLock),
-  comment: review.comment ?? "",
-  createdAt: review.createdAt ? new Date(review.createdAt) : new Date(),
-});
+const normalizeReview = (review: BackendReview): Review => {
+  const toiletId = review.toiletManagementNo ?? review.toilet?.managementNo ?? review.toiletId ?? "";
+  const toiletBackendId = review.toiletId ?? review.toilet?.id;
+
+  return {
+    id: String(review.id ?? ""),
+    toiletId: String(toiletId),
+    toiletBackendId:
+      toiletBackendId !== undefined && toiletBackendId !== null
+        ? Number(toiletBackendId)
+        : undefined,
+    toiletName: review.toiletName ?? review.toilet?.name ?? "화장실 정보 없음",
+    roadAddress: review.roadAddress ?? review.toilet?.roadAddress ?? "",
+    userId: String(review.userLoginId ?? review.userId ?? ""),
+    userName: review.userName ?? review.userLoginId ?? "사용자",
+    rating: review.rating ?? 0,
+    cleanliness: review.cleanliness ?? 0,
+    hasTissuePaper: Boolean(review.hasTissuePaper),
+    hasDoorLock: Boolean(review.hasDoorLock),
+    comment: review.comment ?? "",
+    createdAt: review.createdAt ? new Date(review.createdAt) : new Date(),
+  };
+};
 
 export const fetchToiletReviews = async (managementNo: string): Promise<Review[]> => {
   const response = await fetch(`${API_BASE_URL}/review/${encodeURIComponent(managementNo)}`);

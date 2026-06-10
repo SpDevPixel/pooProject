@@ -50,6 +50,7 @@ export type UpdateUserToiletRequest = {
   managingOrg: string;
   phoneNumber: string;
   wasteDisposal: string;
+  disabledFacility: boolean;
   emergencyBell: boolean;
   diaperTable: boolean;
   entranceCctv: boolean;

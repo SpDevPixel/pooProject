@@ -17,7 +17,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
 import { toast } from "sonner";
-import type { Toilet } from "../types/toilet";
+import type { Review, Toilet } from "../types/toilet";
 import { createReview, getBackendToiletId } from "../api/reviews";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -25,7 +25,7 @@ interface ReviewDialogProps {
   open: boolean;
   onClose: () => void;
   toilet: Toilet | null;
-  onCreated?: () => void;
+  onCreated?: (review: Review) => void;
 }
 
 export function ReviewDialog({ open, onClose, toilet, onCreated }: ReviewDialogProps) {
@@ -73,7 +73,7 @@ export function ReviewDialog({ open, onClose, toilet, onCreated }: ReviewDialogP
     setIsSubmitting(true);
 
     try {
-      await createReview(
+      const createdReview = await createReview(
         {
           toiletId,
           rating,
@@ -86,7 +86,7 @@ export function ReviewDialog({ open, onClose, toilet, onCreated }: ReviewDialogP
       );
       toast.success("리뷰가 등록되었습니다!");
       resetForm();
-      onCreated?.();
+      onCreated?.(createdReview);
       onClose();
     } catch (error) {
       console.error(error);

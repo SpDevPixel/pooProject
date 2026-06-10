@@ -41,7 +41,26 @@ interface ToiletDetailModalProps {
   onClose: () => void;
   onStartNavigation?: (toilet: Toilet, start?: RoutePoint) => void;
   isStartingNavigation?: boolean;
+  onReviewStatsChange?: (managementNo: string, rating: number, reviewCount: number) => void;
 }
+
+const getReviewStats = (reviews: Review[]) => {
+  const reviewCount = reviews.length;
+  if (reviewCount === 0) {
+    return { rating: 0, reviewCount };
+  }
+
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  return {
+    rating: Math.round((totalRating / reviewCount) * 10) / 10,
+    reviewCount,
+  };
+};
+
+const getRecentReviews = (reviews: Review[]) =>
+  [...reviews]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 3);
 
 export function ToiletDetailModal({
   toilet,
@@ -49,6 +68,7 @@ export function ToiletDetailModal({
   onClose,
   onStartNavigation,
   isStartingNavigation = false,
+  onReviewStatsChange,
 }: ToiletDetailModalProps) {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [requestType, setRequestType] = useState<ToiletRequestType | null>(null);
@@ -73,13 +93,15 @@ export function ToiletDetailModal({
     try {
       const reviews = await fetchToiletReviews(toilet.managementNo);
       setToiletReviews(reviews);
+      const { rating, reviewCount } = getReviewStats(reviews);
+      onReviewStatsChange?.(toilet.managementNo, rating, reviewCount);
     } catch (error) {
       console.error(error);
       setReviewError(error instanceof Error ? error.message : "리뷰를 불러오지 못했습니다.");
     } finally {
       setIsLoadingReviews(false);
     }
-  }, [toilet?.managementNo]);
+  }, [onReviewStatsChange, toilet?.managementNo]);
 
   useEffect(() => {
     if (!open || !toilet) {
@@ -89,7 +111,7 @@ export function ToiletDetailModal({
     }
 
     void loadReviews();
-  }, [loadReviews, open, toilet]);
+  }, [loadReviews, open, toilet?.managementNo]);
 
   if (!toilet) return null;
 
@@ -207,6 +229,15 @@ export function ToiletDetailModal({
     } finally {
       setIsSubmittingRequest(false);
     }
+  };
+
+  const handleReviewCreated = (review: Review) => {
+    const nextReviews = [review, ...toiletReviews];
+    setToiletReviews(nextReviews);
+
+    const { rating, reviewCount } = getReviewStats(nextReviews);
+    onReviewStatsChange?.(toilet.managementNo, rating, reviewCount);
+    void loadReviews();
   };
 
   return (
@@ -402,7 +433,7 @@ export function ToiletDetailModal({
                 </div>
               ) : (
                 <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {toiletReviews.slice(0, 3).map((review) => (
+                  {getRecentReviews(toiletReviews).map((review) => (
                     <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div>
@@ -464,7 +495,7 @@ export function ToiletDetailModal({
         open={isReviewDialogOpen}
         onClose={() => setIsReviewDialogOpen(false)}
         toilet={toilet}
-        onCreated={() => void loadReviews()}
+        onCreated={handleReviewCreated}
       />
 
       <Dialog open={!!requestType} onOpenChange={(isOpen) => !isOpen && closeRequestDialog()}>

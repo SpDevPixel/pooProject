@@ -27,6 +27,7 @@ type ToiletEditForm = {
   managingOrg: string;
   phoneNumber: string;
   wasteDisposal: string;
+  disabledFacility: boolean;
   emergencyBell: boolean;
   diaperTable: boolean;
   entranceCctv: boolean;
@@ -38,6 +39,7 @@ const toEditForm = (toilet: Toilet): ToiletEditForm => ({
   managingOrg: toilet.managingOrg ?? "",
   phoneNumber: toilet.phoneNumber ?? "",
   wasteDisposal: toilet.wasteDisposal ?? "",
+  disabledFacility: toilet.hasDisabledFacility,
   emergencyBell: toilet.hasEmergencyBell,
   diaperTable: toilet.hasDiaperTable,
   entranceCctv: toilet.hasEntranceCctv,
@@ -246,6 +248,7 @@ export default function MyPage() {
           managingOrg: editForm.managingOrg,
           phoneNumber: editForm.phoneNumber,
           wasteDisposal: editForm.wasteDisposal,
+          disabledFacility: editForm.disabledFacility,
           emergencyBell: editForm.emergencyBell,
           diaperTable: editForm.diaperTable,
           entranceCctv: editForm.entranceCctv,
@@ -260,6 +263,7 @@ export default function MyPage() {
         managingOrg: editForm.managingOrg || undefined,
         phoneNumber: editForm.phoneNumber || undefined,
         wasteDisposal: editForm.wasteDisposal || undefined,
+        hasDisabledFacility: editForm.disabledFacility,
         hasEmergencyBell: editForm.emergencyBell,
         hasDiaperTable: editForm.diaperTable,
         hasEntranceCctv: editForm.entranceCctv,
@@ -707,9 +711,23 @@ export default function MyPage() {
 
               <div className="space-y-3 rounded-lg border p-4">
                 <h3 className="text-sm font-medium">시설 특징</h3>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="edit-emergency-bell">비상벨</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex min-h-12 items-center justify-between gap-3 rounded-lg border bg-gray-50 px-4 py-3">
+                    <Label htmlFor="edit-disabled-facility" className="cursor-pointer">
+                      장애인 시설
+                    </Label>
+                    <Switch
+                      id="edit-disabled-facility"
+                      checked={editForm.disabledFacility}
+                      onCheckedChange={(checked) =>
+                        setEditForm({ ...editForm, disabledFacility: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex min-h-12 items-center justify-between gap-3 rounded-lg border bg-gray-50 px-4 py-3">
+                    <Label htmlFor="edit-emergency-bell" className="cursor-pointer">
+                      비상벨
+                    </Label>
                     <Switch
                       id="edit-emergency-bell"
                       checked={editForm.emergencyBell}
@@ -718,8 +736,10 @@ export default function MyPage() {
                       }
                     />
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="edit-diaper-table">기저귀 교환대</Label>
+                  <div className="flex min-h-12 items-center justify-between gap-3 rounded-lg border bg-gray-50 px-4 py-3">
+                    <Label htmlFor="edit-diaper-table" className="cursor-pointer">
+                      기저귀 교환대
+                    </Label>
                     <Switch
                       id="edit-diaper-table"
                       checked={editForm.diaperTable}
@@ -728,8 +748,10 @@ export default function MyPage() {
                       }
                     />
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="edit-entrance-cctv">입구 CCTV</Label>
+                  <div className="flex min-h-12 items-center justify-between gap-3 rounded-lg border bg-gray-50 px-4 py-3">
+                    <Label htmlFor="edit-entrance-cctv" className="cursor-pointer">
+                      입구 CCTV
+                    </Label>
                     <Switch
                       id="edit-entrance-cctv"
                       checked={editForm.entranceCctv}

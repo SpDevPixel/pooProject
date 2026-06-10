@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Search,
   Shield,
+  Star,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -201,6 +202,27 @@ export default function HomePage() {
     setIsDetailModalOpen(false);
   }, []);
 
+  const handleReviewStatsChange = useCallback(
+    (managementNo: string, rating: number, reviewCount: number) => {
+      setToilets((current) =>
+        current.map((toilet) =>
+          toilet.managementNo === managementNo &&
+          (toilet.rating !== rating || toilet.reviewCount !== reviewCount)
+            ? { ...toilet, rating, reviewCount }
+            : toilet
+        )
+      );
+
+      setSelectedToilet((current) =>
+        current?.managementNo === managementNo &&
+        (current.rating !== rating || current.reviewCount !== reviewCount)
+          ? { ...current, rating, reviewCount }
+          : current
+      );
+    },
+    []
+  );
+
   const startRouteToToilet = useCallback(
     async (destination: Toilet, start?: RoutePoint) => {
       if (isStartingRoute) return;
@@ -275,6 +297,75 @@ export default function HomePage() {
       setIsStartingRoute(false);
     }
   }, [filteredToilets, isStartingRoute]);
+
+  const handleNavigateToTopRatedNearbyToilet = useCallback(async () => {
+    if (isStartingRoute) return;
+
+    const candidates = toilets.filter(hasValidToiletCoordinates);
+
+    if (candidates.length === 0) {
+      toast.error("길 안내할 수 있는 화장실 좌표가 없습니다.");
+      return;
+    }
+
+    setIsStartingRoute(true);
+
+    try {
+      const start = await getCurrentRoutePoint();
+      setCurrentLocation(start);
+
+      const nearbyToilets = candidates
+        .map((toilet) => ({
+          toilet,
+          distance: getDistanceMeters(start, toilet),
+        }))
+        .filter(({ distance }) => distance <= 300);
+
+      if (nearbyToilets.length === 0) {
+        toast.error("현재 위치 반경 300m 안에 화장실이 없습니다.");
+        return;
+      }
+
+      const topRatedToilet = [...nearbyToilets]
+        .filter(
+          ({ toilet }) =>
+            typeof toilet.rating === "number" &&
+            Number.isFinite(toilet.rating) &&
+            toilet.rating > 0
+        )
+        .sort((a, b) => {
+          const ratingDiff = (b.toilet.rating ?? 0) - (a.toilet.rating ?? 0);
+          return ratingDiff !== 0 ? ratingDiff : a.distance - b.distance;
+        })[0]?.toilet;
+
+      const destination =
+        topRatedToilet ??
+        [...nearbyToilets].sort((a, b) => a.distance - b.distance)[0].toilet;
+
+      if (!topRatedToilet) {
+        toast.info("평점이 부여된 화장실이 없어 가장 가까운 화장실로 안내합니다.");
+      }
+
+      const route = await fetchPedestrianRoute({
+        start,
+        destination,
+      });
+
+      setActiveRoute(route);
+      setSelectedToilet(destination);
+      setIsDetailModalOpen(false);
+      toast.success(`${destination.name}까지 길 안내를 시작합니다.`);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "평점이 가장 높은 주변 화장실 경로를 찾지 못했습니다."
+      );
+    } finally {
+      setIsStartingRoute(false);
+    }
+  }, [isStartingRoute, toilets]);
 
   const handleOpenNotifications = () => {
     if (!user?.token) {
@@ -449,11 +540,11 @@ export default function HomePage() {
                 onClick={() => navigate("/favorites")}
               />
               <ActionButton
-                icon={Megaphone}
-                label="공지사항"
-                description="서비스 소식 확인하기"
+                icon={Star}
+                label={isStartingRoute ? "추천 경로 찾는 중" : "평점 높은 화장실"}
+                description="300m 안 평점 최고 화장실 안내"
                 color="yellow"
-                onClick={() => navigate("/notices")}
+                onClick={handleNavigateToTopRatedNearbyToilet}
               />
             </div>
 
@@ -479,6 +570,7 @@ export default function HomePage() {
         onClose={() => setIsDetailModalOpen(false)}
         onStartNavigation={startRouteToToilet}
         isStartingNavigation={isStartingRoute}
+        onReviewStatsChange={handleReviewStatsChange}
       />
 
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
