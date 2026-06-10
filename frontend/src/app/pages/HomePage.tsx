@@ -437,10 +437,12 @@ export default function HomePage() {
               <Megaphone size={18} />
               공지사항
             </Button>
-            <Button variant="outline" onClick={() => navigate("/admin")} className={headerButtonClass}>
-              <Shield size={18} />
-              관리자
-            </Button>
+            {user?.role === "ADMIN" && (
+              <Button variant="outline" onClick={() => navigate("/admin")} className={headerButtonClass}>
+                <Shield size={18} />
+                관리자
+              </Button>
+            )}
             <ToiletFilters
               filters={filters}
               onFiltersChange={setFilters}
@@ -526,6 +528,13 @@ export default function HomePage() {
                 onClick={handleNavigateToNearestToilet}
               />
               <ActionButton
+                icon={Star}
+                label={isStartingRoute ? "추천 경로 찾는 중" : "평점 높은 화장실"}
+                description="300m 안 평점 최고 화장실 안내"
+                color="yellow"
+                onClick={handleNavigateToTopRatedNearbyToilet}
+              />
+              <ActionButton
                 icon={Plus}
                 label="새 화장실 등록"
                 description="화장실 정보 공유하기"
@@ -538,13 +547,6 @@ export default function HomePage() {
                 description="저장한 화장실 보기"
                 color="purple"
                 onClick={() => navigate("/favorites")}
-              />
-              <ActionButton
-                icon={Star}
-                label={isStartingRoute ? "추천 경로 찾는 중" : "평점 높은 화장실"}
-                description="300m 안 평점 최고 화장실 안내"
-                color="yellow"
-                onClick={handleNavigateToTopRatedNearbyToilet}
               />
             </div>
 
