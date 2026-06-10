@@ -1,27 +1,45 @@
-/*
- * 파일 위치: src/app/pages/NoticeDetailPage.tsx
- * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
- * 역할: 선택한 공지사항의 상세 내용을 보여주는 화면입니다.
- */
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Calendar, Eye, Megaphone, User } from "lucide-react";
-import { mockNotices } from "../data/mockNotices";
-import { Badge } from "../components/ui/badge";
+import { ArrowLeft, Calendar, Megaphone, RefreshCw, User } from "lucide-react";
+import { fetchNoticeById } from "../api/notices";
 import { Button } from "../components/ui/button";
+import type { Notice } from "../types/notice";
 
 export default function NoticeDetailPage() {
   const navigate = useNavigate();
   const { noticeId } = useParams();
-  const notice = mockNotices.find((item) => item.id === noticeId);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (!notice) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50">
-        <p className="text-lg font-semibold">공지사항을 찾을 수 없습니다.</p>
-        <Button onClick={() => navigate("/notices")}>목록으로 돌아가기</Button>
-      </div>
-    );
-  }
+  const loadNotice = async () => {
+    if (!noticeId) {
+      setNotice(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const loadedNotice = await fetchNoticeById(noticeId);
+      setNotice(loadedNotice);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "공지사항을 불러오지 못했습니다."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadNotice();
+  }, [noticeId]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -35,36 +53,46 @@ export default function NoticeDetailPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <article className="rounded-lg border bg-white p-6 shadow-sm">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            {notice.isImportant && (
-              <Badge className="gap-1 bg-red-600">
-                <Megaphone size={13} />
-                중요
-              </Badge>
-            )}
-            <Badge variant="secondary">{notice.category}</Badge>
-          </div>
+        {isLoading ? (
+          <section className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+            <RefreshCw size={36} className="mx-auto mb-4 animate-spin opacity-40" />
+            공지사항을 불러오는 중입니다.
+          </section>
+        ) : errorMessage ? (
+          <section className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center text-amber-800">
+            <p className="mb-4">{errorMessage}</p>
+            <Button variant="outline" onClick={loadNotice}>
+              다시 시도
+            </Button>
+          </section>
+        ) : !notice ? (
+          <section className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+            <Megaphone size={44} className="mx-auto mb-4 opacity-30" />
+            <p className="mb-4 text-lg font-semibold text-slate-900">공지사항을 찾을 수 없습니다.</p>
+            <Button onClick={() => navigate("/notices")}>목록으로 돌아가기</Button>
+          </section>
+        ) : (
+          <article className="rounded-lg border bg-white p-6 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <User size={15} />
+                {notice.author}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar size={15} />
+                {notice.createdAt || "날짜 없음"}
+              </span>
+            </div>
 
-          <h1 className="mb-4 text-3xl font-bold text-slate-950">{notice.title}</h1>
+            <h1 className="mb-5 border-b pb-5 text-3xl font-bold text-slate-950">
+              {notice.title}
+            </h1>
 
-          <div className="mb-8 flex flex-wrap gap-4 border-b pb-5 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <User size={15} />
-              {notice.author}
-            </span>
-            <span className="flex items-center gap-1">
-              <Calendar size={15} />
-              {notice.createdAt}
-            </span>
-            <span className="flex items-center gap-1">
-              <Eye size={15} />
-              {notice.viewCount}
-            </span>
-          </div>
-
-          <p className="whitespace-pre-line leading-7 text-slate-700">{notice.content}</p>
-        </article>
+            <p className="whitespace-pre-line leading-7 text-slate-700">
+              {notice.content || "내용이 없습니다."}
+            </p>
+          </article>
+        )}
       </main>
     </div>
   );
