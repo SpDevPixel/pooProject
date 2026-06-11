@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 interface MapViewProps {
   toilets: Toilet[];
   selectedToilet: Toilet | null;
+  focusLocation?: (RoutePoint & { key?: number }) | null;
   activeRoute?: TmapRouteResult | null;
   currentLocation?: RoutePoint | null;
   onClearRoute?: () => void;
@@ -23,6 +24,7 @@ interface MapViewProps {
 export function MapView({
   toilets,
   selectedToilet,
+  focusLocation,
   activeRoute,
   currentLocation,
   onClearRoute,
@@ -238,6 +240,20 @@ export function MapView({
       mapInstanceRef.current.setLevel(3);
     }
   }, [selectedToilet, hasValidToiletCoordinates]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current || !focusLocation || !window.kakao?.maps) return;
+
+    const position = new window.kakao.maps.LatLng(
+      focusLocation.lat,
+      focusLocation.lng
+    );
+
+    mapInstanceRef.current.panTo(position);
+    if (typeof mapInstanceRef.current.setLevel === "function") {
+      mapInstanceRef.current.setLevel(4);
+    }
+  }, [focusLocation]);
 
   useEffect(() => {
     if (!visibleCurrentLocation) {

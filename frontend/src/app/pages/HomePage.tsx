@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Bell,
   Heart,
+  MapPin,
   Megaphone,
   Navigation,
   Plus,
@@ -90,6 +91,92 @@ const getDistanceMeters = (from: RoutePoint, toilet: Toilet) => {
   return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+const SEARCH_RADIUS_METERS = 1500;
+const SEARCH_RESULT_LIMIT = 10;
+
+type SearchLocation = RoutePoint & {
+  label: string;
+  address: string;
+  category?: string;
+  isSubwayStation?: boolean;
+};
+
+const toSearchLocation = (document: any, fallbackLabel: string): SearchLocation | null => {
+  if (!document?.x || !document?.y) return null;
+
+  return {
+    lat: Number(document.y),
+    lng: Number(document.x),
+    label: document.place_name || document.address_name || fallbackLabel,
+    address:
+      document.road_address_name ||
+      document.road_address?.address_name ||
+      document.address_name ||
+      "",
+    category: document.category_group_name || document.category_name,
+    isSubwayStation:
+      document.category_group_code === "SW8" ||
+      String(document.category_name ?? "").includes("지하철"),
+  };
+};
+
+const dedupeSearchLocations = (locations: SearchLocation[]) => {
+  const seen = new Set<string>();
+
+  return locations.filter((location) => {
+    const key = `${location.label}:${location.lat.toFixed(6)}:${location.lng.toFixed(6)}`;
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+};
+
+const searchKakaoLocations = async (keyword: string): Promise<SearchLocation[]> => {
+  const REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
+  if (!REST_KEY) return [];
+
+  const headers = {
+    Authorization: `KakaoAK ${REST_KEY}`,
+  };
+
+  const requestKeywordSearch = async (extraParams = "") => {
+    const response = await fetch(
+      `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(keyword)}&size=5${extraParams}`,
+      { headers }
+    );
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return (data.documents ?? [])
+      .map((document: any) => toSearchLocation(document, keyword))
+      .filter((location: SearchLocation | null): location is SearchLocation => location !== null);
+  };
+
+  const [subwayLocations, keywordLocations] = await Promise.all([
+    requestKeywordSearch("&category_group_code=SW8"),
+    requestKeywordSearch(),
+  ]);
+
+  const addressResponse = await fetch(
+    `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(keyword)}`,
+    { headers }
+  );
+
+  const addressLocations = addressResponse.ok
+    ? ((await addressResponse.json()).documents ?? [])
+        .map((document: any) => toSearchLocation(document, keyword))
+        .filter((location: SearchLocation | null): location is SearchLocation => location !== null)
+    : [];
+
+  return dedupeSearchLocations([
+    ...subwayLocations,
+    ...keywordLocations,
+    ...addressLocations,
+  ]).slice(0, 3);
+};
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
@@ -107,6 +194,10 @@ export default function HomePage() {
   const [isStartingRoute, setIsStartingRoute] = useState(false);
   const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchLocation, setSearchLocation] = useState<SearchLocation | null>(null);
+  const [searchLocationCandidates, setSearchLocationCandidates] = useState<SearchLocation[]>([]);
+  const [mapFocusLocation, setMapFocusLocation] = useState<(SearchLocation & { key: number }) | null>(null);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     hasDisabledFacility: false,
     hasDiaperTable: false,
@@ -164,10 +255,45 @@ export default function HomePage() {
     loadRequestNotifications();
   }, [loadRequestNotifications]);
 
-  // 검색/필터 적용
-  const filteredToilets = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
+  useEffect(() => {
+    const keyword = searchQuery.trim();
+    if (!keyword) {
+      setSearchLocation(null);
+      setSearchLocationCandidates([]);
+      setIsSearchingLocation(false);
+      return;
+    }
 
+    let isCancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      setIsSearchingLocation(true);
+
+      try {
+        const locations = await searchKakaoLocations(keyword);
+        if (!isCancelled) {
+          setSearchLocationCandidates(locations);
+          setSearchLocation(locations[0] ?? null);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!isCancelled) {
+          setSearchLocationCandidates([]);
+          setSearchLocation(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingLocation(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchQuery]);
+
+  const visibleToilets = useMemo(() => {
     return toilets.filter((toilet) => {
       if (filters.hasDisabledFacility && !toilet.hasDisabledFacility) return false;
       if (filters.hasDiaperTable && !toilet.hasDiaperTable) return false;
@@ -176,12 +302,47 @@ export default function HomePage() {
       if (filters.isUserSubmitted !== null && toilet.isUserSubmitted !== filters.isUserSubmitted) {
         return false;
       }
-      if (keyword && !`${toilet.name} ${toilet.roadAddress}`.toLowerCase().includes(keyword)) {
-        return false;
-      }
       return true;
     });
-  }, [filters, searchQuery, toilets]);
+  }, [filters, toilets]);
+
+  // 검색 결과 목록 적용
+  const filteredToilets = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+
+    if (!keyword || !searchLocation) {
+      return visibleToilets.filter((toilet) => {
+        if (!keyword) return true;
+        return `${toilet.name} ${toilet.roadAddress}`.toLowerCase().includes(keyword);
+      });
+    }
+
+    const textMatches = visibleToilets.filter((toilet) =>
+      `${toilet.name} ${toilet.roadAddress}`.toLowerCase().includes(keyword)
+    );
+
+    const nearbyToilets = visibleToilets
+      .filter(hasValidToiletCoordinates)
+      .map((toilet) => ({
+        toilet,
+        distance: getDistanceMeters(searchLocation, toilet),
+      }))
+      .filter(({ distance }) => distance <= SEARCH_RADIUS_METERS)
+      .sort((a, b) => a.distance - b.distance)
+      .map(({ toilet, distance }) => ({
+        ...toilet,
+        distance,
+      }));
+
+    const mergedToilets = [...nearbyToilets];
+    textMatches.forEach((textMatch) => {
+      if (!mergedToilets.some((toilet) => toilet.managementNo === textMatch.managementNo)) {
+        mergedToilets.push(textMatch);
+      }
+    });
+
+    return mergedToilets.slice(0, SEARCH_RESULT_LIMIT);
+  }, [hasValidToiletCoordinates, searchLocation, searchQuery, visibleToilets]);
 
   const searchSuggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -190,6 +351,48 @@ export default function HomePage() {
       .filter(hasValidToiletCoordinates)
       .slice(0, 6);
   }, [filteredToilets, searchQuery]);
+
+  const handleSearchSubmit = useCallback(async () => {
+    const keyword = searchQuery.trim();
+    if (!keyword) return;
+
+    setIsSearchingLocation(true);
+
+    try {
+      const location =
+        searchLocation ??
+        searchLocationCandidates[0] ??
+        (await searchKakaoLocations(keyword))[0];
+
+      if (!location) {
+        toast.error("검색한 위치를 찾지 못했습니다.");
+        return;
+      }
+
+      setSearchLocation(location);
+      setMapFocusLocation({
+        ...location,
+        key: Date.now(),
+      });
+      setSelectedToilet(null);
+      setIsDetailModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("검색한 위치로 이동하지 못했습니다.");
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  }, [searchLocation, searchLocationCandidates, searchQuery]);
+
+  const handleSearchLocationClick = useCallback((location: SearchLocation) => {
+    setSearchLocation(location);
+    setMapFocusLocation({
+      ...location,
+      key: Date.now(),
+    });
+    setSelectedToilet(null);
+    setIsDetailModalOpen(false);
+  }, []);
 
   const handleToiletClick = useCallback((toilet: Toilet) => {
     setSelectedToilet(toilet);
@@ -263,7 +466,7 @@ export default function HomePage() {
   const handleNavigateToNearestToilet = useCallback(async () => {
     if (isStartingRoute) return;
 
-    const candidates = filteredToilets.filter(hasValidToiletCoordinates);
+    const candidates = visibleToilets.filter(hasValidToiletCoordinates);
     if (candidates.length === 0) {
       toast.error("길 안내할 수 있는 화장실 좌표가 없습니다.");
       return;
@@ -296,7 +499,7 @@ export default function HomePage() {
     } finally {
       setIsStartingRoute(false);
     }
-  }, [filteredToilets, isStartingRoute]);
+  }, [isStartingRoute, visibleToilets]);
 
   const handleNavigateToTopRatedNearbyToilet = useCallback(async () => {
     if (isStartingRoute) return;
@@ -408,7 +611,7 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground">
               {isLoadingToilets
                 ? "화장실 정보를 불러오는 중입니다."
-                : `${filteredToilets.length}개의 화장실을 찾았습니다.`}
+                : `${visibleToilets.length}개의 화장실을 표시합니다.`}
             </p>
             {!isLoadingToilets && addressMarkerStatus !== "idle" && (
               <p className="text-sm font-medium text-blue-600">
@@ -490,8 +693,71 @@ export default function HomePage() {
                 <Input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleSearchSubmit();
+                    }
+                  }}
                   placeholder="화장실 이름 또는 주소"
                 />
+                {searchQuery.trim() && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                    {isSearchingLocation ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        위치를 찾는 중입니다.
+                      </>
+                    ) : searchLocation ? (
+                      <>
+                        <MapPin size={13} className="text-blue-600" />
+                        {searchLocation.label} 근처 화장실
+                      </>
+                    ) : (
+                      <>
+                        <Search size={13} />
+                        이름 또는 주소 검색 결과
+                      </>
+                    )}
+                  </div>
+                )}
+                {searchLocationCandidates.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {searchLocationCandidates.map((location) => {
+                      const isActive =
+                        searchLocation?.label === location.label &&
+                        searchLocation?.lat === location.lat &&
+                        searchLocation?.lng === location.lng;
+
+                      return (
+                        <button
+                          key={`${location.label}-${location.lat}-${location.lng}`}
+                          type="button"
+                          onClick={() => handleSearchLocationClick(location)}
+                          className={`w-full rounded-md border px-3 py-2 text-left transition ${
+                            isActive
+                              ? "border-blue-300 bg-blue-50"
+                              : "bg-white hover:border-blue-200 hover:bg-blue-50"
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="min-w-0 truncate text-sm font-medium text-slate-900">
+                              {location.label}
+                            </span>
+                            {location.isSubwayStation && (
+                              <span className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
+                                지하철역
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-1 block truncate text-xs text-muted-foreground">
+                            {location.address || location.category || "위치 정보"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 {searchQuery.trim() && (
                   <div className="mt-3 overflow-hidden rounded-lg border bg-white">
                     {searchSuggestions.length > 0 ? (
@@ -510,6 +776,11 @@ export default function HomePage() {
                             <span className="block truncate text-xs text-muted-foreground">
                               {toilet.roadAddress || "주소 정보 없음"}
                             </span>
+                            {typeof toilet.distance === "number" && Number.isFinite(toilet.distance) && (
+                              <span className="mt-1 block text-xs font-medium text-blue-600">
+                                약 {toilet.distance >= 1000 ? `${(toilet.distance / 1000).toFixed(1)}km` : `${Math.round(toilet.distance)}m`}
+                              </span>
+                            )}
                           </span>
                         </button>
                       ))
@@ -553,8 +824,9 @@ export default function HomePage() {
 
             <div className="min-w-0 h-[600px] lg:col-span-3 lg:h-full">
               <MapView
-                toilets={filteredToilets}
+                toilets={visibleToilets}
                 selectedToilet={selectedToilet}
+                focusLocation={mapFocusLocation}
                 activeRoute={activeRoute}
                 currentLocation={currentLocation}
                 onClearRoute={() => setActiveRoute(null)}
