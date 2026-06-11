@@ -4,12 +4,13 @@
  * 역할: 메인 지도 화면 화장실 목록, 필터, 알림, 길 안내를 제공
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import {
   AlertCircle,
   Bell,
   Heart,
   MapPin,
+  Menu,
   Megaphone,
   Navigation,
   Plus,
@@ -23,6 +24,7 @@ import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../components/ui/sheet";
 import { Badge } from "../components/ui/badge";
 import { ToiletFilters } from "../components/ToiletFilters";
 import { ToiletDetailModal } from "../components/ToiletDetailModal";
@@ -38,6 +40,7 @@ import {
   type RoutePoint,
   type TmapRouteResult,
 } from "../api/tmapRoutes";
+import { searchKakaoLocations, type SearchLocation } from "../api/kakaoSearch";
 import type { Toilet, ToiletFilters as Filters } from "../types/toilet";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -94,91 +97,9 @@ const getDistanceMeters = (from: RoutePoint, toilet: Toilet) => {
 const SEARCH_RADIUS_METERS = 1500;
 const SEARCH_RESULT_LIMIT = 10;
 
-type SearchLocation = RoutePoint & {
-  label: string;
-  address: string;
-  category?: string;
-  isSubwayStation?: boolean;
-};
-
-const toSearchLocation = (document: any, fallbackLabel: string): SearchLocation | null => {
-  if (!document?.x || !document?.y) return null;
-
-  return {
-    lat: Number(document.y),
-    lng: Number(document.x),
-    label: document.place_name || document.address_name || fallbackLabel,
-    address:
-      document.road_address_name ||
-      document.road_address?.address_name ||
-      document.address_name ||
-      "",
-    category: document.category_group_name || document.category_name,
-    isSubwayStation:
-      document.category_group_code === "SW8" ||
-      String(document.category_name ?? "").includes("지하철"),
-  };
-};
-
-const dedupeSearchLocations = (locations: SearchLocation[]) => {
-  const seen = new Set<string>();
-
-  return locations.filter((location) => {
-    const key = `${location.label}:${location.lat.toFixed(6)}:${location.lng.toFixed(6)}`;
-    if (seen.has(key)) return false;
-
-    seen.add(key);
-    return true;
-  });
-};
-
-const searchKakaoLocations = async (keyword: string): Promise<SearchLocation[]> => {
-  const REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
-  if (!REST_KEY) return [];
-
-  const headers = {
-    Authorization: `KakaoAK ${REST_KEY}`,
-  };
-
-  const requestKeywordSearch = async (extraParams = "") => {
-    const response = await fetch(
-      `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(keyword)}&size=5${extraParams}`,
-      { headers }
-    );
-
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    return (data.documents ?? [])
-      .map((document: any) => toSearchLocation(document, keyword))
-      .filter((location: SearchLocation | null): location is SearchLocation => location !== null);
-  };
-
-  const [subwayLocations, keywordLocations] = await Promise.all([
-    requestKeywordSearch("&category_group_code=SW8"),
-    requestKeywordSearch(),
-  ]);
-
-  const addressResponse = await fetch(
-    `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(keyword)}`,
-    { headers }
-  );
-
-  const addressLocations = addressResponse.ok
-    ? ((await addressResponse.json()).documents ?? [])
-        .map((document: any) => toSearchLocation(document, keyword))
-        .filter((location: SearchLocation | null): location is SearchLocation => location !== null)
-    : [];
-
-  return dedupeSearchLocations([
-    ...subwayLocations,
-    ...keywordLocations,
-    ...addressLocations,
-  ]).slice(0, 3);
-};
-
 export default function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const [toilets, setToilets] = useState<Toilet[]>([]);
   const [isLoadingToilets, setIsLoadingToilets] = useState(true);
@@ -186,6 +107,7 @@ export default function HomePage() {
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [requestNotifications, setRequestNotifications] = useState<ToiletRequestNotification[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
@@ -226,6 +148,25 @@ export default function HomePage() {
   useEffect(() => {
     loadToilets();
   }, [loadToilets]);
+
+  useEffect(() => {
+    const searchState = location.state as
+      | { searchQuery?: string; searchLocation?: SearchLocation }
+      | null;
+
+    if (!searchState?.searchLocation) return;
+
+    setSearchQuery(searchState.searchQuery ?? searchState.searchLocation.label);
+    setSearchLocation(searchState.searchLocation);
+    setSearchLocationCandidates([searchState.searchLocation]);
+    setMapFocusLocation({
+      ...searchState.searchLocation,
+      key: Date.now(),
+    });
+    setSelectedToilet(null);
+    setIsDetailModalOpen(false);
+    window.history.replaceState({}, document.title);
+  }, [location.state]);
 
   const loadRequestNotifications = useCallback(async () => {
     if (!user?.token) {
@@ -603,9 +544,9 @@ export default function HomePage() {
 
   // 홈 화면 렌더링
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden flex flex-col bg-gray-50">
+    <div className="flex h-[100dvh] w-full max-w-full flex-col overflow-hidden bg-gray-50">
       <div className="bg-white border-b px-3 py-4 flex-shrink-0 shadow-sm sm:px-4">
-        <div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-blue-700 sm:text-2xl">화장실 급할 때</h1>
             <p className="text-sm text-muted-foreground">
@@ -621,7 +562,7 @@ export default function HomePage() {
               </p>
             )}
           </div>
-          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+          <div className="hidden w-full min-w-0 flex-wrap items-center gap-2 lg:flex lg:w-auto lg:justify-end">
             {toiletLoadError && (
               <Button variant="outline" onClick={loadToilets} className={headerButtonClass}>
                 <RefreshCw size={18} />
@@ -672,26 +613,165 @@ export default function HomePage() {
               </Button>
             )}
           </div>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="fixed right-3 top-3 z-50 h-10 w-10 shrink-0 bg-white shadow-sm lg:hidden"
+                aria-label="메뉴 열기"
+              >
+                <Menu size={20} />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] px-4">
+              <SheetHeader className="px-0">
+                <SheetTitle>메뉴</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 flex flex-col gap-2">
+                {toiletLoadError && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      loadToilets();
+                    }}
+                    className="w-full justify-start gap-2"
+                  >
+                    <RefreshCw size={18} />
+                    다시 불러오기
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleOpenNotifications();
+                  }}
+                  className="relative w-full justify-start gap-2"
+                >
+                  <Bell size={18} />
+                  알림
+                  {pendingNotificationCount > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
+                      {pendingNotificationCount}
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate("/notices");
+                  }}
+                  className="w-full justify-start gap-2"
+                >
+                  <Megaphone size={18} />
+                  공지사항
+                </Button>
+                {user?.role === "ADMIN" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/admin");
+                    }}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Shield size={18} />
+                    관리자
+                  </Button>
+                )}
+                <ToiletFilters
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  triggerClassName="w-full justify-start gap-2"
+                />
+                {isAuthenticated ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/mypage");
+                    }}
+                    className="w-full justify-start gap-2"
+                  >
+                    <User size={18} />
+                    마이페이지
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/auth");
+                    }}
+                    className="w-full justify-start gap-2"
+                  >
+                    <User size={18} />
+                    로그인
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
-      <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden lg:overflow-hidden">
-        <div className="mx-auto h-full w-full max-w-7xl min-w-0 p-3 sm:p-4">
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="h-full w-full min-w-0">
           {toiletLoadError && (
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <AlertCircle size={18} />
               {toiletLoadError}
             </div>
           )}
-          <div className="grid min-w-0 gap-4 lg:h-full lg:grid-cols-4">
-            <div className="min-w-0 space-y-3 lg:col-span-1">
-              <div className="rounded-lg border bg-white p-4 shadow-sm">
+          <div className="grid h-full min-w-0 grid-rows-[1fr_auto] gap-0 overflow-hidden border bg-white shadow-sm lg:grid-cols-[120px_390px_1fr] lg:grid-rows-none">
+            <nav className="order-2 grid grid-cols-4 gap-1 border-t bg-slate-50 p-1.5 lg:order-none lg:flex lg:h-full lg:flex-col lg:border-r lg:border-t-0 lg:p-2">
+              <RailButton
+                icon={Navigation}
+                label="가까운 화장실 안내"
+                active={isStartingRoute}
+                onClick={handleNavigateToNearestToilet}
+              />
+              <RailButton
+                icon={Star}
+                label="평점 높은 화장실 안내"
+                active={false}
+                onClick={handleNavigateToTopRatedNearbyToilet}
+              />
+              <RailButton
+                icon={Plus}
+                label="화장실 등록"
+                active={false}
+                onClick={() => navigate("/register")}
+              />
+              <RailButton
+                icon={Heart}
+                label="즐겨찾기"
+                active={false}
+                onClick={() => navigate("/favorites")}
+              />
+            </nav>
+            <aside className="hidden min-w-0 border-b bg-white lg:block lg:h-full lg:overflow-y-auto lg:border-b-0 lg:border-r">
+              <div className="border-b p-4">
                 <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
                   <Search size={17} />
                   빠른 검색
                 </label>
                 <Input
                   value={searchQuery}
+                  readOnly={typeof window !== "undefined" && window.innerWidth < 1024}
+                  onFocus={() => {
+                    if (window.innerWidth < 1024) {
+                      navigate("/search", { state: { initialQuery: searchQuery } });
+                    }
+                  }}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      navigate("/search", { state: { initialQuery: searchQuery } });
+                    }
+                  }}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
@@ -699,10 +779,14 @@ export default function HomePage() {
                       void handleSearchSubmit();
                     }
                   }}
-                  placeholder="화장실 이름 또는 주소"
+                  placeholder="장소, 역, 주소 검색"
+                  className="h-11"
                 />
+              </div>
+
+              <div className="space-y-4 p-4">
                 {searchQuery.trim() && (
-                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     {isSearchingLocation ? (
                       <>
                         <RefreshCw size={13} className="animate-spin" />
@@ -721,108 +805,89 @@ export default function HomePage() {
                     )}
                   </div>
                 )}
-                {searchLocationCandidates.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {searchLocationCandidates.map((location) => {
-                      const isActive =
-                        searchLocation?.label === location.label &&
-                        searchLocation?.lat === location.lat &&
-                        searchLocation?.lng === location.lng;
 
-                      return (
-                        <button
-                          key={`${location.label}-${location.lat}-${location.lng}`}
-                          type="button"
-                          onClick={() => handleSearchLocationClick(location)}
-                          className={`w-full rounded-md border px-3 py-2 text-left transition ${
-                            isActive
-                              ? "border-blue-300 bg-blue-50"
-                              : "bg-white hover:border-blue-200 hover:bg-blue-50"
-                          }`}
-                        >
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="min-w-0 truncate text-sm font-medium text-slate-900">
-                              {location.label}
-                            </span>
-                            {location.isSubwayStation && (
-                              <span className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
-                                지하철역
+                {searchLocationCandidates.length > 0 && (
+                  <section className="hidden lg:block">
+                    <h2 className="mb-2 text-sm font-semibold text-slate-900">위치 후보</h2>
+                    <div className="space-y-2">
+                      {searchLocationCandidates.map((location) => {
+                        const isActive =
+                          searchLocation?.label === location.label &&
+                          searchLocation?.lat === location.lat &&
+                          searchLocation?.lng === location.lng;
+
+                        return (
+                          <button
+                            key={`${location.label}-${location.lat}-${location.lng}`}
+                            type="button"
+                            onClick={() => handleSearchLocationClick(location)}
+                            className={`w-full rounded-md border px-3 py-2 text-left transition ${
+                              isActive
+                                ? "border-blue-300 bg-blue-50"
+                                : "bg-white hover:border-blue-200 hover:bg-blue-50"
+                            }`}
+                          >
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="min-w-0 truncate text-sm font-medium text-slate-900">
+                                {location.label}
                               </span>
-                            )}
-                          </span>
-                          <span className="mt-1 block truncate text-xs text-muted-foreground">
-                            {location.address || location.category || "위치 정보"}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                              {location.isSubwayStation && (
+                                <span className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
+                                  지하철역
+                                </span>
+                              )}
+                            </span>
+                            <span className="mt-1 block truncate text-xs text-muted-foreground">
+                              {location.address || location.category || "위치 정보"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
                 )}
+
                 {searchQuery.trim() && (
-                  <div className="mt-3 overflow-hidden rounded-lg border bg-white">
-                    {searchSuggestions.length > 0 ? (
-                      searchSuggestions.map((toilet) => (
-                        <button
-                          key={toilet.managementNo}
-                          type="button"
-                          className="flex w-full items-start gap-2 border-b px-3 py-3 text-left last:border-b-0 hover:bg-blue-50"
-                          onClick={() => handleSearchSuggestionClick(toilet)}
-                        >
-                          <Search size={15} className="mt-0.5 shrink-0 text-blue-600" />
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-slate-900">
-                              {toilet.name}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {toilet.roadAddress || "주소 정보 없음"}
-                            </span>
-                            {typeof toilet.distance === "number" && Number.isFinite(toilet.distance) && (
-                              <span className="mt-1 block text-xs font-medium text-blue-600">
-                                약 {toilet.distance >= 1000 ? `${(toilet.distance / 1000).toFixed(1)}km` : `${Math.round(toilet.distance)}m`}
+                  <section className="hidden lg:block">
+                    <h2 className="mb-2 text-sm font-semibold text-slate-900">근처 화장실</h2>
+                    <div className="overflow-hidden rounded-lg border bg-white">
+                      {searchSuggestions.length > 0 ? (
+                        searchSuggestions.map((toilet) => (
+                          <button
+                            key={toilet.managementNo}
+                            type="button"
+                            className="flex w-full items-start gap-2 border-b px-3 py-3 text-left last:border-b-0 hover:bg-blue-50"
+                            onClick={() => handleSearchSuggestionClick(toilet)}
+                          >
+                            <Search size={15} className="mt-0.5 shrink-0 text-blue-600" />
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-slate-900">
+                                {toilet.name}
                               </span>
-                            )}
-                          </span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-                        검색 결과가 없습니다.
-                      </div>
-                    )}
-                  </div>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {toilet.roadAddress || "주소 정보 없음"}
+                              </span>
+                              {typeof toilet.distance === "number" && Number.isFinite(toilet.distance) && (
+                                <span className="mt-1 block text-xs font-medium text-blue-600">
+                                  약 {toilet.distance >= 1000 ? `${(toilet.distance / 1000).toFixed(1)}km` : `${Math.round(toilet.distance)}m`}
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                          검색 결과가 없습니다.
+                        </div>
+                      )}
+                    </div>
+                  </section>
                 )}
               </div>
-              <ActionButton
-                icon={Navigation}
-                label={isStartingRoute ? "경로 찾는 중" : "길찾기"}
-                description="가까운 화장실로 경로 안내"
-                color="blue"
-                onClick={handleNavigateToNearestToilet}
-              />
-              <ActionButton
-                icon={Star}
-                label={isStartingRoute ? "추천 경로 찾는 중" : "평점 높은 화장실"}
-                description="300m 안 평점 최고 화장실 안내"
-                color="yellow"
-                onClick={handleNavigateToTopRatedNearbyToilet}
-              />
-              <ActionButton
-                icon={Plus}
-                label="새 화장실 등록"
-                description="화장실 정보 공유하기"
-                color="green"
-                onClick={() => navigate("/register")}
-              />
-              <ActionButton
-                icon={Heart}
-                label="즐겨찾기"
-                description="저장한 화장실 보기"
-                color="purple"
-                onClick={() => navigate("/favorites")}
-              />
-            </div>
 
-            <div className="min-w-0 h-[600px] lg:col-span-3 lg:h-full">
+            </aside>
+
+            <div className="relative order-1 h-full min-h-[360px] min-w-0 lg:order-none lg:min-h-0">
               <MapView
                 toilets={visibleToilets}
                 selectedToilet={selectedToilet}
@@ -834,6 +899,14 @@ export default function HomePage() {
                 onMarkerClick={handleToiletClick}
                 onAddressMarkerStatusChange={setAddressMarkerStatus}
               />
+              <button
+                type="button"
+                onClick={() => navigate("/search", { state: { initialQuery: searchQuery } })}
+                className="absolute left-3 right-3 top-3 z-20 flex h-11 items-center gap-2 rounded-lg border bg-white/95 px-4 text-left text-sm text-slate-500 shadow-lg backdrop-blur lg:hidden"
+              >
+                <Search size={17} className="shrink-0 text-blue-600" />
+                <span className="truncate">{searchQuery || "장소, 역, 주소 검색"}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -909,38 +982,31 @@ export default function HomePage() {
   );
 }
 
-interface ActionButtonProps {
+interface RailButtonProps {
   icon: React.ElementType;
   label: string;
-  description: string;
-  color: "blue" | "yellow" | "green" | "purple";
+  active: boolean;
   onClick: () => void;
 }
 
-function ActionButton({
+function RailButton({
   icon: Icon,
   label,
-  description,
-  color,
+  active,
   onClick,
-}: ActionButtonProps) {
-  const colorClasses = {
-    blue: "bg-blue-600 hover:bg-blue-700 text-white",
-    yellow: "bg-yellow-500 hover:bg-yellow-600 text-white",
-    green: "bg-green-600 hover:bg-green-700 text-white",
-    purple: "bg-purple-600 hover:bg-purple-700 text-white",
-  };
-
+}: RailButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`w-full p-6 rounded-lg ${colorClasses[color]} transition-all hover:shadow-lg text-left`}
+      className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-center text-[10px] font-medium leading-3 transition sm:text-[11px] lg:min-h-0 lg:gap-2 lg:px-3 lg:py-4 lg:text-xs ${
+        active
+          ? "bg-blue-600 text-white"
+          : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+      }`}
     >
-      <div className="flex flex-col items-start gap-2">
-        <Icon size={32} className="mb-2" />
-        <h3 className="font-bold text-lg">{label}</h3>
-        <p className="text-sm opacity-90">{description}</p>
-      </div>
+      <Icon size={19} className="shrink-0 lg:size-6" />
+      <span className="break-keep">{label}</span>
     </button>
   );
 }

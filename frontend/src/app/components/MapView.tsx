@@ -168,6 +168,30 @@ export function MapView({
   }, [onAddressMarkerStatusChange]);
 
   useEffect(() => {
+    const container = mapRef.current;
+    if (!container) return;
+
+    const relayoutMap = () => {
+      if (!mapInstanceRef.current) return;
+      mapInstanceRef.current.relayout();
+    };
+
+    relayoutMap();
+
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(relayoutMap);
+    });
+
+    resizeObserver.observe(container);
+    window.addEventListener("resize", relayoutMap);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", relayoutMap);
+    };
+  }, [isMapReady]);
+
+  useEffect(() => {
     let isCancelled = false;
 
     if (!mapInstanceRef.current) {

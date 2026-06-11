@@ -13,6 +13,7 @@ import EditProfilePage from "./pages/EditProfilePage";
 import NoticesPage from "./pages/NoticesPage";
 import NoticeDetailPage from "./pages/NoticeDetailPage";
 import AdminPage from "./pages/AdminPage";
+import SearchPage from "./pages/SearchPage";
 
 export const router = createBrowserRouter([
   {
@@ -50,5 +51,9 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     element: <AdminPage />,
+  },
+  {
+    path: "/search",
+    element: <SearchPage />,
   },
 ]);
