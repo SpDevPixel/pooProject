@@ -32,4 +32,13 @@ public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long
     @Modifying
     @Query("DELETE FROM UserFavorite f WHERE f.toilet.id = :toiletId")
     void deleteByToiletId(@Param("toiletId") Long toiletId);
+
+    @Modifying
+    @Query("delete from UserFavorite uf where uf.user = :user")
+    void deleteByUser(@Param("user") User user);
+
+    @Modifying
+    @Query("delete from UserFavorite uf where uf.toilet = :toilet")
+    void deleteByToilet(@Param("toilet") Toilet toilet);
+
 }

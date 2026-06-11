@@ -4,6 +4,7 @@ import com.yeogi.toilet.emergency_toilet.review.domain.Review;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
+import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.domain.UserFavorite;
 import com.yeogi.toilet.emergency_toilet.user.dto.UserDto;
@@ -32,6 +33,8 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final ReviewRepository reviewRepository;
     private final ToiletRepository toiletRepository;
+    private final ToiletRequestRepository toiletRequestRepository;
+    private final UserFavoriteRepository userFavoriteRepository;
 
 
     //이메일 사용 여부
@@ -122,6 +125,10 @@ public class UserService {
         }
         reviewRepository.deleteByUser(targetUser);
 
+        toiletRequestRepository.deleteByRequester(targetUser);
+        toiletRequestRepository.deleteByApprover(targetUser);
+        userFavoriteRepository.deleteByUser(targetUser);
+
         User systemAdmin = userRepository.findFirstByRole("ADMIN") // 혹은 findById(1L)
                 .orElseThrow(() -> new IllegalStateException("시스템 관리자 계정이 존재하지 않습니다."));
 
@@ -130,6 +137,9 @@ public class UserService {
             toilet.setUser(systemAdmin); // 이제 주인이 null이 아니라 ADMIN이 됩니다.
 //            toilet.setIsUserSubmitted(false); // 필요시 공공 데이터화 플래그 처리
         }
+
+        toiletRepository.saveAll(userToilets);
+        toiletRepository.flush();
 
         // 유저 삭제
         userRepository.delete(targetUser);

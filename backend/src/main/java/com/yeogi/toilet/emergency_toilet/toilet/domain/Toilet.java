@@ -1,5 +1,6 @@
 package com.yeogi.toilet.emergency_toilet.toilet.domain;
 
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -82,5 +83,20 @@ public class Toilet {
             double newAverage = totalRating / this.reviewCount;
             this.rating = Math.round(newAverage * 10.0) / 10.0;
         }
+    }
+
+    public void updateAndReapply(ToiletUpdateDto dto) {
+        this.openTime = dto.getOpenTime();
+        this.openTimeDetail = dto.getOpenTimeDetail();
+        this.managingOrg = dto.getManagingOrg();
+        this.phoneNumber = dto.getPhoneNumber();
+        this.wasteDisposal = dto.getWasteDisposal();
+
+        this.hasEmergencyBell = dto.getEmergencyBell();
+        this.hasDiaperTable = dto.getDiaperTable();
+        this.hasEntranceCctv = dto.getEntranceCctv();
+        this.hasDisabledFacility = dto.getDisabledFacility();
+
+        this.status = ToiletStatus.PENDING;
     }
 }

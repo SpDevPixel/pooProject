@@ -75,6 +75,60 @@ public class ToiletService {
         return toiletRepository.findByStatus(ToiletStatus.PENDING);
     }
 
+    @Transactional
+    public void updateAndReapplyToilet(Long userId, Long toiletId, ToiletUpdateDto dto) {
+        // 1. 수정할 화장실 존재 여부 확인
+        Toilet toilet = toiletRepository.findById(toiletId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 화장실입니다."));
+
+
+        if (!toilet.getId().equals(userId)) {
+            throw new SecurityException("본인이 등록한 화장실만 수정 및 재요청할 수 있습니다.");
+        }
+
+
+        if (toilet.getStatus() != ToiletStatus.REJECTED) {
+            throw new IllegalStateException("반려된 상태의 화장실만 재요청할 수 있습니다.");
+        }
+        toilet.updateAndReapply(dto);
+    }
+
+    //관리자 화장실 삭제
+    @Transactional
+    public void deleteAdminToilet(Long id) {
+        Toilet toilet = toiletRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 화장실입니다."));
+
+        reviewRepository.deleteByToilet(toilet);
+        toiletRequestRepository.deleteByToilet(toilet);
+
+        favoriteRepository.deleteByToilet(toilet);
+
+        toiletRepository.delete(toilet);
+    }
+
+    //관리자 화장실 수정
+    @Transactional
+    public void updateAdminToilet(Long id, ToiletUpdateDto dto) {
+        Toilet toilet = toiletRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 화장실입니다."));
+
+        // 넘겨받은 수정 데이터 스냅샷 매핑
+        if (dto.getName() != null) toilet.setName(dto.getName());
+        if (dto.getRoadAddress() != null) toilet.setRoadAddress(dto.getRoadAddress());
+        if (dto.getPhoneNumber() != null) toilet.setPhoneNumber(dto.getPhoneNumber());
+        if (dto.getOpenTime() != null) toilet.setOpenTime(dto.getOpenTime());
+        if (dto.getManagingOrg() != null) toilet.setManagingOrg(dto.getManagingOrg());
+
+        if (dto.getStatus() != null) toilet.setStatus(dto.getStatus());
+
+    }
+    //관리자 화장실 조회
+    @Transactional(readOnly = true) // 조회 최적화
+    public List<Toilet> getAllToiletsForAdmin() {
+        return toiletRepository.findAll();
+    }
+
     /**
      * 2. 이용자 등록 및 관리 메서드들
      */

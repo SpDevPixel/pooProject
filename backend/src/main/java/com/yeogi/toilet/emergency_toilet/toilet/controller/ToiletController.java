@@ -5,6 +5,7 @@ import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.service.ToiletService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -111,6 +112,39 @@ public class ToiletController {
         }
 
         return ResponseEntity.ok(results); // 성공 시 200 상태 코드와 데이터 반환
+    }
+
+    @PatchMapping("/{toiletId}/reapply")
+    public ResponseEntity<String> reapplyToilet(
+            @PathVariable Long toiletId,
+            @RequestBody ToiletUpdateDto dto,
+            @RequestHeader("Authorization") String token) {
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 토큰 형식입니다.");
+        }
+        String pureToken = token.substring(7);
+
+        try {
+            Long userId = jwtUtil.extractId(pureToken);
+
+            toiletService.updateAndReapplyToilet(userId, toiletId, dto);
+
+            return ResponseEntity.ok("화장실 정보 수정 및 재요청이 완료되었습니다.");
+
+        } catch (SecurityException e) {
+            // 본인 글이 아닐 때 처리 (403 Forbidden)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            // 반려 상태가 아닐 때 처리 (400 Bad Request)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            // 화장실 ID를 찾을 수 없을 때 처리 (404 Not Found)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            // 기타 서버 에러 처리 (500 Internal Server Error)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류가 발생했습니다.");
+        }
     }
 
 }

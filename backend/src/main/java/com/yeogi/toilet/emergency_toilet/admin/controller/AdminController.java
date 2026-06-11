@@ -2,6 +2,7 @@ package com.yeogi.toilet.emergency_toilet.admin.controller;
 
 import com.yeogi.toilet.emergency_toilet.admin.service.AdminService;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.service.ToiletService;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
@@ -92,5 +93,61 @@ public class AdminController {
         adminService.approveToilet(adminId, toiletId, false);
 
         return ResponseEntity.ok("화장실 등록 요청이 반려되었습니다.");
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteToilet(@PathVariable Long id,
+                                             @RequestHeader("Authorization") String token) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("유효하지 않은 토큰");
+        }
+        String rawToken = token.substring(7);
+        String role = jwtUtil.extractRole(rawToken);
+
+        if (!"ADMIN".equals(role)) {
+            throw new RuntimeException("관리자 권한이 없습니다");
+        }
+
+        toiletService.deleteAdminToilet(id); // 💡 Long id 전달
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 💡 관리자의 화장실 정보 수정 (ID 기준)
+     * PUT /api/admin/toilets/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateToilet(@PathVariable Long id,
+                                             @RequestBody ToiletUpdateDto dto,
+                                             @RequestHeader("Authorization") String token) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("유효하지 않은 토큰");
+        }
+        String rawToken = token.substring(7);
+        String role = jwtUtil.extractRole(rawToken);
+
+        if (!"ADMIN".equals(role)) {
+            throw new RuntimeException("관리자 권한이 없습니다");
+        }
+
+        toiletService.updateAdminToilet(id, dto); // 💡 Long id 전달
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getAllToiletsForAdmin(@RequestHeader("Authorization") String token) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new RuntimeException("유효하지 않은 토큰");
+        }
+        String rawToken = token.substring(7);
+        String role = jwtUtil.extractRole(rawToken);
+        
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("관리자만 접근 가능합니다.");
+        }
+
+        // 서비스에서 상태 상관없이 전체 리스트 가져오기
+        List<Toilet> allToilets = toiletService.getAllToiletsForAdmin();
+        return ResponseEntity.ok(allToilets);
     }
 }

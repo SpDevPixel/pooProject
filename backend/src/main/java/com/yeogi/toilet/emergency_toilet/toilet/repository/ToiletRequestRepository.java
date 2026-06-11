@@ -1,6 +1,8 @@
 package com.yeogi.toilet.emergency_toilet.toilet.repository;
 
+import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletRequest;
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -30,4 +32,16 @@ public interface ToiletRequestRepository extends JpaRepository<ToiletRequest, Lo
     @Query("DELETE FROM ToiletRequest tr WHERE tr.toilet.id = :toiletId")
     void deleteByToiletId(@Param("toiletId") Long toiletId);
 
+    @Modifying
+    @Query("delete from ToiletRequest tr where tr.requester = :requester")
+    void deleteByRequester(@Param("requester") User requester);
+
+    @Modifying
+    @Query("delete from ToiletRequest tr where tr.approver = :approver")
+    void deleteByApprover(@Param("approver") User approver);
+
+    @Modifying
+    @Query("delete from ToiletRequest tr where tr.toilet = :toilet")
+    void deleteByToilet(@Param("toilet") Toilet toilet);
 }
+
