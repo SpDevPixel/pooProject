@@ -18,4 +18,6 @@ public class ToiletUpdateDto {
     private Boolean emergencyBell;
     private Boolean diaperTable;
     private Boolean entranceCctv;
+
+    private Boolean disabledFacility;
 }

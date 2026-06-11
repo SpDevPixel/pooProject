@@ -1,5 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.user.service;
 
+import com.yeogi.toilet.emergency_toilet.review.domain.Review;
+import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
@@ -15,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,6 +30,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final ReviewRepository reviewRepository;
+    private final ToiletRepository toiletRepository;
 
 
     //이메일 사용 여부
@@ -75,10 +80,12 @@ public class UserService {
         user.setNickname(newNn);
     }
 
+    @Transactional
     public void deleteUser(Long id){
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-        userRepository.delete(user);
+
+        processUserWithdrawal(user);
     }
 
     //로그인 서비스
@@ -102,6 +109,30 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         return ResponseEntity.ok(user);
+    }
+
+    @Transactional
+    public void processUserWithdrawal(User targetUser) {
+        List<Review> userReviews = reviewRepository.findByUser(targetUser);
+        for (Review review : userReviews) {
+            Toilet toilet = review.getToilet();
+            if (toilet != null) {
+                toilet.updateRatingWhenReviewDeleted(review.getRating());
+            }
+        }
+        reviewRepository.deleteByUser(targetUser);
+
+        User systemAdmin = userRepository.findFirstByRole("ADMIN") // 혹은 findById(1L)
+                .orElseThrow(() -> new IllegalStateException("시스템 관리자 계정이 존재하지 않습니다."));
+
+        List<Toilet> userToilets = toiletRepository.findByUser(targetUser);
+        for (Toilet toilet : userToilets) {
+            toilet.setUser(systemAdmin); // 이제 주인이 null이 아니라 ADMIN이 됩니다.
+//            toilet.setIsUserSubmitted(false); // 필요시 공공 데이터화 플래그 처리
+        }
+
+        // 유저 삭제
+        userRepository.delete(targetUser);
     }
 
 }

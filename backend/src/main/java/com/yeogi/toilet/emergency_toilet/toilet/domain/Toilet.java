@@ -50,6 +50,10 @@ public class Toilet {
     @Column(nullable = false)
     private double rating = 0.0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ToiletStatus status = ToiletStatus.PENDING;
+
     public void updateRatingWhenReviewAdded(double newRating) {
         double totalRating = this.rating * this.reviewCount;
 

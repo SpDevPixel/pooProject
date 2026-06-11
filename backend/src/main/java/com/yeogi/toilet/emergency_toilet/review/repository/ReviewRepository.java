@@ -1,6 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.review.repository;
 
 import com.yeogi.toilet.emergency_toilet.review.domain.Review;
+import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +20,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Modifying
     @Query("DELETE FROM Review r WHERE r.toilet.id = :toiletId")
     void deleteByToiletId(@Param("toiletId") Long toiletId);
+
+
+    void deleteByUser(User user);
+    List<Review> findByUser(User user);
 }

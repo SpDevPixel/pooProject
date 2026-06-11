@@ -41,8 +41,9 @@ public class JwtUtil {
     }
 
     public String extractRole(String token) {
-        return (String) Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+        return (String) Jwts.parserBuilder()
+                .setSigningKey(getSigningKey()) // 동일한 Key 객체 사용
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .get("role");

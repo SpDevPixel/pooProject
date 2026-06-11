@@ -3,6 +3,7 @@ package com.yeogi.toilet.emergency_toilet.toilet.service;
 import com.yeogi.toilet.emergency_toilet.review.domain.Review;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletStatus;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.SeoulToiletApiResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletApiRow;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
@@ -13,8 +14,8 @@ import com.yeogi.toilet.emergency_toilet.user.repository.UserFavoriteRepository;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -49,15 +50,15 @@ public class ToiletService {
      * 1. 화장실 조회 관련 메서드들
      */
     public List<Toilet> getPublicToilets() {
-        return toiletRepository.findByIsUserSubmitted(false);
+        return toiletRepository.findByIsUserSubmittedAndStatus(false, ToiletStatus.APPROVED);
     }
 
     public List<Toilet> getUserToilets() {
-        return toiletRepository.findByIsUserSubmitted(true);
+        return toiletRepository.findByIsUserSubmittedAndStatus(true, ToiletStatus.APPROVED);
     }
 
     public List<Toilet> getAllToilets() {
-        return toiletRepository.findAll();
+        return toiletRepository.findByStatus(ToiletStatus.APPROVED);
     }
 
     public List<Toilet> searchAddressToilet(String keyword) {
@@ -65,6 +66,13 @@ public class ToiletService {
             return Collections.emptyList();
         }
         return toiletRepository.findTop10ByRoadAddressContaining(keyword.trim());
+    }
+
+    //승인 대기 중(PENDING)인 화장실 목록 조회
+    @Transactional(readOnly = true)
+    public List<Toilet> getPendingToilets() {
+        // 리포지토리를 통해 상태가 PENDING인 데이터만 뽑아서 컨트롤러로 반환합니다.
+        return toiletRepository.findByStatus(ToiletStatus.PENDING);
     }
 
     /**
@@ -78,6 +86,9 @@ public class ToiletService {
 
         toilet.setUser(user);
         toilet.setIsUserSubmitted(true);
+
+        toilet.setStatus(ToiletStatus.PENDING);
+
         return toiletRepository.save(toilet);
     }
 
@@ -133,6 +144,10 @@ public class ToiletService {
 
         if (dto.getEntranceCctv() != null) {
             toilet.setHasEntranceCctv(dto.getEntranceCctv());
+        }
+
+        if (dto.getDisabledFacility() != null) {
+            toilet.setHasDisabledFacility(dto.getDisabledFacility());
         }
     }
 
@@ -218,6 +233,8 @@ public class ToiletService {
 
         t.setHasEntranceCctv(false); // API에서 제공 여부 확인 후 수정 가능
         t.setIsUserSubmitted(false); // 공공데이터
+
+        t.setStatus(ToiletStatus.APPROVED);
 
         return t;
     }
