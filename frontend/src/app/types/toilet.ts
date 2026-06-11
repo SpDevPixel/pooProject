@@ -21,6 +21,7 @@ export interface Toilet {
   hasEmergencyBell: boolean;
   hasEntranceCctv: boolean;
   isUserSubmitted: boolean;
+  status?: "PENDING" | "APPROVED" | "REJECTED" | string;
   
   // 프론트엔드에서만 사용하는 임시 필드 (백엔드에는 저장되지 않음)
   rating?: number; // 평점 (리뷰 평균)

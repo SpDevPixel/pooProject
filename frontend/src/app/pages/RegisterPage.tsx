@@ -300,7 +300,6 @@ export default function RegisterPage() {
         user.token
       );
 
-      toast.success("화장실 정보가 등록되었습니다!");
       setTimeout(() => navigate("/"), 700);
     } catch (error) {
       console.error(error);

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft,
+  CheckCircle,
+  MapPin,
   Megaphone,
   RefreshCw,
   Search,
@@ -9,9 +11,17 @@ import {
   Trash2,
   UserX,
   Users,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { fetchAdminUsers, forceWithdrawUser, type AdminUser } from "../api/admin";
+import {
+  approvePendingToilet,
+  fetchAdminUsers,
+  fetchPendingToilets,
+  forceWithdrawUser,
+  rejectPendingToilet,
+  type AdminUser,
+} from "../api/admin";
 import { createNotice, deleteNotice, fetchNotices } from "../api/notices";
 import { useAuth } from "../contexts/AuthContext";
 import { Badge } from "../components/ui/badge";
@@ -19,27 +29,32 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import type { Notice } from "../types/notice";
+import type { Toilet } from "../types/toilet";
 
-type AdminTab = "notices" | "users";
+type AdminTab = "toilets" | "notices" | "users";
 
 export default function AdminPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
-  const [activeTab, setActiveTab] = useState<AdminTab>("notices");
+  const [activeTab, setActiveTab] = useState<AdminTab>("toilets");
   const [notices, setNotices] = useState<Notice[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [pendingToilets, setPendingToilets] = useState<Toilet[]>([]);
   const [noticeQuery, setNoticeQuery] = useState("");
   const [userQuery, setUserQuery] = useState("");
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
   const [isLoadingNotices, setIsLoadingNotices] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isLoadingPendingToilets, setIsLoadingPendingToilets] = useState(false);
   const [isSubmittingNotice, setIsSubmittingNotice] = useState(false);
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null);
   const [withdrawingUserId, setWithdrawingUserId] = useState<string | null>(null);
+  const [processingToiletId, setProcessingToiletId] = useState<number | null>(null);
   const [noticeError, setNoticeError] = useState<string | null>(null);
   const [userError, setUserError] = useState<string | null>(null);
+  const [pendingToiletError, setPendingToiletError] = useState<string | null>(null);
 
   // 공지 목록 조회
   const loadNotices = async () => {
@@ -73,6 +88,23 @@ export default function AdminPage() {
     }
   };
 
+  // 승인 대기 화장실 목록 조회
+  const loadPendingToilets = async () => {
+    if (!user?.token || !isAdmin) return;
+
+    setIsLoadingPendingToilets(true);
+    setPendingToiletError(null);
+
+    try {
+      setPendingToilets(await fetchPendingToilets(user.token));
+    } catch (error) {
+      console.error(error);
+      setPendingToiletError(error instanceof Error ? error.message : "승인 대기 화장실을 불러오지 못했습니다.");
+    } finally {
+      setIsLoadingPendingToilets(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       navigate("/auth", { replace: true });
@@ -81,6 +113,7 @@ export default function AdminPage() {
 
     if (!isAdmin) return;
 
+    void loadPendingToilets();
     void loadNotices();
     void loadUsers();
   }, [isAdmin, user?.token]);
@@ -194,6 +227,44 @@ export default function AdminPage() {
     }
   };
 
+  const handleApproveToilet = async (toilet: Toilet) => {
+    if (!user?.token || processingToiletId || !toilet.backendId) return;
+
+    setProcessingToiletId(toilet.backendId);
+
+    try {
+      await approvePendingToilet(toilet.backendId, user.token);
+      setPendingToilets((current) => current.filter((item) => item.backendId !== toilet.backendId));
+      toast.success("화장실 등록이 승인되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "화장실 승인에 실패했습니다.");
+    } finally {
+      setProcessingToiletId(null);
+    }
+  };
+
+  const handleRejectToilet = async (toilet: Toilet) => {
+    if (!user?.token || processingToiletId || !toilet.backendId) return;
+
+    if (!window.confirm(`"${toilet.name}" 등록 요청을 반려할까요?`)) {
+      return;
+    }
+
+    setProcessingToiletId(toilet.backendId);
+
+    try {
+      await rejectPendingToilet(toilet.backendId, user.token);
+      setPendingToilets((current) => current.filter((item) => item.backendId !== toilet.backendId));
+      toast.success("화장실 등록이 반려되었습니다.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "화장실 반려에 실패했습니다.");
+    } finally {
+      setProcessingToiletId(null);
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -236,12 +307,16 @@ export default function AdminPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <section className="mb-6 grid gap-3 md:grid-cols-2">
+        <section className="mb-6 grid gap-3 md:grid-cols-3">
+          <StatPanel icon={MapPin} label="승인 대기" value={pendingToilets.length} />
           <StatPanel icon={Megaphone} label="공지사항" value={notices.length} />
           <StatPanel icon={Users} label="회원" value={users.length} />
         </section>
 
         <div className="mb-5 flex flex-wrap gap-2">
+          <AdminTabButton active={activeTab === "toilets"} onClick={() => setActiveTab("toilets")}>
+            화장실 승인
+          </AdminTabButton>
           <AdminTabButton active={activeTab === "notices"} onClick={() => setActiveTab("notices")}>
             공지 관리
           </AdminTabButton>
@@ -249,6 +324,69 @@ export default function AdminPage() {
             회원 관리
           </AdminTabButton>
         </div>
+
+        {activeTab === "toilets" && (
+          <section className="space-y-4">
+            {pendingToiletError && (
+              <ErrorPanel
+                message={pendingToiletError}
+                onRetry={loadPendingToilets}
+                loading={isLoadingPendingToilets}
+              />
+            )}
+            {isLoadingPendingToilets ? (
+              <LoadingPanel message="승인 대기 화장실을 불러오는 중입니다." />
+            ) : pendingToilets.length === 0 ? (
+              <EmptyPanel message="승인 대기 중인 화장실이 없습니다." />
+            ) : (
+              <div className="space-y-3">
+                {pendingToilets.map((toilet) => (
+                  <div key={toilet.backendId ?? toilet.id} className="rounded-lg border bg-white p-5 shadow-sm">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-slate-950">{toilet.name}</h3>
+                          <Badge variant="secondary">대기</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{toilet.roadAddress || "주소 없음"}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          관리번호 {toilet.managementNo} · 좌표 {toilet.lat ?? "-"}, {toilet.lng ?? "-"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={() => handleApproveToilet(toilet)}
+                          disabled={!toilet.backendId || processingToiletId === toilet.backendId}
+                          className="gap-2"
+                        >
+                          {processingToiletId === toilet.backendId ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          승인
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleRejectToilet(toilet)}
+                          disabled={!toilet.backendId || processingToiletId === toilet.backendId}
+                          className="gap-2 text-red-600 hover:text-red-700"
+                        >
+                          {processingToiletId === toilet.backendId ? (
+                            <RefreshCw size={16} className="animate-spin" />
+                          ) : (
+                            <XCircle size={16} />
+                          )}
+                          반려
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {activeTab === "notices" && (
           <section className="grid gap-4 lg:grid-cols-[420px_1fr]">

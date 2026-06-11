@@ -21,7 +21,8 @@ export type BackendToilet = {
   hasDiaperTable?: boolean | null;
   hasEmergencyBell?: boolean | null;
   hasEntranceCctv?: boolean | null;
-  isUserSubmitted?: boolean | null;
+  isUserSubmitted?: boolean | string | null;
+  status?: string | null;
   rating?: number | null;
   reviewCount?: number | null;
 };
@@ -63,6 +64,16 @@ const toNumber = (value: BackendToilet["lat"]) => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
+const normalizeStatus = (status?: string | null) => status?.trim().toUpperCase();
+
+const normalizeBoolean = (value?: boolean | string | null) => {
+  if (typeof value === "string") {
+    return value.trim().toLowerCase() === "true";
+  }
+
+  return Boolean(value);
+};
+
 export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lat = toNumber(toilet.lat);
   const lng = toNumber(toilet.lng);
@@ -92,14 +103,15 @@ export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
     hasDiaperTable: Boolean(toilet.hasDiaperTable),
     hasEmergencyBell: Boolean(toilet.hasEmergencyBell),
     hasEntranceCctv: Boolean(toilet.hasEntranceCctv),
-    isUserSubmitted: Boolean(toilet.isUserSubmitted),
+    isUserSubmitted: normalizeBoolean(toilet.isUserSubmitted),
+    status: normalizeStatus(toilet.status),
     rating: toilet.rating ?? undefined,
     reviewCount: toilet.reviewCount ?? undefined,
   };
 };
 
 export const fetchToilets = async (): Promise<Toilet[]> => {
-  const response = await fetch(`${API_BASE_URL}/toilets/all`);
+  const response = await fetch(`${API_BASE_URL}/toilets/all`, { cache: "no-store" });
 
   if (!response.ok) {
     throw new Error("화장실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
@@ -107,7 +119,10 @@ export const fetchToilets = async (): Promise<Toilet[]> => {
 
   const data = (await response.json()) as BackendToilet[];
 
-  return data.map(normalizeToilet).filter((toilet): toilet is Toilet => toilet !== null);
+  return data
+    .map(normalizeToilet)
+    .filter((toilet): toilet is Toilet => toilet !== null)
+    .filter((toilet) => !toilet.isUserSubmitted || toilet.status === "APPROVED");
 };
 
 export const createUserToilet = async (

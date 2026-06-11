@@ -54,6 +54,18 @@ const getBackendToiletId = (toilet: Toilet) => {
   return Number.isFinite(numericId) ? numericId : null;
 };
 
+const getToiletStatusLabel = (status?: string) => {
+  if (status === "APPROVED") return "등록된 화장실";
+  if (status === "REJECTED") return "반려된 화장실";
+  return "승인 대기중";
+};
+
+const getToiletStatusClassName = (status?: string) => {
+  if (status === "APPROVED") return "bg-blue-50 text-blue-700";
+  if (status === "REJECTED") return "bg-red-50 text-red-700";
+  return "bg-amber-50 text-amber-700";
+};
+
 export default function MyPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -159,6 +171,7 @@ export default function MyPage() {
     return null;
   }
 
+  const pendingToiletCount = userToilets.filter((toilet) => toilet.status === "PENDING").length;
   const visibleUserToilets = showAllToilets ? userToilets : userToilets.slice(0, 5);
   const visibleUserReviews = showAllReviews ? userReviews : userReviews.slice(0, 5);
 
@@ -410,10 +423,14 @@ export default function MyPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
+          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{userToilets.length}</p>
               <p className="text-sm text-muted-foreground">등록한 화장실</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">{pendingToiletCount}</p>
+              <p className="text-sm text-muted-foreground">승인 대기 중 화장실</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{userReviews.length}</p>
@@ -468,7 +485,12 @@ export default function MyPage() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium">{toilet.name}</h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-medium">{toilet.name}</h3>
+                            <span className={`rounded px-2 py-1 text-xs ${getToiletStatusClassName(toilet.status)}`}>
+                              {getToiletStatusLabel(toilet.status)}
+                            </span>
+                          </div>
                           <p className="text-sm text-muted-foreground mt-1">
                             {toilet.roadAddress}
                           </p>
