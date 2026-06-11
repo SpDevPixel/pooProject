@@ -14,6 +14,34 @@ export type AdminUser = {
   role: string;
 };
 
+export type UpdateAdminToiletRequest = {
+  name: string;
+  roadAddress: string;
+  openTime: string;
+  managingOrg: string;
+  phoneNumber: string;
+  disabledFacility: boolean;
+  emergencyBell: boolean;
+  diaperTable: boolean;
+  entranceCctv: boolean;
+  status: string;
+};
+
+const toNumber = (value: BackendToilet["lat"]) => {
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const normalizeStatus = (status?: string | null) => status?.trim().toUpperCase();
+
+const normalizeBoolean = (value?: boolean | string | null) => {
+  if (typeof value === "string") {
+    return value.trim().toLowerCase() === "true";
+  }
+
+  return Boolean(value);
+};
+
 const normalizeAdminUser = (user: BackendUser): AdminUser => ({
   id: String(user.id ?? ""),
   userId: user.userId ?? "",
@@ -23,6 +51,39 @@ const normalizeAdminUser = (user: BackendUser): AdminUser => ({
   address: user.address ?? undefined,
   role: user.role ?? "USER",
 });
+
+const normalizeAdminToilet = (toilet: BackendToilet): Toilet | null => {
+  const backendId = toNumber(toilet.id);
+
+  if (!backendId) {
+    return null;
+  }
+
+  const managementNo = toilet.managementNo?.toString() || String(backendId);
+
+  return {
+    id: managementNo,
+    backendId,
+    managementNo,
+    name: toilet.name ?? "이름 없음",
+    roadAddress: toilet.roadAddress ?? "",
+    lat: toNumber(toilet.lat),
+    lng: toNumber(toilet.lng),
+    openTime: toilet.openTime ?? undefined,
+    openTimeDetail: toilet.openTimeDetail ?? undefined,
+    managingOrg: toilet.managingOrg ?? undefined,
+    phoneNumber: toilet.phoneNumber ?? undefined,
+    wasteDisposal: toilet.wasteDisposal ?? undefined,
+    hasDisabledFacility: Boolean(toilet.hasDisabledFacility),
+    hasDiaperTable: Boolean(toilet.hasDiaperTable),
+    hasEmergencyBell: Boolean(toilet.hasEmergencyBell),
+    hasEntranceCctv: Boolean(toilet.hasEntranceCctv),
+    isUserSubmitted: normalizeBoolean(toilet.isUserSubmitted),
+    status: normalizeStatus(toilet.status),
+    rating: toilet.rating ?? undefined,
+    reviewCount: toilet.reviewCount ?? undefined,
+  };
+};
 
 const getAdminApiErrorMessage = (response: Response, fallback: string) => {
   if (response.status === 401 || response.status === 403) {
@@ -34,6 +95,56 @@ const getAdminApiErrorMessage = (response: Response, fallback: string) => {
   }
 
   return fallback;
+};
+
+export const fetchAdminToilets = async (token: string): Promise<Toilet[]> => {
+  const response = await fetch(`${API_BASE_URL}/admin`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(getAdminApiErrorMessage(response, "전체 화장실 목록을 불러오지 못했습니다."));
+  }
+
+  const data = (await response.json()) as BackendToilet[];
+  return data.map(normalizeAdminToilet).filter((toilet): toilet is Toilet => toilet !== null);
+};
+
+export const updateAdminToilet = async (
+  toiletId: string | number,
+  payload: UpdateAdminToiletRequest,
+  token: string
+): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/admin/${encodeURIComponent(String(toiletId))}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(getAdminApiErrorMessage(response, "화장실 정보 수정에 실패했습니다."));
+  }
+};
+
+export const deleteAdminToilet = async (
+  toiletId: string | number,
+  token: string
+): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/admin/${encodeURIComponent(String(toiletId))}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(getAdminApiErrorMessage(response, "화장실 삭제에 실패했습니다."));
+  }
 };
 
 export const fetchAdminUsers = async (token: string): Promise<AdminUser[]> => {
