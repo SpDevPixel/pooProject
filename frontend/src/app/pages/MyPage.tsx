@@ -16,7 +16,7 @@ import { useAuth } from "../contexts/AuthContext";
 import type { Toilet } from "../types/toilet";
 import { PasswordConfirmDialog } from "../components/PasswordConfirmDialog";
 import { loginWithAnyIdentifier } from "../api/users";
-import { deleteUserToilet, fetchUserToilets, updateUserToilet } from "../api/toilets";
+import { deleteUserToilet, fetchUserToilets, reapplyUserToilet, updateUserToilet } from "../api/toilets";
 import { deleteMyReview, fetchMyReviews } from "../api/reviews";
 import { toast } from "sonner";
 import type { Review } from "../types/toilet";
@@ -45,6 +45,18 @@ const toEditForm = (toilet: Toilet): ToiletEditForm => ({
   entranceCctv: toilet.hasEntranceCctv,
 });
 
+const toUpdatePayload = (form: ToiletEditForm) => ({
+  openTime: form.openTime,
+  openTimeDetail: form.openTimeDetail,
+  managingOrg: form.managingOrg,
+  phoneNumber: form.phoneNumber,
+  wasteDisposal: form.wasteDisposal,
+  disabledFacility: form.disabledFacility,
+  emergencyBell: form.emergencyBell,
+  diaperTable: form.diaperTable,
+  entranceCctv: form.entranceCctv,
+});
+
 const getBackendToiletId = (toilet: Toilet) => {
   if (typeof toilet.backendId === "number" && Number.isFinite(toilet.backendId)) {
     return toilet.backendId;
@@ -62,7 +74,7 @@ const getToiletStatusLabel = (status?: string) => {
 
 const getToiletStatusClassName = (status?: string) => {
   if (status === "APPROVED") return "bg-blue-50 text-blue-700";
-  if (status === "REJECTED") return "bg-red-50 text-red-700";
+  if (status === "REJECTED") return "bg-amber-50 text-amber-700";
   return "bg-amber-50 text-amber-700";
 };
 
@@ -172,6 +184,7 @@ export default function MyPage() {
   }
 
   const pendingToiletCount = userToilets.filter((toilet) => toilet.status === "PENDING").length;
+  const rejectedToiletCount = userToilets.filter((toilet) => toilet.status === "REJECTED").length;
   const visibleUserToilets = showAllToilets ? userToilets : userToilets.slice(0, 5);
   const visibleUserReviews = showAllReviews ? userReviews : userReviews.slice(0, 5);
 
@@ -256,21 +269,14 @@ export default function MyPage() {
     setIsSavingToilet(true);
 
     try {
-      await updateUserToilet(
-        toiletId,
-        {
-          openTime: editForm.openTime,
-          openTimeDetail: editForm.openTimeDetail,
-          managingOrg: editForm.managingOrg,
-          phoneNumber: editForm.phoneNumber,
-          wasteDisposal: editForm.wasteDisposal,
-          disabledFacility: editForm.disabledFacility,
-          emergencyBell: editForm.emergencyBell,
-          diaperTable: editForm.diaperTable,
-          entranceCctv: editForm.entranceCctv,
-        },
-        user.token
-      );
+      const isReapply = selectedToilet.status === "REJECTED";
+      const payload = toUpdatePayload(editForm);
+
+      if (isReapply) {
+        await reapplyUserToilet(toiletId, payload, user.token);
+      } else {
+        await updateUserToilet(toiletId, payload, user.token);
+      }
 
       const updatedToilet: Toilet = {
         ...selectedToilet,
@@ -283,6 +289,7 @@ export default function MyPage() {
         hasEmergencyBell: editForm.emergencyBell,
         hasDiaperTable: editForm.diaperTable,
         hasEntranceCctv: editForm.entranceCctv,
+        status: isReapply ? "PENDING" : selectedToilet.status,
       };
 
       setUserToilets((current) =>
@@ -291,7 +298,7 @@ export default function MyPage() {
         )
       );
       setSelectedToilet(updatedToilet);
-      toast.success("화장실 정보가 수정되었습니다.");
+      toast.success(isReapply ? "화장실 정보 수정 후 재요청했습니다." : "화장실 정보가 수정되었습니다.");
     } catch (error) {
       console.error(error);
       toast.error(
@@ -423,7 +430,7 @@ export default function MyPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
+          <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t sm:grid-cols-4">
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{userToilets.length}</p>
               <p className="text-sm text-muted-foreground">등록한 화장실</p>
@@ -431,6 +438,10 @@ export default function MyPage() {
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{pendingToiletCount}</p>
               <p className="text-sm text-muted-foreground">승인 대기 중 화장실</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">{rejectedToiletCount}</p>
+              <p className="text-sm text-muted-foreground">반려된 화장실</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">{userReviews.length}</p>
@@ -673,6 +684,12 @@ export default function MyPage() {
                 </div>
               </div>
 
+              {selectedToilet.status === "REJECTED" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  반려된 화장실입니다. 정보를 수정한 뒤 재요청하면 승인 대기 상태로 변경됩니다.
+                </div>
+              )}
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="edit-open-time">운영 시간</Label>
@@ -800,7 +817,7 @@ export default function MyPage() {
                   ) : (
                     <Save size={16} className="mr-2" />
                   )}
-                  저장
+                  {selectedToilet.status === "REJECTED" ? "수정 후 재요청" : "저장"}
                 </Button>
               </div>
             </div>

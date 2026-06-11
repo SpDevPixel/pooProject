@@ -224,3 +224,35 @@ export const updateUserToilet = async (
     throw new Error("화장실 정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.");
   }
 };
+
+export const reapplyUserToilet = async (
+  toiletId: string | number,
+  payload: UpdateUserToiletRequest,
+  token: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/toilets/${encodeURIComponent(String(toiletId))}/reapply`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(message || "재요청 권한이 없거나 로그인이 만료되었습니다.");
+    }
+
+    if (response.status === 400) {
+      throw new Error(message || "반려된 화장실만 재요청할 수 있습니다.");
+    }
+
+    throw new Error(message || "화장실 재요청에 실패했습니다. 잠시 후 다시 시도해주세요.");
+  }
+};
