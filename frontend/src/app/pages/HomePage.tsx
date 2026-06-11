@@ -275,7 +275,7 @@ export default function HomePage() {
         distance,
       }));
 
-    const mergedToilets = [...nearbyToilets];
+    const mergedToilets: Toilet[] = [...nearbyToilets];
     textMatches.forEach((textMatch) => {
       if (!mergedToilets.some((toilet) => toilet.managementNo === textMatch.managementNo)) {
         mergedToilets.push(textMatch);
