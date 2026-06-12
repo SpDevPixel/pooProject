@@ -77,12 +77,11 @@ public class ToiletService {
 
     @Transactional
     public void updateAndReapplyToilet(Long userId, Long toiletId, ToiletUpdateDto dto) {
-        // 1. 수정할 화장실 존재 여부 확인
         Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 화장실입니다."));
 
 
-        if (!toilet.getId().equals(userId)) {
+        if (!toilet.getUser().getId().equals(userId)) {
             throw new SecurityException("본인이 등록한 화장실만 수정 및 재요청할 수 있습니다.");
         }
 

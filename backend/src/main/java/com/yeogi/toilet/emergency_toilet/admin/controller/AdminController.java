@@ -141,7 +141,6 @@ public class AdminController {
         }
         String rawToken = token.substring(7);
         String role = jwtUtil.extractRole(rawToken);
-        
         if (!"ADMIN".equals(role)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("관리자만 접근 가능합니다.");
         }
