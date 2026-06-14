@@ -552,13 +552,11 @@ export default function HomePage() {
             <p className="text-sm text-muted-foreground">
               {isLoadingToilets
                 ? "화장실 정보를 불러오는 중입니다."
-                : `${visibleToilets.length}개의 화장실을 표시합니다.`}
+                : `${visibleToilets.length}개의 화장실을 찾았습니다.`}
             </p>
-            {!isLoadingToilets && addressMarkerStatus !== "idle" && (
+            {!isLoadingToilets && addressMarkerStatus === "loading" && (
               <p className="text-sm font-medium text-blue-600">
-                {addressMarkerStatus === "loading"
-                  ? "화장실 마커를 표시하는 중입니다."
-                  : "화장실 마커 표시가 완료되었습니다."}
+                화장실 마커를 표시하는 중입니다.
               </p>
             )}
           </div>
