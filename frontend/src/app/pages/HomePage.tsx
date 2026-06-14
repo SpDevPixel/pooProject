@@ -466,7 +466,7 @@ export default function HomePage() {
         .filter(({ distance }) => distance <= 300);
 
       if (nearbyToilets.length === 0) {
-        toast.error("현재 위치 반경 300m 안에 화장실이 없습니다.");
+        toast.error("현재 위치 반경 300m 안에 화장실이 없습니다. 가까운 화장실 안내를 이용해주세요.");
         return;
       }
 
