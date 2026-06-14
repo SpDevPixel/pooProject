@@ -403,7 +403,7 @@ export function MapView({
       )}
 
       {activeRoute && (
-        <div className="absolute left-4 right-4 top-4 z-10 rounded-lg border bg-white p-4 shadow-lg sm:left-6 sm:right-auto sm:w-[320px]">
+        <div className="absolute left-4 right-4 top-[3.75rem] z-10 rounded-lg border bg-white p-4 shadow-lg sm:left-6 sm:right-auto sm:w-[320px] lg:top-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium text-blue-600">길 안내 중</p>
