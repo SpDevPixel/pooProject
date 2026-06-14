@@ -442,7 +442,7 @@ export function MapView({
       <button
         onClick={moveToCurrentLocation}
         disabled={isLocating || mapLoadFailed}
-        className={`absolute bottom-6 right-6 z-10 flex items-center justify-center rounded-full border border-gray-200 p-3 shadow-lg transition-colors ${
+        className={`absolute bottom-16 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 shadow-lg transition-colors lg:bottom-20 lg:right-6 ${
           isLocating || mapLoadFailed ? "bg-gray-100 cursor-not-allowed" : "bg-white hover:bg-gray-50"
         }`}
         aria-label="현재 위치로 이동"
