@@ -27,7 +27,7 @@ import {
   updateAdminToilet,
   type AdminUser,
 } from "../api/admin";
-import { createNotice, deleteNotice, fetchNotices } from "../api/notices";
+import { createNotice, deleteNotice, fetchNotices, updateNotice } from "../api/notices";
 import {
   deleteToiletRequestNotification,
   getToiletRequests,
@@ -100,6 +100,7 @@ export default function AdminPage() {
   const [userQuery, setUserQuery] = useState("");
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
+  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
   const [selectedToilet, setSelectedToilet] = useState<Toilet | null>(null);
   const [toiletEditForm, setToiletEditForm] = useState<AdminToiletEditForm | null>(null);
   const [showAllManagedToilets, setShowAllManagedToilets] = useState(false);
@@ -268,8 +269,20 @@ export default function AdminPage() {
     );
   }, [userQuery, users]);
 
-  // 공지 등록
-  const handleAddNotice = async () => {
+  const resetNoticeForm = () => {
+    setEditingNoticeId(null);
+    setNoticeTitle("");
+    setNoticeContent("");
+  };
+
+  const handleSelectNoticeForEdit = (notice: Notice) => {
+    setEditingNoticeId(notice.id);
+    setNoticeTitle(notice.title);
+    setNoticeContent(notice.content);
+  };
+
+  // 공지 등록/수정
+  const handleSubmitNotice = async () => {
     if (!user?.token || isSubmittingNotice) return;
 
     const title = noticeTitle.trim();
@@ -283,6 +296,18 @@ export default function AdminPage() {
     setIsSubmittingNotice(true);
 
     try {
+      if (editingNoticeId) {
+        await updateNotice(editingNoticeId, { title, content }, user.token);
+        setNotices((current) =>
+          current.map((notice) =>
+            notice.id === editingNoticeId ? { ...notice, title, content } : notice
+          )
+        );
+        resetNoticeForm();
+        toast.success("공지사항이 수정되었습니다.");
+        return;
+      }
+
       const notice = await createNotice(
         {
           title,
@@ -293,12 +318,11 @@ export default function AdminPage() {
       );
 
       setNotices((current) => [notice, ...current]);
-      setNoticeTitle("");
-      setNoticeContent("");
+      resetNoticeForm();
       toast.success("공지사항이 등록되었습니다.");
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "공지사항 등록에 실패했습니다.");
+      toast.error(error instanceof Error ? error.message : "공지사항 저장에 실패했습니다.");
     } finally {
       setIsSubmittingNotice(false);
     }
@@ -992,7 +1016,9 @@ export default function AdminPage() {
         {activeTab === "notices" && (
           <section className="grid gap-4 lg:grid-cols-[420px_1fr]">
             <div className="rounded-lg border bg-white p-5 shadow-sm">
-              <h2 className="mb-4 font-semibold text-slate-950">새 공지 등록</h2>
+              <h2 className="mb-4 font-semibold text-slate-950">
+                {editingNoticeId ? "공지 수정" : "새 공지 등록"}
+              </h2>
               <div className="space-y-3">
                 <Input
                   value={noticeTitle}
@@ -1007,10 +1033,21 @@ export default function AdminPage() {
                   className="text-slate-950 placeholder:text-slate-400"
                   rows={8}
                 />
-                <Button onClick={handleAddNotice} disabled={isSubmittingNotice} className="w-full">
+                <Button onClick={handleSubmitNotice} disabled={isSubmittingNotice} className="w-full">
                   {isSubmittingNotice && <RefreshCw size={16} className="mr-2 animate-spin" />}
-                  공지 등록
+                  {editingNoticeId ? "저장" : "공지 등록"}
                 </Button>
+                {editingNoticeId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetNoticeForm}
+                    disabled={isSubmittingNotice}
+                    className="w-full"
+                  >
+                    수정 취소
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -1030,7 +1067,21 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-3">
                   {filteredNotices.map((notice) => (
-                    <div key={notice.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                    <div
+                      key={notice.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleSelectNoticeForEdit(notice)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleSelectNoticeForEdit(notice);
+                        }
+                      }}
+                      className={`rounded-lg border bg-white p-4 text-left shadow-sm transition hover:border-slate-400 ${
+                        editingNoticeId === notice.id ? "border-slate-900 ring-2 ring-slate-200" : ""
+                      }`}
+                    >
                       <div className="mb-2 flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="truncate font-semibold text-slate-950">{notice.title}</h3>
@@ -1038,19 +1089,35 @@ export default function AdminPage() {
                             {notice.createdAt || "날짜 없음"}
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDeleteNotice(notice)}
-                          disabled={deletingNoticeId === notice.id}
-                          aria-label={`${notice.title} 삭제`}
-                        >
-                          {deletingNoticeId === notice.id ? (
-                            <RefreshCw size={16} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={16} className="text-red-500" />
-                          )}
-                        </Button>
+                        <div className="flex shrink-0 gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSelectNoticeForEdit(notice);
+                            }}
+                            aria-label={`${notice.title} 수정`}
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteNotice(notice);
+                            }}
+                            disabled={deletingNoticeId === notice.id}
+                            aria-label={`${notice.title} 삭제`}
+                          >
+                            {deletingNoticeId === notice.id ? (
+                              <RefreshCw size={16} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={16} className="text-red-500" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                       <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
                         {notice.content || "내용이 없습니다."}

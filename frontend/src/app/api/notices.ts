@@ -103,6 +103,25 @@ export const createNotice = async (
   return normalizeNotice((await response.json()) as BackendNotice, true);
 };
 
+export const updateNotice = async (
+  noticeId: string,
+  payload: { title: string; content: string },
+  token: string
+): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/notice/${encodeURIComponent(noticeId)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(getNoticeApiErrorMessage(response, "공지사항 수정에 실패했습니다."));
+  }
+};
+
 // 공지 삭제
 export const deleteNotice = async (noticeId: string, token: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/notice/delete/${encodeURIComponent(noticeId)}`, {
