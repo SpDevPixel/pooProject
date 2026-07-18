@@ -15,6 +15,8 @@ import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,18 +51,23 @@ public class ToiletService {
     /**
      * 1. 화장실 조회 관련 메서드들
      */
+    @Cacheable(value = "toilets",key = "'public'")
     public List<Toilet> getPublicToilets() {
+        log.info("❌ [Cache Miss] 공공 화장실 목록을 MySQL DB에서 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(false, ToiletStatus.APPROVED);
     }
-
+    @Cacheable(value = "toilets", key = "'userApproved'")
     public List<Toilet> getUserToilets() {
+        log.info("❌ [Cache Miss] 유저 등록(승인완료) 화장실 목록을 MySQL DB에서 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(true, ToiletStatus.APPROVED);
     }
-
+    @Cacheable(value = "toilets", key = "'all'")
     public List<Toilet> getAllToilets() {
+        log.info("❌ [Cache Miss] 전체 승인 화장실 목록을 MySQL DB에서 조회합니다.");
         return toiletRepository.findByStatus(ToiletStatus.APPROVED);
     }
 
+    @Cacheable(value = "toiletSearch", key = "#keyword")
     public List<Toilet> searchAddressToilet(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return Collections.emptyList();
@@ -155,6 +162,7 @@ public class ToiletService {
     }
 
     @Transactional
+    @CacheEvict(value = {"toilets", "toiletSearch"}, allEntries = true)
     public void deleteAToilet(Long toiletId, Long id){ // 1. 타입을 String에서 Long으로 변경
         Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
@@ -172,6 +180,7 @@ public class ToiletService {
     }
 
     @Transactional
+    @CacheEvict(value = {"toilets", "toiletSearch"}, allEntries = true)
     public void updateToiletInfo(Long toiletId, Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new EntityNotFoundException("화장실을 찾을 수 없습니다."));
@@ -208,6 +217,7 @@ public class ToiletService {
      * 3. 서울시 API 연동 데이터 로드 로직
      */
     @Transactional
+    @CacheEvict(value = {"toilets", "toiletSearch"}, allEntries = true)
     public void loadFromApi() {
         int startIndex = 1;
         int step = 1000;

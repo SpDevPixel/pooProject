@@ -1,15 +1,15 @@
-spring:
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
 #spring:
 #  datasource:
-#    url: jdbc:mysql://localhost:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-#    username: root
-#    password: root
+#    url: ${DATABASE_URL}
+#    username: ${DATABASE_USERNAME}
+#    password: ${DATABASE_PASSWORD}
 #    driver-class-name: com.mysql.cj.jdbc.Driver
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/toilet_db?useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update   # 처음엔 create, 이후 update
@@ -17,3 +17,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  data:
+    redis:
+      host: 192.168.1.3
+      port: 6379

@@ -10,6 +10,7 @@ import com.yeogi.toilet.emergency_toilet.user.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -51,6 +52,11 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(
+            value = {"toilets", "toiletSearch"},
+            allEntries = true,
+            condition = "#isApproved == true"
+    )
     public void approveToilet(Long adminId, Long toiletId, boolean isApproved) {
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
