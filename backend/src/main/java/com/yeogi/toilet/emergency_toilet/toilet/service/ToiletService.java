@@ -6,6 +6,7 @@ import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletStatus;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.SeoulToiletApiResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletApiRow;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestRepository;
@@ -51,23 +52,25 @@ public class ToiletService {
     /**
      * 1. 화장실 조회 관련 메서드들
      */
-    @Cacheable(value = "toilets",key = "'public'")
+    @Cacheable(value = "publicToilets")
     public List<Toilet> getPublicToilets() {
-        log.info("❌ [Cache Miss] 공공 화장실 목록을 MySQL DB에서 조회합니다.");
+        log.info("em[Cache Miss] Redis에 데이터가 없어 DB에서 publicToilets를 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(false, ToiletStatus.APPROVED);
     }
-    @Cacheable(value = "toilets", key = "'userApproved'")
+    @Cacheable(value = "userToilets")
     public List<Toilet> getUserToilets() {
-        log.info("❌ [Cache Miss] 유저 등록(승인완료) 화장실 목록을 MySQL DB에서 조회합니다.");
+        log.info("[Cache Miss] Redis에 데이터가 없어 DB에서 userToilets를 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(true, ToiletStatus.APPROVED);
     }
-    @Cacheable(value = "toilets", key = "'all'")
-    public List<Toilet> getAllToilets() {
-        log.info("❌ [Cache Miss] 전체 승인 화장실 목록을 MySQL DB에서 조회합니다.");
-        return toiletRepository.findByStatus(ToiletStatus.APPROVED);
+    @Cacheable(value = "allToilets")
+    public List<ToiletResponse> getAllToilets() {
+        log.info("[Cache Miss] Redis에 데이터가 없어 DB에서 allToilets를 조회합니다.");
+        return toiletRepository.findByStatus(ToiletStatus.APPROVED)
+                .stream()
+                .map(ToiletResponse::new)
+                .toList();
     }
 
-    @Cacheable(value = "toiletSearch", key = "#keyword")
     public List<Toilet> searchAddressToilet(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return Collections.emptyList();
@@ -100,6 +103,8 @@ public class ToiletService {
     }
 
     //관리자 화장실 삭제
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void deleteAdminToilet(Long id) {
         Toilet toilet = toiletRepository.findById(id)
@@ -114,6 +119,8 @@ public class ToiletService {
     }
 
     //관리자 화장실 수정
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void updateAdminToilet(Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(id)
@@ -138,6 +145,8 @@ public class ToiletService {
     /**
      * 2. 이용자 등록 및 관리 메서드들
      */
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     public Toilet addUserToilet(Toilet toilet, String token) {
         String pureToken = token.substring(7);
         Long id = jwtUtil.extractId(pureToken);
@@ -161,8 +170,9 @@ public class ToiletService {
         return toiletRepository.findByUser(user);
     }
 
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
-    @CacheEvict(value = {"toilets", "toiletSearch"}, allEntries = true)
     public void deleteAToilet(Long toiletId, Long id){ // 1. 타입을 String에서 Long으로 변경
         Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다"));
@@ -179,8 +189,9 @@ public class ToiletService {
         toiletRepository.delete(toilet);
     }
 
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
-    @CacheEvict(value = {"toilets", "toiletSearch"}, allEntries = true)
     public void updateToiletInfo(Long toiletId, Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(toiletId)
                 .orElseThrow(() -> new EntityNotFoundException("화장실을 찾을 수 없습니다."));
@@ -217,7 +228,6 @@ public class ToiletService {
      * 3. 서울시 API 연동 데이터 로드 로직
      */
     @Transactional
-    @CacheEvict(value = {"toilets", "toiletSearch"}, allEntries = true)
     public void loadFromApi() {
         int startIndex = 1;
         int step = 1000;

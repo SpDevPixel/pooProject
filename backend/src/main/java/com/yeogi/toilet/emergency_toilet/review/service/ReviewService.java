@@ -57,7 +57,7 @@ public class ReviewService {
 
     // 사용자가 작성한 리뷰 전달
     public List<Review> getReviewsByUser(Long id) {
-        return reviewRepository.findByUser_Id(id);
+        return reviewRepository.findByUserIdWithToilet(id);
     }
 
     // 사용자가 작성한 리뷰 삭제

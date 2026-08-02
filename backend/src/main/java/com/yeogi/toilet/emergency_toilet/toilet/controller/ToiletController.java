@@ -1,6 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.toilet.controller;
 
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.service.ToiletService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
@@ -33,7 +34,7 @@ public class ToiletController {
 
     // 전체 조회
     @GetMapping("/all")
-    public List<Toilet> getAll() {
+    public List<ToiletResponse> getAll() {
         return toiletService.getAllToilets();
     }
 

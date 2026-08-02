@@ -15,8 +15,17 @@ import java.util.List;
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 특정 화장실의 모든 리뷰 조회
-    List<Review> findByToilet_ManagementNo(String managementNo);
-    List<Review> findByUser_Id(Long id);
+    @Query("SELECT new com.yeogi.toilet.emergency_toilet.review.dto.ReviewResponseDto(" +
+            "r.id, r.rating, r.cleanliness, r.hasTissuePaper, r.hasDoorLock, r.comment, r.createdAt, u.nickname) " +
+            "FROM Review r " +
+            "JOIN r.toilet t " +
+            "LEFT JOIN r.user u " +
+            "WHERE t.managementNo = :managementNo")
+    List<Review> findByToilet_ManagementNo(@Param("managementNo") String managementNo);
+    @Query("SELECT r FROM Review r " +
+            "JOIN FETCH r.toilet t " +
+            "WHERE r.user.id = :userId")
+    List<Review> findByUserIdWithToilet(@Param("userId") Long userId);
 
     @Modifying
     @Query("DELETE FROM Review r WHERE r.toilet.id = :toiletId")
