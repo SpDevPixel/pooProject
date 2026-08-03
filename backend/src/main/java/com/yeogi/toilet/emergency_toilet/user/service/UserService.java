@@ -14,6 +14,7 @@ import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -113,8 +114,9 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         return ResponseEntity.ok(user);
     }
-
+    //회원탈퇴
     @Transactional
+    @CacheEvict(value = "allToilets",allEntries = true)
     public void processUserWithdrawal(User targetUser) {
         List<Review> userReviews = reviewRepository.findByUser(targetUser);
         for (Review review : userReviews) {
