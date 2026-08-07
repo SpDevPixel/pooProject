@@ -111,15 +111,21 @@ export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
 };
 
 export const fetchToilets = async (): Promise<Toilet[]> => {
-  const response = await fetch(`${API_BASE_URL}/toilets/all`, { cache: "no-store" });
+  const [publicResponse, userResponse] = await Promise.all([
+    fetch(`${API_BASE_URL}/toilets/public`),
+    fetch(`${API_BASE_URL}/toilets/user`, { cache: "no-store" }),
+  ]);
 
-  if (!response.ok) {
+  if (!publicResponse.ok || !userResponse.ok) {
     throw new Error("화장실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
   }
 
-  const data = (await response.json()) as BackendToilet[];
+  const [publicData, userData] = (await Promise.all([
+    publicResponse.status === 204 ? [] : publicResponse.json(),
+    userResponse.status === 204 ? [] : userResponse.json(),
+  ])) as BackendToilet[][];
 
-  return data
+  return [...publicData, ...userData]
     .map(normalizeToilet)
     .filter((toilet): toilet is Toilet => toilet !== null)
     .filter((toilet) => !toilet.isUserSubmitted || toilet.status === "APPROVED");
