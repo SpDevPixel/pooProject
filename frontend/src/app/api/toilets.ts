@@ -74,6 +74,8 @@ const normalizeBoolean = (value?: boolean | string | null) => {
   return Boolean(value);
 };
 
+let pendingFetchToiletsRequest: Promise<Toilet[]> | null = null;
+
 export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lat = toNumber(toilet.lat);
   const lng = toNumber(toilet.lng);
@@ -110,7 +112,7 @@ export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   };
 };
 
-export const fetchToilets = async (): Promise<Toilet[]> => {
+const requestToilets = async (): Promise<Toilet[]> => {
   const [publicResponse, userResponse] = await Promise.all([
     fetch(`${API_BASE_URL}/toilets/public`),
     fetch(`${API_BASE_URL}/toilets/user`, { cache: "no-store" }),
@@ -129,6 +131,16 @@ export const fetchToilets = async (): Promise<Toilet[]> => {
     .map(normalizeToilet)
     .filter((toilet): toilet is Toilet => toilet !== null)
     .filter((toilet) => !toilet.isUserSubmitted || toilet.status === "APPROVED");
+};
+
+export const fetchToilets = async (): Promise<Toilet[]> => {
+  if (!pendingFetchToiletsRequest) {
+    pendingFetchToiletsRequest = requestToilets().finally(() => {
+      pendingFetchToiletsRequest = null;
+    });
+  }
+
+  return pendingFetchToiletsRequest;
 };
 
 export const createUserToilet = async (
