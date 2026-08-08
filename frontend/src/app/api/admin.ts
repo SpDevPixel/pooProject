@@ -186,21 +186,7 @@ export const fetchPendingToilets = async (token: string): Promise<Toilet[]> => {
   });
 
   if (!response.ok) {
-    if (response.status !== 404) {
-      throw new Error(getAdminApiErrorMessage(response, "승인 대기 화장실을 불러오지 못했습니다."));
-    }
-
-    const fallbackResponse = await fetch(`${API_BASE_URL}/toilets/all`);
-
-    if (!fallbackResponse.ok) {
-      throw new Error(getAdminApiErrorMessage(fallbackResponse, "승인 대기 화장실을 불러오지 못했습니다."));
-    }
-
-    const fallbackData = (await fallbackResponse.json()) as BackendToilet[];
-    return fallbackData
-      .map(normalizeToilet)
-      .filter((toilet): toilet is Toilet => toilet !== null)
-      .filter((toilet) => toilet.isUserSubmitted && toilet.status !== "APPROVED" && toilet.status !== "REJECTED");
+    throw new Error(getAdminApiErrorMessage(response, "승인 대기 화장실을 불러오지 못했습니다."));
   }
 
   const data = (await response.json()) as BackendToilet[];
