@@ -6,6 +6,7 @@ import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletStatus;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.SeoulToiletApiResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletApiRow;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletResponse;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestRepository;
@@ -15,6 +16,8 @@ import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,16 +52,23 @@ public class ToiletService {
     /**
      * 1. 화장실 조회 관련 메서드들
      */
+    @Cacheable(value = "publicToilets")
     public List<Toilet> getPublicToilets() {
+        log.info("em[Cache Miss] Redis에 데이터가 없어 DB에서 publicToilets를 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(false, ToiletStatus.APPROVED);
     }
-
+    @Cacheable(value = "userToilets")
     public List<Toilet> getUserToilets() {
+        log.info("[Cache Miss] Redis에 데이터가 없어 DB에서 userToilets를 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(true, ToiletStatus.APPROVED);
     }
-
-    public List<Toilet> getAllToilets() {
-        return toiletRepository.findByStatus(ToiletStatus.APPROVED);
+    @Cacheable(value = "allToilets")
+    public List<ToiletResponse> getAllToilets() {
+        log.info("[Cache Miss] Redis에 데이터가 없어 DB에서 allToilets를 조회합니다.");
+        return toiletRepository.findByStatus(ToiletStatus.APPROVED)
+                .stream()
+                .map(ToiletResponse::new)
+                .toList();
     }
 
     public List<Toilet> searchAddressToilet(String keyword) {
@@ -93,6 +103,8 @@ public class ToiletService {
     }
 
     //관리자 화장실 삭제
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void deleteAdminToilet(Long id) {
         Toilet toilet = toiletRepository.findById(id)
@@ -107,6 +119,8 @@ public class ToiletService {
     }
 
     //관리자 화장실 수정
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void updateAdminToilet(Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(id)
@@ -131,6 +145,8 @@ public class ToiletService {
     /**
      * 2. 이용자 등록 및 관리 메서드들
      */
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     public Toilet addUserToilet(Toilet toilet, String token) {
         String pureToken = token.substring(7);
         Long id = jwtUtil.extractId(pureToken);
@@ -154,6 +170,8 @@ public class ToiletService {
         return toiletRepository.findByUser(user);
     }
 
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void deleteAToilet(Long toiletId, Long id){ // 1. 타입을 String에서 Long으로 변경
         Toilet toilet = toiletRepository.findById(toiletId)
@@ -171,6 +189,8 @@ public class ToiletService {
         toiletRepository.delete(toilet);
     }
 
+//    @CacheEvict(value = "userToilets", allEntries = true)
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void updateToiletInfo(Long toiletId, Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(toiletId)

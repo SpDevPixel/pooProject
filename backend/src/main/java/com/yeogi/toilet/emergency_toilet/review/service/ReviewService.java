@@ -10,6 +10,7 @@ import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ public class ReviewService {
 
     // 리뷰 데이터 저장
     @Transactional
+    @CacheEvict(value = "allToilets",allEntries = true)
     public Review addReview(ReviewDto dto, Long userId) {
         Toilet toilet = toiletRepository.findById(dto.getToiletId())
                 .orElseThrow(() -> new RuntimeException("화장실을 찾을 수 없습니다."));
@@ -57,10 +59,11 @@ public class ReviewService {
 
     // 사용자가 작성한 리뷰 전달
     public List<Review> getReviewsByUser(Long id) {
-        return reviewRepository.findByUser_Id(id);
+        return reviewRepository.findByUserIdWithToilet(id);
     }
 
     // 사용자가 작성한 리뷰 삭제
+    @CacheEvict(value = "allToilets",allEntries = true)
     @Transactional
     public void deleteUserReview(Long id, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
