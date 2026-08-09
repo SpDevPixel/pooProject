@@ -72,7 +72,7 @@ public class AdminService {
             toilet.setStatus(ToiletStatus.APPROVED);
 
 //            Cache cache = cacheManager.getCache("userToilets");
-            Cache cache = cacheManager.getCache("allToilets");
+            Cache cache = cacheManager.getCache("userToilets");
 
             if (cache != null) {
                 cache.clear();

@@ -18,6 +18,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,7 +63,7 @@ public class ToiletService {
         log.info("[Cache Miss] Redis에 데이터가 없어 DB에서 userToilets를 조회합니다.");
         return toiletRepository.findByIsUserSubmittedAndStatus(true, ToiletStatus.APPROVED);
     }
-    @Cacheable(value = "allToilets")
+//    @Cacheable(value = "allToilets")
     public List<ToiletResponse> getAllToilets() {
         log.info("[Cache Miss] Redis에 데이터가 없어 DB에서 allToilets를 조회합니다.");
         return toiletRepository.findByStatus(ToiletStatus.APPROVED)
@@ -104,7 +105,10 @@ public class ToiletService {
 
     //관리자 화장실 삭제
 //    @CacheEvict(value = "userToilets", allEntries = true)
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "userToilets", allEntries = true),
+            @CacheEvict(value = "publicToilets", allEntries = true)
+    })
     @Transactional
     public void deleteAdminToilet(Long id) {
         Toilet toilet = toiletRepository.findById(id)
@@ -120,7 +124,10 @@ public class ToiletService {
 
     //관리자 화장실 수정
 //    @CacheEvict(value = "userToilets", allEntries = true)
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "userToilets", allEntries = true),
+            @CacheEvict(value = "publicToilets", allEntries = true)
+    })
     @Transactional
     public void updateAdminToilet(Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(id)
@@ -146,7 +153,7 @@ public class ToiletService {
      * 2. 이용자 등록 및 관리 메서드들
      */
 //    @CacheEvict(value = "userToilets", allEntries = true)
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @CacheEvict(value = "userToilets",allEntries = true)
     public Toilet addUserToilet(Toilet toilet, String token) {
         String pureToken = token.substring(7);
         Long id = jwtUtil.extractId(pureToken);
@@ -171,7 +178,7 @@ public class ToiletService {
     }
 
 //    @CacheEvict(value = "userToilets", allEntries = true)
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @CacheEvict(value = "userToilets",allEntries = true)
     @Transactional
     public void deleteAToilet(Long toiletId, Long id){ // 1. 타입을 String에서 Long으로 변경
         Toilet toilet = toiletRepository.findById(toiletId)
@@ -190,7 +197,7 @@ public class ToiletService {
     }
 
 //    @CacheEvict(value = "userToilets", allEntries = true)
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @CacheEvict(value = "userToilets",allEntries = true)
     @Transactional
     public void updateToiletInfo(Long toiletId, Long id, ToiletUpdateDto dto) {
         Toilet toilet = toiletRepository.findById(toiletId)

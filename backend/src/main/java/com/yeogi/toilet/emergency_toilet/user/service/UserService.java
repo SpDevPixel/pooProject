@@ -116,7 +116,7 @@ public class UserService {
     }
     //회원탈퇴
     @Transactional
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @CacheEvict(value = "userToilets",allEntries = true)
     public void processUserWithdrawal(User targetUser) {
         List<Review> userReviews = reviewRepository.findByUser(targetUser);
         for (Review review : userReviews) {

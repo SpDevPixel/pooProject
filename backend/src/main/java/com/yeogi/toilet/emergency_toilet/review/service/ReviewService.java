@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -63,7 +64,10 @@ public class ReviewService {
     }
 
     // 사용자가 작성한 리뷰 삭제
-    @CacheEvict(value = "allToilets",allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "userToilets", allEntries = true),
+            @CacheEvict(value = "publicToilets", allEntries = true)
+    })
     @Transactional
     public void deleteUserReview(Long id, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
