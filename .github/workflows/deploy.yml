@@ -234,3 +234,5 @@ jobs:
           oci network nsg rules remove \
             --nsg-id "${{ secrets.OCI_NSG_OCID }}" \
             --security-rule-ids "[\"${{ steps.nsg.outputs.rule_id }}\"]" \
+            --force
+	
