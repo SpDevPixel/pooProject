@@ -210,11 +210,12 @@ jobs:
 
             chmod +x *.jar
 
-            nohup java -jar *.jar \
-              --spring.datasource.url="${{ secrets.DB_URL }}" \
-              --spring.datasource.username="${{ secrets.DB_USERNAME }}" \
-              --spring.datasource.password="${{ secrets.DB_PASSWORD }}" \
-              > nohup.out 2>&1 < /dev/null &
+            nohup env \
+            	DATABASE_URL="${{ secrets.DB_URL }}" \
+            	DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
+            	DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            	java -jar app.jar \
+  		> nohup.out 2>&1 < /dev/null &
 
 
             echo "Spring Boot 시작 완료"
@@ -233,4 +234,3 @@ jobs:
           oci network nsg rules remove \
             --nsg-id "${{ secrets.OCI_NSG_OCID }}" \
             --security-rule-ids "[\"${{ steps.nsg.outputs.rule_id }}\"]" \
-            --force
