@@ -547,18 +547,25 @@ export default function HomePage() {
     <div className="flex h-[100dvh] w-full max-w-full flex-col overflow-hidden bg-gray-50">
       <div className="bg-white border-b px-3 py-4 flex-shrink-0 shadow-sm sm:px-4">
         <div className="flex w-full min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-blue-700 sm:text-2xl">화장실 급할 때</h1>
-            <p className="text-sm text-muted-foreground">
-              {isLoadingToilets
-                ? "화장실 정보를 불러오는 중입니다."
-                : `${visibleToilets.length}개의 화장실을 찾았습니다.`}
-            </p>
-            {!isLoadingToilets && addressMarkerStatus === "loading" && (
-              <p className="text-sm font-medium text-blue-600">
-                화장실 마커를 표시하는 중입니다.
+          <div className="flex min-w-0 items-center gap-3">
+            <img
+              src="/app-icon.png"
+              alt=""
+              className="size-10 shrink-0 rounded-xl shadow-sm sm:size-12"
+            />
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-blue-700 sm:text-2xl">화장실 급할 때</h1>
+              <p className="text-sm text-muted-foreground">
+                {isLoadingToilets
+                  ? "화장실 정보를 불러오는 중입니다."
+                  : `${visibleToilets.length}개의 화장실을 찾았습니다.`}
               </p>
-            )}
+              {!isLoadingToilets && addressMarkerStatus === "loading" && (
+                <p className="text-sm font-medium text-blue-600">
+                  화장실 마커를 표시하는 중입니다.
+                </p>
+              )}
+            </div>
           </div>
           <div className="hidden w-full min-w-0 flex-wrap items-center gap-2 lg:flex lg:w-auto lg:justify-end">
             {toiletLoadError && (
