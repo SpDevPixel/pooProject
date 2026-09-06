@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://13.125.241.205/api/:path*"
+      "destination": "https://pooproject-api.duckdns.org/api/:path*"
     },
     {
       "source": "/:path*",
       "destination": "/index.html"
     }
   ]
-}
+} 
