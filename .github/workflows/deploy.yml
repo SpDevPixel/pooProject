@@ -123,6 +123,9 @@ jobs:
           echo "rule_id=$RULE_ID" >> "$GITHUB_OUTPUT"
           echo "Created rule: $RULE_ID"
 
+          # 규칙 적용 대기
+          sleep 5
+
       # ========================================
       # 10. JAR 파일 OCI 서버로 전송
       # ========================================
@@ -185,4 +188,4 @@ jobs:
           oci network nsg rules remove \
             --nsg-id "${{ secrets.OCI_NSG_OCID }}" \
             --security-rule-ids "[\"$RULE_ID\"]" \
-            --force
+            --yes
