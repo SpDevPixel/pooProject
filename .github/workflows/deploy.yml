@@ -156,14 +156,17 @@ jobs:
             echo "기존 Spring Boot 프로세스 확인"
             echo "=================================="
 
-            # app.jar 프로세스 ID만 정확히 추출 (ssh 실행 프로세스 제외)
-            PID=$(pgrep -f "app.jar" || true)
-
-            if [ -n "$PID" ]; then
-              echo "기존 서버 종료: $PID"
-              kill -15 $PID || true
-              sleep 5
-              kill -9 $PID 2>/dev/null || true
+            if [ -f app.pid ]; then
+              OLD_PID=$(cat app.pid)
+              if kill -0 "$OLD_PID" 2>/dev/null; then
+                echo "기존 서버 종료: $OLD_PID"
+                kill -15 "$OLD_PID" || true
+                sleep 5
+                kill -9 "$OLD_PID" 2>/dev/null || true
+              else
+                echo "PID 파일은 있으나 프로세스가 없습니다."
+              fi
+              rm -f app.pid
             else
               echo "실행 중인 서버가 없습니다."
             fi
@@ -172,8 +175,8 @@ jobs:
             echo "JAR 실행"
             echo "=================================="
 
-            # 파일명을 app.jar로 고정하거나 통일
-            LATEST_JAR=$(ls -t *.jar | head -n 1)
+            # 이미 배포된 app.jar 자신은 후보에서 제외
+            LATEST_JAR=$(ls -t *.jar | grep -v '^app\.jar$' | head -n 1)
             cp "$LATEST_JAR" app.jar
             chmod +x app.jar
 
@@ -183,8 +186,9 @@ jobs:
               DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               java -jar app.jar > nohup.out 2>&1 < /dev/null &
 
+            echo $! > app.pid
             sleep 2
-            echo "Spring Boot 시작 완료"
+            echo "Spring Boot 시작 완료 (PID: $(cat app.pid))"
 
       # ========================================
       # 12. 임시 NSG SSH 규칙 삭제
