@@ -10,62 +10,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       # ========================================
       # 1. 소스 코드 가져오기
       # ========================================
-
       - name: Checkout code
         uses: actions/checkout@v4
-
 
       # ========================================
       # 2. Java 21
       # ========================================
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-
       # ========================================
       # 3. Gradle 실행 권한
       # ========================================
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
         working-directory: ./backend
 
-
       # ========================================
       # 4. Spring Boot 빌드
       # ========================================
-
       - name: Build with Gradle
         run: ./gradlew clean build -x test
         working-directory: ./backend
 
-
       # ========================================
       # 5. OCI CLI 설치
       # ========================================
-
       - name: Install OCI CLI
         run: |
-          curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh \
-            -o install.sh
-
+          curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh -o install.sh
           bash install.sh --accept-all-defaults
-
           echo "$HOME/bin" >> $GITHUB_PATH
-
 
       # ========================================
       # 6. OCI 인증 설정
       # ========================================
-
       - name: Configure OCI CLI
         run: |
           mkdir -p ~/.oci
@@ -84,36 +69,28 @@ jobs:
           chmod 600 ~/.oci/config
           chmod 600 ~/.oci/oci_api_key.pem
 
-
       # ========================================
       # 7. OCI 인증 테스트
       # ========================================
-
       - name: Test OCI authentication
         run: |
           oci iam region list --output table
 
-
       # ========================================
       # 8. GitHub Actions Runner IP 확인
       # ========================================
-
       - name: Get GitHub Actions IP
         id: ip
         run: |
           echo "ipv4=$(curl -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
 
-
       # ========================================
       # 9. OCI NSG에 SSH 임시 허용
       # ========================================
-
       - name: Add temporary SSH rule
         id: nsg
         run: |
-
           IP="${{ steps.ip.outputs.ipv4 }}"
-
           echo "GitHub Actions IP: $IP"
 
           RULE_JSON=$(cat <<EOF
@@ -143,16 +120,12 @@ jobs:
           echo "$RESULT"
 
           RULE_ID=$(echo "$RESULT" | jq -r '.data["security-rules"][0].id')
-
           echo "rule_id=$RULE_ID" >> "$GITHUB_OUTPUT"
-
           echo "Created rule: $RULE_ID"
-
 
       # ========================================
       # 10. JAR 파일 OCI 서버로 전송
       # ========================================
-
       - name: Deploy JAR to OCI
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -163,22 +136,17 @@ jobs:
           target: "/home/ubuntu/app"
           strip_components: 3
 
-
       # ========================================
       # 11. OCI 서버에서 Spring Boot 재시작
       # ========================================
-
       - name: Restart Spring Boot
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USERNAME }}
           key: ${{ secrets.OCI_SSH_KEY }}
-
           script: |
-
             mkdir -p /home/ubuntu/app
-
             cd /home/ubuntu/app
 
             echo "=================================="
@@ -187,22 +155,14 @@ jobs:
 
             PID=$(pgrep -f "java -jar" || true)
 
-            if [ -z "$PID" ]; then
-
-              echo "실행 중인 서버가 없습니다."
-
-            else
-
+            if [ -n "$PID" ]; then
               echo "기존 서버 종료: $PID"
-
               kill -15 $PID
-
               sleep 5
-
               kill -9 $PID 2>/dev/null || true
-
+            else
+              echo "실행 중인 서버가 없습니다."
             fi
-
 
             echo "=================================="
             echo "JAR 실행"
@@ -210,29 +170,19 @@ jobs:
 
             chmod +x *.jar
 
-            nohup env \
-            	DATABASE_URL="${{ secrets.DB_URL }}" \
-            	DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
-            	DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-            	java -jar app.jar \
-  		> nohup.out 2>&1 < /dev/null &
-
+            nohup env DATABASE_URL="${{ secrets.DB_URL }}" DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" java -jar *.jar > nohup.out 2>&1 < /dev/null &
 
             echo "Spring Boot 시작 완료"
-
 
       # ========================================
       # 12. 임시 NSG SSH 규칙 삭제
       # ========================================
-
       - name: Remove temporary SSH rule
         if: always() && steps.nsg.outputs.rule_id != ''
         run: |
-
           echo "Removing NSG rule..."
-
+          RULE_ID="${{ steps.nsg.outputs.rule_id }}"
           oci network nsg rules remove \
             --nsg-id "${{ secrets.OCI_NSG_OCID }}" \
-            --security-rule-ids "[\"${{ steps.nsg.outputs.rule_id }}\"]" \
+            --security-rule-ids "[\"$RULE_ID\"]" \
             --force
-	
