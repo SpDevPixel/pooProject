@@ -142,7 +142,7 @@ jobs:
 
           echo "$RESULT"
 
-          RULE_ID=$(echo "$RESULT" | jq -r '.data[0].id')
+          RULE_ID=$(echo "$RESULT" | jq -r '.data.security-rules[0].id')
 
           echo "rule_id=$RULE_ID" >> "$GITHUB_OUTPUT"
 
