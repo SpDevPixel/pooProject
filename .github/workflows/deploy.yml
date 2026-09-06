@@ -156,11 +156,12 @@ jobs:
             echo "기존 Spring Boot 프로세스 확인"
             echo "=================================="
 
-            PID=$(pgrep -f "java -jar" || true)
+            # app.jar 프로세스 ID만 정확히 추출 (ssh 실행 프로세스 제외)
+            PID=$(pgrep -f "app.jar" || true)
 
             if [ -n "$PID" ]; then
               echo "기존 서버 종료: $PID"
-              kill -15 $PID
+              kill -15 $PID || true
               sleep 5
               kill -9 $PID 2>/dev/null || true
             else
@@ -171,10 +172,18 @@ jobs:
             echo "JAR 실행"
             echo "=================================="
 
-            chmod +x *.jar
+            # 파일명을 app.jar로 고정하거나 통일
+            LATEST_JAR=$(ls -t *.jar | head -n 1)
+            cp "$LATEST_JAR" app.jar
+            chmod +x app.jar
 
-            nohup env DATABASE_URL="${{ secrets.DB_URL }}" DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" java -jar *.jar > nohup.out 2>&1 < /dev/null &
+            nohup env \
+              DATABASE_URL="${{ secrets.DB_URL }}" \
+              DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
+              DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              java -jar app.jar > nohup.out 2>&1 < /dev/null &
 
+            sleep 2
             echo "Spring Boot 시작 완료"
 
       # ========================================
@@ -185,7 +194,6 @@ jobs:
         run: |
           echo "Removing NSG rule..."
           RULE_ID="${{ steps.nsg.outputs.rule_id }}"
-          oci network nsg rules remove \
+          echo y | oci network nsg rules remove \
             --nsg-id "${{ secrets.OCI_NSG_OCID }}" \
-            --security-rule-ids "[\"$RULE_ID\"]" \
-            --yes
+            --security-rule-ids "[\"$RULE_ID\"]"
