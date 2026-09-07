@@ -181,10 +181,11 @@ jobs:
             chmod +x app.jar
 
             nohup env \
-              DATABASE_URL="${{ secrets.DB_URL }}" \
-              DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
-              DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              java -jar app.jar > nohup.out 2>&1 < /dev/null &
+  		DATABASE_URL="${{ secrets.DB_URL }}" \
+  		DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
+  		DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+  		SEOUL_TOILET_API_KEY="${{ secrets.SEOUL_TOILET_API_KEY }}" \
+  		java -jar app.jar > nohup.out 2>&1 < /dev/null &
 
             echo $! > app.pid
             sleep 2
