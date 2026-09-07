@@ -10,11 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       # ========================================
       # 1. 소스 코드 가져오기
       # ========================================
       - name: Checkout code
         uses: actions/checkout@v4
+
 
       # ========================================
       # 2. Java 21
@@ -25,6 +27,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+
       # ========================================
       # 3. Gradle 실행 권한
       # ========================================
@@ -32,12 +35,14 @@ jobs:
         run: chmod +x gradlew
         working-directory: ./backend
 
+
       # ========================================
       # 4. Spring Boot 빌드
       # ========================================
       - name: Build with Gradle
         run: ./gradlew clean build -x test
         working-directory: ./backend
+
 
       # ========================================
       # 5. OCI CLI 설치
@@ -47,6 +52,7 @@ jobs:
           curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh -o install.sh
           bash install.sh --accept-all-defaults
           echo "$HOME/bin" >> $GITHUB_PATH
+
 
       # ========================================
       # 6. OCI 인증 설정
@@ -69,12 +75,14 @@ jobs:
           chmod 600 ~/.oci/config
           chmod 600 ~/.oci/oci_api_key.pem
 
+
       # ========================================
       # 7. OCI 인증 테스트
       # ========================================
       - name: Test OCI authentication
         run: |
           oci iam region list --output table
+
 
       # ========================================
       # 8. GitHub Actions Runner IP 확인
@@ -83,6 +91,7 @@ jobs:
         id: ip
         run: |
           echo "ipv4=$(curl -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
+
 
       # ========================================
       # 9. OCI NSG에 SSH 임시 허용
@@ -120,11 +129,13 @@ jobs:
           echo "$RESULT"
 
           RULE_ID=$(echo "$RESULT" | jq -r '.data["security-rules"][0].id')
+
           echo "rule_id=$RULE_ID" >> "$GITHUB_OUTPUT"
           echo "Created rule: $RULE_ID"
 
           # 규칙 적용 대기
           sleep 5
+
 
       # ========================================
       # 10. JAR 파일 OCI 서버로 전송
@@ -139,6 +150,7 @@ jobs:
           target: "/home/ubuntu/app"
           strip_components: 3
 
+
       # ========================================
       # 11. OCI 서버에서 Spring Boot 재시작
       # ========================================
@@ -148,6 +160,7 @@ jobs:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USERNAME }}
           key: ${{ secrets.OCI_SSH_KEY }}
+
           script: |
             mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
@@ -158,38 +171,57 @@ jobs:
 
             if [ -f app.pid ]; then
               OLD_PID=$(cat app.pid)
+
               if kill -0 "$OLD_PID" 2>/dev/null; then
                 echo "기존 서버 종료: $OLD_PID"
+
                 kill -15 "$OLD_PID" || true
+
                 sleep 5
+
                 kill -9 "$OLD_PID" 2>/dev/null || true
               else
                 echo "PID 파일은 있으나 프로세스가 없습니다."
               fi
+
               rm -f app.pid
+
             else
               echo "실행 중인 서버가 없습니다."
             fi
+
 
             echo "=================================="
             echo "JAR 실행"
             echo "=================================="
 
+
             # 이미 배포된 app.jar 자신은 후보에서 제외
             LATEST_JAR=$(ls -t *.jar | grep -v '^app\.jar$' | head -n 1)
+
             cp "$LATEST_JAR" app.jar
+
             chmod +x app.jar
 
+
+            # ========================================
+            # Spring Boot 실행
+            # 환경변수 주입
+            # ========================================
             nohup env \
-  		DATABASE_URL="${{ secrets.DB_URL }}" \
-  		DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
-  		DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-  		SEOUL_TOILET_API_KEY="${{ secrets.SEOUL_TOILET_API_KEY }}" \
-  		java -jar app.jar > nohup.out 2>&1 < /dev/null &
+              DATABASE_URL="${{ secrets.DB_URL }}" \
+              DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
+              DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              SEOUL_TOILET_API_KEY="${{ secrets.SEOUL_TOILET_API_KEY }}" \
+              java -jar app.jar > nohup.out 2>&1 < /dev/null &
+
 
             echo $! > app.pid
+
             sleep 2
+
             echo "Spring Boot 시작 완료 (PID: $(cat app.pid))"
+
 
       # ========================================
       # 12. 임시 NSG SSH 규칙 삭제
@@ -198,7 +230,9 @@ jobs:
         if: always() && steps.nsg.outputs.rule_id != ''
         run: |
           echo "Removing NSG rule..."
+
           RULE_ID="${{ steps.nsg.outputs.rule_id }}"
+
           echo y | oci network nsg rules remove \
             --nsg-id "${{ secrets.OCI_NSG_OCID }}" \
             --security-rule-ids "[\"$RULE_ID\"]"
