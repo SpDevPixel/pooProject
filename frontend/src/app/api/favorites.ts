@@ -1,3 +1,4 @@
+/* 로그인 사용자의 화장실 즐겨찾기 조회·등록·삭제 API 통신을 담당합니다. */
 import type { BackendToilet } from "./toilets";
 import { normalizeToilet } from "./toilets";
 import type { Toilet } from "../types/toilet";

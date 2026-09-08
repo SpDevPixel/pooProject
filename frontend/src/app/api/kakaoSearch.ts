@@ -1,3 +1,4 @@
+/* 카카오 장소 검색 API를 호출하고 검색 결과를 지도 좌표 데이터로 변환합니다. */
 import type { RoutePoint } from "./tmapRoutes";
 
 export type SearchLocation = RoutePoint & {

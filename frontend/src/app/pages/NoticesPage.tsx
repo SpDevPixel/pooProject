@@ -1,3 +1,4 @@
+/* 공지사항 목록 조회, 검색, 상세 화면 이동 기능을 제공하는 페이지입니다. */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Calendar, Megaphone, RefreshCw, Search } from "lucide-react";

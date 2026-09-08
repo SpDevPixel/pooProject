@@ -1,3 +1,4 @@
+/* 선택한 공지사항의 제목·작성자·작성일·본문을 보여주는 상세 화면입니다. */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Calendar, Megaphone, RefreshCw } from "lucide-react";

@@ -1,3 +1,4 @@
+/* TMAP 경로 탐색 API를 호출하고 이동 경로·거리·예상 시간 데이터를 생성합니다. */
 import type { Toilet } from "../types/toilet";
 
 export type RoutePoint = {

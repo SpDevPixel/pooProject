@@ -1,3 +1,4 @@
+/* 사용자, 화장실 수정 요청, 공지사항을 관리하는 관리자 화면을 구성합니다. */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {

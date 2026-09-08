@@ -1,3 +1,4 @@
+/* 관리자용 사용자·화장실·공지사항 데이터를 조회하고 수정하는 백엔드 API 통신을 담당합니다. */
 import type { BackendUser } from "./users";
 import type { Toilet } from "../types/toilet";
 import { normalizeToilet, type BackendToilet } from "./toilets";

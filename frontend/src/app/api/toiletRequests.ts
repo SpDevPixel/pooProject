@@ -1,3 +1,4 @@
+/* 화장실 정보 수정·삭제 요청의 생성과 관리자 처리 관련 API 통신을 담당합니다. */
 import type { Toilet } from "../types/toilet";
 
 export type ToiletRequestType = "UPDATE" | "DELETE";

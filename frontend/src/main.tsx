@@ -4,6 +4,7 @@
  * 역할: 앱 시작점 카카오맵 SDK를 먼저 로드한 뒤 React 앱을 렌더링
  */
 import { StrictMode } from "react";
+/* React 애플리케이션을 HTML 루트 요소에 연결하고 전역 스타일을 불러오는 진입점입니다. */
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
 import "./styles/index.css";

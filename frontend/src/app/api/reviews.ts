@@ -1,3 +1,4 @@
+/* 리뷰 조회·등록·삭제 API를 호출하고 백엔드 응답을 프론트 리뷰 형식으로 변환합니다. */
 import type { Review, Toilet } from "../types/toilet";
 
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "/api";

@@ -1,3 +1,4 @@
+/* 장소를 검색하고 검색 위치 주변의 화장실을 거리순으로 안내하는 페이지입니다. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ArrowLeft, MapPin, RefreshCw, Search } from "lucide-react";

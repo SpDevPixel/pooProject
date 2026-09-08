@@ -1,3 +1,4 @@
+/* 선택한 공지사항의 상세 내용을 표시하는 화면 컴포넌트입니다. */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Calendar, Megaphone, RefreshCw } from "lucide-react";

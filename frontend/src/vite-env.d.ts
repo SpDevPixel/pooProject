@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/* Vite 환경 변수와 CSS 파일의 TypeScript 타입 정보를 선언합니다. */
 
 declare module "*.css";
 
