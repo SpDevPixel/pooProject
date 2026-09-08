@@ -11,6 +11,7 @@ type BackendReviewToilet = {
 
 type BackendReview = {
   id?: number | string | null;
+  reviewId?: number | string | null;
   toiletId?: number | string | null;
   toiletManagementNo?: string | null;
   toiletName?: string | null;
@@ -19,6 +20,7 @@ type BackendReview = {
   userId?: number | string | null;
   userLoginId?: string | null;
   userName?: string | null;
+  userNickname?: string | null;
   rating?: number | null;
   cleanliness?: number | null;
   hasTissuePaper?: boolean | null;
@@ -62,7 +64,7 @@ const normalizeReview = (review: BackendReview): Review => {
   const toiletBackendId = review.toiletId ?? review.toilet?.id;
 
   return {
-    id: String(review.id ?? ""),
+    id: String(review.reviewId ?? review.id ?? ""),
     toiletId: String(toiletId),
     toiletBackendId:
       toiletBackendId !== undefined && toiletBackendId !== null
@@ -71,7 +73,7 @@ const normalizeReview = (review: BackendReview): Review => {
     toiletName: review.toiletName ?? review.toilet?.name ?? "화장실 정보 없음",
     roadAddress: review.roadAddress ?? review.toilet?.roadAddress ?? "",
     userId: String(review.userLoginId ?? review.userId ?? ""),
-    userName: review.userName ?? review.userLoginId ?? "사용자",
+    userName: review.userNickname ?? review.userName ?? review.userLoginId ?? "사용자",
     rating: review.rating ?? 0,
     cleanliness: review.cleanliness ?? 0,
     hasTissuePaper: Boolean(review.hasTissuePaper),
@@ -81,8 +83,8 @@ const normalizeReview = (review: BackendReview): Review => {
   };
 };
 
-export const fetchToiletReviews = async (managementNo: string): Promise<Review[]> => {
-  const response = await fetch(`${API_BASE_URL}/review/${encodeURIComponent(managementNo)}`);
+export const fetchToiletReviews = async (toiletId: number): Promise<Review[]> => {
+  const response = await fetch(`${API_BASE_URL}/review/${encodeURIComponent(toiletId)}`);
 
   if (!response.ok) {
     throw new Error(getReviewApiErrorMessage(response, "리뷰를 불러오지 못했습니다."));

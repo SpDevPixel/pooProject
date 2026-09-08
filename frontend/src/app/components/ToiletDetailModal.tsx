@@ -83,7 +83,7 @@ export function ToiletDetailModal({
 
   // 리뷰 조회와 평점 갱신
   const loadReviews = useCallback(async () => {
-    if (!toilet?.managementNo) {
+    if (!toilet?.managementNo || typeof toilet.backendId !== "number") {
       setToiletReviews([]);
       return;
     }
@@ -92,7 +92,7 @@ export function ToiletDetailModal({
     setReviewError(null);
 
     try {
-      const reviews = await fetchToiletReviews(toilet.managementNo);
+      const reviews = await fetchToiletReviews(toilet.backendId);
       setToiletReviews(reviews);
       const { rating, reviewCount } = getReviewStats(reviews);
       onReviewStatsChange?.(toilet.managementNo, rating, reviewCount);
@@ -102,7 +102,7 @@ export function ToiletDetailModal({
     } finally {
       setIsLoadingReviews(false);
     }
-  }, [onReviewStatsChange, toilet?.managementNo]);
+  }, [onReviewStatsChange, toilet?.backendId, toilet?.managementNo]);
 
   useEffect(() => {
     if (!open || !toilet) {
