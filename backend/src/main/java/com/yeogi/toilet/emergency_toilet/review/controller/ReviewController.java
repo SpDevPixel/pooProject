@@ -2,6 +2,7 @@ package com.yeogi.toilet.emergency_toilet.review.controller;
 
 import com.yeogi.toilet.emergency_toilet.review.domain.Review;
 import com.yeogi.toilet.emergency_toilet.review.dto.ReviewDto;
+import com.yeogi.toilet.emergency_toilet.review.dto.ReviewResponseDto;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.review.service.ReviewService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
@@ -22,7 +23,7 @@ public class ReviewController {
 
     //리뷰 데이터 전송
     @GetMapping("/{toilet_id}")
-    public ResponseEntity<List<Review>> getReviews(@PathVariable String toilet_id) {
+    public ResponseEntity<List<ReviewResponseDto>> getReviews(@PathVariable Long toilet_id) {
         return ResponseEntity.ok(reviewService.getReviewsByToilet(toilet_id));
     }
 

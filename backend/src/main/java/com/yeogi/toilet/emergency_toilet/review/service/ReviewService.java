@@ -2,6 +2,7 @@ package com.yeogi.toilet.emergency_toilet.review.service;
 
 import com.yeogi.toilet.emergency_toilet.review.domain.Review;
 import com.yeogi.toilet.emergency_toilet.review.dto.ReviewDto;
+import com.yeogi.toilet.emergency_toilet.review.dto.ReviewResponseDto;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
@@ -54,8 +55,8 @@ public class ReviewService {
     }
 
     // 화장실 리뷰 전달
-    public List<Review> getReviewsByToilet(String managementNo) {
-        return reviewRepository.findByToilet_ManagementNo(managementNo);
+    public List<ReviewResponseDto> getReviewsByToilet(Long toilet_id) {
+        return reviewRepository.findByToilet_Toilet_Id(toilet_id);
     }
 
     // 사용자가 작성한 리뷰 전달

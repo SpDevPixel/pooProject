@@ -1,6 +1,7 @@
 package com.yeogi.toilet.emergency_toilet.review.repository;
 
 import com.yeogi.toilet.emergency_toilet.review.domain.Review;
+import com.yeogi.toilet.emergency_toilet.review.dto.ReviewResponseDto;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,8 +21,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             "FROM Review r " +
             "JOIN r.toilet t " +
             "LEFT JOIN r.user u " +
-            "WHERE t.managementNo = :managementNo")
-    List<Review> findByToilet_ManagementNo(@Param("managementNo") String managementNo);
+            "WHERE t.id = :toilet_id")
+    List<ReviewResponseDto> findByToilet_Toilet_Id(@Param("toilet_id") Long toilet_id);
     @Query("SELECT r FROM Review r " +
             "JOIN FETCH r.toilet t " +
             "WHERE r.user.id = :userId")
