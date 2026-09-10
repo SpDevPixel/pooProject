@@ -3,7 +3,7 @@
  * 상위 폴더: src/app/pages (라우팅되는 페이지 화면)
  * 역할: 메인 지도 화면 화장실 목록, 필터, 알림, 길 안내를 제공
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   AlertCircle,
@@ -129,25 +129,40 @@ export default function HomePage() {
   });
 
   // 화장실 목록 조회
+  const toiletRequestId = useRef(0);
   const loadToilets = useCallback(async () => {
+    const requestId = ++toiletRequestId.current;
     setIsLoadingToilets(true);
     setToiletLoadError(null);
 
     try {
-      const loadedToilets = await fetchToilets();
+      const loadedToilets = await fetchToilets(user?.token);
+      if (requestId !== toiletRequestId.current) return;
       setToilets(loadedToilets);
     } catch (error) {
+      if (requestId !== toiletRequestId.current) return;
       console.error(error);
       setToilets([]);
       setToiletLoadError("화장실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
-      setIsLoadingToilets(false);
+      if (requestId === toiletRequestId.current) setIsLoadingToilets(false);
     }
-  }, []);
+  }, [user?.token]);
 
   useEffect(() => {
     loadToilets();
+    return () => { ++toiletRequestId.current; };
   }, [loadToilets]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setToilets((current) => current.filter((toilet) => !toilet.isUserSubmitted));
+      setSelectedToilet(null);
+      setIsDetailModalOpen(false);
+      setActiveRoute(null);
+      setFilters((current) => ({ ...current, isUserSubmitted: null }));
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const searchState = location.state as
@@ -236,6 +251,7 @@ export default function HomePage() {
 
   const visibleToilets = useMemo(() => {
     return toilets.filter((toilet) => {
+      if (!isAuthenticated && toilet.isUserSubmitted) return false;
       if (filters.hasDisabledFacility && !toilet.hasDisabledFacility) return false;
       if (filters.hasDiaperTable && !toilet.hasDiaperTable) return false;
       if (filters.hasEmergencyBell && !toilet.hasEmergencyBell) return false;
@@ -245,7 +261,7 @@ export default function HomePage() {
       }
       return true;
     });
-  }, [filters, toilets]);
+  }, [filters, toilets, isAuthenticated]);
 
   // 검색 결과 목록 적용
   const filteredToilets = useMemo(() => {

@@ -19,6 +19,7 @@ import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { cn } from "./ui/utils";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ToiletFiltersProps {
   filters: Filters;
@@ -27,6 +28,7 @@ interface ToiletFiltersProps {
 }
 
 export function ToiletFilters({ filters, onFiltersChange, triggerClassName }: ToiletFiltersProps) {
+  const { isAuthenticated } = useAuth();
   const activeFilterCount =
     Object.entries(filters).filter(([key, value]) =>
       key === "isUserSubmitted" ? value !== null : value === true
@@ -80,6 +82,7 @@ export function ToiletFilters({ filters, onFiltersChange, triggerClassName }: To
   };
 
   const handleDataSourceChange = (value: string) => {
+    if (value === "user" && !isAuthenticated) return;
     onFiltersChange({
       ...filters,
       isUserSubmitted: value === "all" ? null : value === "user",
@@ -152,6 +155,11 @@ export function ToiletFilters({ filters, onFiltersChange, triggerClassName }: To
           </FilterSection>
 
           <FilterSection title="데이터 출처" icon={Database}>
+            {!isAuthenticated && (
+              <p className="text-xs text-blue-600">
+                회원가입 후 로그인하면 사용자 등록 화장실도 볼 수 있어요.
+              </p>
+            )}
             <RadioGroup
               value={
                 filters.isUserSubmitted === null
@@ -183,6 +191,7 @@ export function ToiletFilters({ filters, onFiltersChange, triggerClassName }: To
                     )}
                   >
                     <RadioGroupItem
+                      disabled={source.value === "user" && !isAuthenticated}
                       value={source.value}
                       id={source.value}
                       className="border-blue-300 text-blue-600"
@@ -190,7 +199,7 @@ export function ToiletFilters({ filters, onFiltersChange, triggerClassName }: To
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold">{source.label}</span>
                       <span className="block text-xs font-normal text-slate-500">
-                        {source.description}
+                        {source.value === "user" && !isAuthenticated ? "로그인 후 이용 가능" : source.description}
                       </span>
                     </span>
                   </Label>

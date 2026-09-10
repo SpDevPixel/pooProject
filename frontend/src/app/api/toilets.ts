@@ -74,7 +74,7 @@ const normalizeBoolean = (value?: boolean | string | null) => {
   return Boolean(value);
 };
 
-let pendingFetchToiletsRequest: Promise<Toilet[]> | null = null;
+const pendingFetchToiletsRequests = new Map<string, Promise<Toilet[]>>();
 
 export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   const lat = toNumber(toilet.lat);
@@ -112,35 +112,43 @@ export const normalizeToilet = (toilet: BackendToilet): Toilet | null => {
   };
 };
 
-const requestToilets = async (): Promise<Toilet[]> => {
+const requestToilets = async (token?: string): Promise<Toilet[]> => {
   const [publicResponse, userResponse] = await Promise.all([
     fetch(`${API_BASE_URL}/toilets/public`),
-    fetch(`${API_BASE_URL}/toilets/user`, { cache: "no-store" }),
+    token
+      ? fetch(`${API_BASE_URL}/toilets/user`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      : Promise.resolve(null),
   ]);
 
-  if (!publicResponse.ok || !userResponse.ok) {
+  if (!publicResponse.ok || (userResponse && !userResponse.ok)) {
     throw new Error("화장실 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
   }
 
   const [publicData, userData] = (await Promise.all([
     publicResponse.status === 204 ? [] : publicResponse.json(),
-    userResponse.status === 204 ? [] : userResponse.json(),
+    !userResponse || userResponse.status === 204 ? [] : userResponse.json(),
   ])) as BackendToilet[][];
 
   return [...publicData, ...userData]
     .map(normalizeToilet)
     .filter((toilet): toilet is Toilet => toilet !== null)
-    .filter((toilet) => !toilet.isUserSubmitted || toilet.status === "APPROVED");
+    .filter((toilet) => !toilet.isUserSubmitted || (!!token && toilet.status === "APPROVED"));
 };
 
-export const fetchToilets = async (): Promise<Toilet[]> => {
-  if (!pendingFetchToiletsRequest) {
-    pendingFetchToiletsRequest = requestToilets().finally(() => {
-      pendingFetchToiletsRequest = null;
+export const fetchToilets = async (token?: string): Promise<Toilet[]> => {
+  const key = token ?? "";
+  let request = pendingFetchToiletsRequests.get(key);
+  if (!request) {
+    request = requestToilets(token).finally(() => {
+      pendingFetchToiletsRequests.delete(key);
     });
+    pendingFetchToiletsRequests.set(key, request);
   }
 
-  return pendingFetchToiletsRequest;
+  return request;
 };
 
 export const createUserToilet = async (

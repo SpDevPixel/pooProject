@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { searchKakaoLocations, type SearchLocation } from "../api/kakaoSearch";
 import { fetchToilets } from "../api/toilets";
+import { useAuth } from "../contexts/AuthContext";
 import type { Toilet } from "../types/toilet";
 import { toast } from "sonner";
 
@@ -30,6 +31,7 @@ const formatDistance = (distance: number) =>
   distance >= 1000 ? `약 ${(distance / 1000).toFixed(1)}km` : `약 ${Math.round(distance)}m`;
 
 export default function SearchPage() {
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,10 +48,11 @@ export default function SearchPage() {
 
   useEffect(() => {
     let isMounted = true;
+    setToilets([]);
 
     const loadToilets = async () => {
       try {
-        const loadedToilets = await fetchToilets();
+        const loadedToilets = await fetchToilets(user?.token);
         if (isMounted) {
           setToilets(loadedToilets);
         }
@@ -63,7 +66,7 @@ export default function SearchPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.token]);
 
   useEffect(() => {
     const keyword = query.trim();
@@ -114,6 +117,7 @@ export default function SearchPage() {
     if (!baseLocation) return [];
 
     return toilets
+      .filter((toilet) => isAuthenticated || !toilet.isUserSubmitted)
       .map((toilet) => ({
         toilet,
         distance: getDistanceMeters(baseLocation, toilet),
@@ -121,7 +125,7 @@ export default function SearchPage() {
       .filter(({ distance }) => Number.isFinite(distance))
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 5);
-  }, [candidates, toilets]);
+  }, [candidates, toilets, isAuthenticated]);
 
   const applyToiletLocation = (toilet: Toilet) => {
     if (typeof toilet.lat !== "number" || typeof toilet.lng !== "number") return;
