@@ -453,6 +453,14 @@ export function ToiletDetailModal({
                           {review.createdAt.toLocaleDateString()}
                         </span>
                       </div>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <Badge variant="outline">
+                          휴지 {review.hasTissuePaper ? "O" : "X"}
+                        </Badge>
+                        <Badge variant="outline">
+                          도어락 {review.hasDoorLock ? "O" : "X"}
+                        </Badge>
+                      </div>
                       {review.comment && (
                         <p className="text-sm text-muted-foreground">{review.comment}</p>
                       )}
