@@ -56,34 +56,37 @@ public class Toilet {
     @Column(nullable = false)
     private ToiletStatus status = ToiletStatus.PENDING;
 
-    public void updateRatingWhenReviewAdded(double newRating) {
-        double totalRating = this.rating * this.reviewCount;
+    @Column(nullable = false, columnDefinition = "double default 0")
+    private double ratingSum;
 
-        totalRating += newRating;
+    public void updateRatingWhenReviewAdded(double newRating) {
+        this.ratingSum += newRating;
         this.reviewCount++;
-        
-        double newAverage = totalRating / this.reviewCount;
-        this.rating = Math.round(newAverage * 10.0) / 10.0;
+        refreshAverage();
     }
 
     public void updateRatingWhenReviewDeleted(double deletedRating) {
         if (this.reviewCount <= 0) {
-            this.reviewCount = 0;
-            this.rating = 0.0;
+            resetRating();
             return;
         }
-
-        // 2. 기존 총점 계산 후 삭제된 평점 차감
-        double totalRating = this.rating * this.reviewCount;
-        totalRating -= deletedRating;
+        this.ratingSum -= deletedRating;
         this.reviewCount--;
+        refreshAverage();
+    }
 
+    private void refreshAverage() {
         if (this.reviewCount == 0) {
-            this.rating = 0.0;
-        } else {
-            double newAverage = totalRating / this.reviewCount;
-            this.rating = Math.round(newAverage * 10.0) / 10.0;
+            resetRating();
+            return;
         }
+        this.rating = Math.round(this.ratingSum / this.reviewCount * 10.0) / 10.0;
+    }
+
+    private void resetRating() {
+        this.reviewCount = 0;
+        this.ratingSum = 0.0;
+        this.rating = 0.0;
     }
 
     public void updateAndReapply(ToiletUpdateDto dto) {
