@@ -213,6 +213,7 @@ jobs:
               DATABASE_USERNAME="${{ secrets.DB_USERNAME }}" \
               DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               SEOUL_TOILET_API_KEY="${{ secrets.SEOUL_TOILET_API_KEY }}" \
+              JWTUTIL_PASSWORD="${{ secrets.JWTUTIL_PASSWORD }}" \
               java -jar app.jar > nohup.out 2>&1 < /dev/null &
 
 
