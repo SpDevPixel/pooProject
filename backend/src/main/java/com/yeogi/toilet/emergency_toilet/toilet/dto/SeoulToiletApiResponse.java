@@ -9,7 +9,6 @@ import java.util.List;
 @Getter
 @Setter
 public class SeoulToiletApiResponse {
-    // 기존 SearchPublicToiletPOIService에서 mgisToiletPoi로 변경
     @JsonProperty("mgisToiletPoi")
     private ToiletServiceResult serviceResult;
 

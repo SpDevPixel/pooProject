@@ -3,6 +3,7 @@ package com.yeogi.toilet.emergency_toilet.util;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -12,10 +13,14 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final String SECRET_KEY = "yourSecretKeyMustBeVeryLongAndSecureMoreThan32Bytes1234567890";
+    private final String secretKey;
+
+    public JwtUtil(@Value("${JWTUTIL_PASSWORD}") String secretKey) {
+        this.secretKey = secretKey;
+    }
 
     private Key getSigningKey() {
-        byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
