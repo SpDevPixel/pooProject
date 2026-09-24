@@ -179,7 +179,7 @@ export default function AuthPage() {
       });
       setIdCheckStatus("idle");
       setEmailCheckStatus("idle");
-      setLoginData((prev) => ({ ...prev, username: id }));
+      setLoginData({ username: "", password: "" });
       setActiveTab("login");
     } catch (error) {
       console.error(error);
