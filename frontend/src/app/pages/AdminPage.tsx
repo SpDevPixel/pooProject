@@ -37,6 +37,10 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -90,6 +94,10 @@ export default function AdminPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const [activeTab, setActiveTab] = useState<AdminTab>("approvals");
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    name: string;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [adminToilets, setAdminToilets] = useState<Toilet[]>([]);
@@ -505,16 +513,14 @@ export default function AdminPage() {
   const handleDeleteManagedToilet = async (toilet: Toilet) => {
     if (!user?.token || !toilet.backendId || deletingToiletId) return;
 
-    if (!window.confirm(`"${toilet.name}" 화장실을 삭제할까요?`)) {
-      return;
-    }
-
     setDeletingToiletId(toilet.backendId);
 
     try {
       await deleteAdminToilet(toilet.backendId, user.token);
       setAdminToilets((current) => current.filter((item) => item.backendId !== toilet.backendId));
       setPendingToilets((current) => current.filter((item) => item.backendId !== toilet.backendId));
+      setDeleteRequests((current) => current.filter((item) => item.toiletId !== String(toilet.backendId)));
+      setUpdateRequests((current) => current.filter((item) => item.toiletId !== String(toilet.backendId)));
       toast.success("화장실이 삭제되었습니다.");
     } catch (error) {
       console.error(error);
@@ -580,17 +586,13 @@ export default function AdminPage() {
       return;
     }
 
-    if (!window.confirm(`"${request.toiletName}" 화장실을 삭제하고 요청을 처리할까요?`)) {
-      return;
-    }
-
     setProcessingRequestId(request.id);
 
     try {
       await deleteAdminToilet(toiletId, user.token);
       setAdminToilets((current) => current.filter((item) => item.backendId !== toiletId));
       setPendingToilets((current) => current.filter((item) => item.backendId !== toiletId));
-      setDeleteRequests((current) => current.filter((item) => item.id !== request.id));
+      setDeleteRequests((current) => current.filter((item) => item.toiletId !== request.toiletId));
       setUpdateRequests((current) => current.filter((item) => item.toiletId !== request.toiletId));
       toast.success("화장실 삭제 요청을 처리했습니다.");
     } catch (error) {
@@ -832,7 +834,10 @@ export default function AdminPage() {
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => handleDeleteManagedToilet(toilet)}
+                            onClick={() => setDeleteConfirmation({
+                              name: toilet.name,
+                              onConfirm: () => handleDeleteManagedToilet(toilet),
+                            })}
                             disabled={!toilet.backendId || deletingToiletId === toilet.backendId}
                             className="gap-2 text-red-600 hover:text-red-700"
                           >
@@ -993,7 +998,10 @@ export default function AdminPage() {
                             요청 닫기
                           </Button>
                           <Button
-                            onClick={() => handleProcessDeleteRequest(request)}
+                            onClick={() => setDeleteConfirmation({
+                              name: request.toiletName,
+                              onConfirm: () => handleProcessDeleteRequest(request),
+                            })}
                             disabled={processingRequestId === request.id}
                             className="gap-2 bg-red-600 hover:bg-red-700"
                           >
@@ -1190,6 +1198,29 @@ export default function AdminPage() {
           </section>
         )}
       </main>
+
+      <AlertDialog open={!!deleteConfirmation} onOpenChange={(open) => !open && setDeleteConfirmation(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>화장실을 정말 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ‘{deleteConfirmation?.name}’ 화장실과 연결된 수정·삭제 요청이 함께 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>아니오</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                void deleteConfirmation?.onConfirm();
+                setDeleteConfirmation(null);
+              }}
+            >
+              예
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={!!selectedToilet} onOpenChange={(open) => !open && handleCloseToiletEdit()}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]">

@@ -31,7 +31,6 @@ import { ToiletDetailModal } from "../components/ToiletDetailModal";
 import { MapView } from "../components/MapView";
 import { fetchToilets } from "../api/toilets";
 import {
-  deleteToiletRequestNotification,
   getToiletRequests,
   type ToiletRequestNotification,
 } from "../api/toiletRequests";
@@ -96,6 +95,15 @@ const getDistanceMeters = (from: RoutePoint, toilet: Toilet) => {
 
 const SEARCH_RADIUS_METERS = 1500;
 const SEARCH_RESULT_LIMIT = 10;
+
+function getHiddenRequestIds(userId: string): string[] {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(`hiddenToiletRequests:${userId}`) ?? "[]");
+    return Array.isArray(stored) ? stored.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -194,7 +202,8 @@ export default function HomePage() {
 
     try {
       const requests = await getToiletRequests(user.token);
-      setRequestNotifications(requests);
+      const hiddenIds = getHiddenRequestIds(user.id);
+      setRequestNotifications(requests.filter((request) => !hiddenIds.includes(request.id)));
     } catch (error) {
       console.error(error);
       setNotificationError(
@@ -205,7 +214,7 @@ export default function HomePage() {
     } finally {
       setIsLoadingNotifications(false);
     }
-  }, [user?.token]);
+  }, [user?.token, user?.id]);
 
   useEffect(() => {
     loadRequestNotifications();
@@ -537,19 +546,23 @@ export default function HomePage() {
     loadRequestNotifications();
   };
 
-  const handleDeleteRequestNotification = async (requestId: string) => {
+  const handleHideRequestNotification = async (requestId: string) => {
     if (!user?.token) return;
 
     try {
-      await deleteToiletRequestNotification(requestId, user.token);
-      toast.success("요청 알림을 삭제했습니다.");
-      await loadRequestNotifications();
+      const hiddenIds = getHiddenRequestIds(user.id);
+      localStorage.setItem(
+        `hiddenToiletRequests:${user.id}`,
+        JSON.stringify([...new Set([...hiddenIds, requestId])])
+      );
+      setRequestNotifications((requests) => requests.filter((request) => request.id !== requestId));
+      toast.success("홈에서 요청 알림을 숨겼습니다.");
     } catch (error) {
       console.error(error);
       toast.error(
         error instanceof Error
           ? error.message
-          : "요청 삭제 처리에 실패했습니다."
+          : "알림 숨기기에 실패했습니다."
       );
     }
   };
@@ -988,9 +1001,9 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteRequestNotification(request.id)}
+                      onClick={() => handleHideRequestNotification(request.id)}
                     >
-                      삭제
+                      알림 숨기기
                     </Button>
                   </div>
                 </div>
