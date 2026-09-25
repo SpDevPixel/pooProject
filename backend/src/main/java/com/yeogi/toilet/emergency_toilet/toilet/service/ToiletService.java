@@ -142,6 +142,18 @@ public class ToiletService {
 
         if (dto.getStatus() != null) toilet.setStatus(dto.getStatus());
 
+        if (dto.getEmergencyBell() != null)
+            toilet.setHasEmergencyBell(dto.getEmergencyBell());
+
+        if (dto.getDiaperTable() != null)
+            toilet.setHasDiaperTable(dto.getDiaperTable());
+
+        if (dto.getEntranceCctv() != null)
+            toilet.setHasEntranceCctv(dto.getEntranceCctv());
+
+        if (dto.getDisabledFacility() != null)
+            toilet.setHasDisabledFacility(dto.getDisabledFacility());
+
     }
     //관리자 화장실 조회
     @Transactional(readOnly = true) // 조회 최적화
