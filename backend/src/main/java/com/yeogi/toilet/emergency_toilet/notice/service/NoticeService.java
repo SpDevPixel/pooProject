@@ -32,11 +32,8 @@ public class NoticeService {
     }
 
     //공지사항 등록
-    public Notice addNotice(Notice noticeDto,String token){
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken);
-
-        User user = userRepository.findById(id)
+    public Notice addNotice(Notice noticeDto,Long loginUserId){
+        User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
         if(!"ADMIN".equals(user.getRole())){
@@ -50,11 +47,8 @@ public class NoticeService {
     }
 
     //공지사항 삭제
-    public void deleteNotice(Long noticeId,String token){
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken);
-
-        User user = userRepository.findById(id)
+    public void deleteNotice(Long noticeId,Long loginUserId){
+        User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
         if(!"ADMIN".equals(user.getRole())){
@@ -70,11 +64,8 @@ public class NoticeService {
 
     //공지사항 수정 & 업데이트
     @Transactional
-    public void updateNotice(Long noticeId,Notice noticeDto,String token){
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken);
-
-        User user = userRepository.findById(id)
+    public void updateNotice(Long noticeId,Notice noticeDto,Long loginUserId){
+        User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
         if(!"ADMIN".equals(user.getRole())){

@@ -9,6 +9,7 @@ import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestReposito
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,18 +22,14 @@ import java.util.List;
 public class ToiletRequestService {
 
     private final JwtUtil jwtUtil;
-    private final UserRepository UserRepository;
+    private final UserRepository userRepository;
     private final ToiletRequestRepository toiletRequestRepository;
     private final ToiletRepository toiletRepository;
 
     //요청 사항 저장
-    public ToiletRequest addToiletRequest(ToiletRequestDto dto, String token){
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken); //
-
-        User requesterUser = UserRepository.findById(dto.getRequester())
+    public ToiletRequest addToiletRequest(ToiletRequestDto dto, Long loginUserId){
+        User requesterUser = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new RuntimeException("요청자 유저를 찾을 수 없습니다."));
-
 
         Toilet targetToilet = toiletRepository.findById(dto.getToiletId())
                 .orElseThrow(() -> new RuntimeException("대상 화장실을 찾을 수 없습니다."));
@@ -44,7 +41,7 @@ public class ToiletRequestService {
         if (targetToilet.getIsUserSubmitted() != null && targetToilet.getIsUserSubmitted()) {
             request.setApprover(targetToilet.getUser());
         } else {
-            User systemAdmin = UserRepository.findByRole("ADMIN")
+            User systemAdmin = userRepository.findByRole("ADMIN")
                     .orElseThrow(() -> new RuntimeException("시스템에 등록된 관리자(ADMIN)가 없습니다."));
             request.setApprover(systemAdmin);
         }
@@ -57,26 +54,18 @@ public class ToiletRequestService {
         return toiletRequestRepository.save(request);
     }
 
-    public List<ToiletRequest> getMyReceivedDeleteRequests(String token) {
-        String pureToken = token.substring(7);
-        Long loginUserId = jwtUtil.extractId(pureToken);
+    public List<ToiletRequest> getMyReceivedDeleteRequests(Long loginUserId) {
 
         return toiletRequestRepository.findDeleteRequestsByApproverId(loginUserId);
     }
 
     // 나에게 온 수정 요청만 가져오기
-    public List<ToiletRequest> getMyReceivedUpdateRequests(String token) {
-        String pureToken = token.substring(7);
-        Long loginUserId = jwtUtil.extractId(pureToken);
-
+    public List<ToiletRequest> getMyReceivedUpdateRequests(Long loginUserId) {
         return toiletRequestRepository.findUpdateRequestsByApproverId(loginUserId);
     }
 
-    @org.springframework.transaction.annotation.Transactional
-    public ToiletRequest rejectToiletRequest(Long requestId, String token) {
-
-        String pureToken = token.substring(7);
-        Long loginUserId = jwtUtil.extractId(pureToken);
+    @Transactional
+    public ToiletRequest rejectToiletRequest(Long requestId, Long loginUserId) {
 
         ToiletRequest request = toiletRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 요청 사항입니다."));
@@ -89,5 +78,10 @@ public class ToiletRequestService {
 
         return request;
     }
+
+//    @Transactional
+//    public void deleteToiletRequest(Long requestId, String token){
+//
+//    }
 
 }

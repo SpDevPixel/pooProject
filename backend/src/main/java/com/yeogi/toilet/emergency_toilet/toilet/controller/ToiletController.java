@@ -8,6 +8,7 @@ import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,20 +41,20 @@ public class ToiletController {
 
     // 이용자 화장실 등록
     @PostMapping("/user")
-    public Toilet addUserToilet(@RequestBody Toilet toilet,@RequestHeader("Authorization") String token) {
-        return toiletService.addUserToilet(toilet,token);
+    public Toilet addUserToilet(@RequestBody Toilet toilet,@AuthenticationPrincipal Long loginUserId) {
+        return toiletService.addUserToilet(toilet,loginUserId);
     }
 
     // 이용자가 등록한 화장실 정보들 조회
     @GetMapping("/userToilets")
-    public ResponseEntity<List<Toilet>> sendUserToilets(@RequestHeader("Authorization") String token){
-        return ResponseEntity.ok(toiletService.getUserToilets(token));
+    public ResponseEntity<List<Toilet>> sendUserToilets(@AuthenticationPrincipal Long loginUserId){
+        return ResponseEntity.ok(toiletService.getUserToilets(loginUserId));
     }
 
 //    //관리자의 화장실 정보 삭제
 //    @DeleteMapping("/toilet/{managementNo}")
 //    public ResponseEntity<Void> deleteToilet(@PathVariable String managementNo,
-//                                             @RequestHeader("Authorization") String token){
+//                                             @AuthenticationPrincipal Long loginUserId){
 //        if (token == null || !token.startsWith("Bearer ")) {
 //            throw new RuntimeException("유효하지 않은 토큰");
 //        }
@@ -71,15 +72,8 @@ public class ToiletController {
     //사용자의 화장실 정보 삭제
     @DeleteMapping("/toilet/{toiletId}")
     public ResponseEntity<Void> deleteToilet(@PathVariable Long toiletId,
-                                             @RequestHeader("Authorization") String token){
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 토큰");
-        }
-        String rawToken = token.substring(7);
-        Long id = jwtUtil.extractId(rawToken);
-        toiletService.deleteAToilet(toiletId,id);
-
-
+                                             @AuthenticationPrincipal Long loginUserId){
+        toiletService.deleteAToilet(toiletId,loginUserId);
         return ResponseEntity.noContent().build();
     }
 
@@ -87,18 +81,9 @@ public class ToiletController {
     @PatchMapping("/{toiletId}")
     public ResponseEntity<Void> updateToilet(
             @PathVariable Long toiletId,
-            @RequestHeader("Authorization") String token,
+            @AuthenticationPrincipal Long loginUserId,
             @RequestBody ToiletUpdateDto updateDto) {
-
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 인증 토큰입니다.");
-        }
-
-        String rawToken = token.substring(7);
-        Long userSn = jwtUtil.extractId(rawToken);
-
-        toiletService.updateToiletInfo(toiletId, userSn, updateDto);
-
+        toiletService.updateToiletInfo(toiletId, loginUserId, updateDto);
         return ResponseEntity.noContent().build();
     }
 
@@ -119,17 +104,9 @@ public class ToiletController {
     public ResponseEntity<String> reapplyToilet(
             @PathVariable Long toiletId,
             @RequestBody ToiletUpdateDto dto,
-            @RequestHeader("Authorization") String token) {
-
-        if (token == null || !token.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 토큰 형식입니다.");
-        }
-        String pureToken = token.substring(7);
-
+            @AuthenticationPrincipal Long loginUserId) {
         try {
-            Long userId = jwtUtil.extractId(pureToken);
-
-            toiletService.updateAndReapplyToilet(userId, toiletId, dto);
+            toiletService.updateAndReapplyToilet(loginUserId, toiletId, dto);
 
             return ResponseEntity.ok("화장실 정보 수정 및 재요청이 완료되었습니다.");
 

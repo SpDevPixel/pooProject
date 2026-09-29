@@ -107,10 +107,8 @@ public class UserService {
         return ResponseEntity.ok(Map.of("token", token));
     }
     //토큰 발생
-    public ResponseEntity<?> getMyInfo(String token) {
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken);
-        User user = userRepository.findById(id)
+    public ResponseEntity<?> getMyInfo(Long loginUserId) {
+        User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         return ResponseEntity.ok(user);
     }

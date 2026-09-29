@@ -9,6 +9,7 @@ import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,44 +31,22 @@ public class ReviewController {
     @PostMapping
     public ResponseEntity<Review> addReview(
             @RequestBody ReviewDto dto,
-            @RequestHeader("Authorization") String token) {
-
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 토큰입니다.");
-        }
-        String rawToken = token.substring(7);
-
-        Long userId = jwtUtil.extractId(rawToken);
+            @AuthenticationPrincipal Long loginUserId) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(reviewService.addReview(dto, userId));
+                .body(reviewService.addReview(dto, loginUserId));
     }
 
     //유저의 리뷰 정보 전송
     @GetMapping("/your-review")
-    public ResponseEntity<List<Review>> getUserReviews(@RequestHeader("Authorization") String token){
-        Long id = jwtUtil.extractId(token.substring(7));
-
-        return  ResponseEntity.ok(reviewService.getReviewsByUser(id));
+    public ResponseEntity<List<Review>> getUserReviews(@AuthenticationPrincipal Long loginUserId){
+        return  ResponseEntity.ok(reviewService.getReviewsByUser(loginUserId));
     }
 
     //리뷰 삭제
     @DeleteMapping("/reviews/{reviewId}")
-    public ResponseEntity<Void> deleteReview(@PathVariable Long reviewId,@RequestHeader("Authorization") String token){
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 토큰");
-        }
-        String rawToken = token.substring(7);
-        Long id = jwtUtil.extractId(rawToken);
-//        String role = jwtUtil.extractRole(rawToken);
-//        if("ADMIN".equals(role)){
-//            reviewService.deleteReviewByAdmin(reviewId);
-//        }
-//        else{
-//
-//        }
-        reviewService.deleteUserReview(id,reviewId);
-
+    public ResponseEntity<Void> deleteReview(@PathVariable Long reviewId,@AuthenticationPrincipal Long loginUserId){
+        reviewService.deleteUserReview(loginUserId,reviewId);
         return ResponseEntity.noContent().build();
     }
 

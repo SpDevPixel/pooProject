@@ -8,6 +8,7 @@ import com.yeogi.toilet.emergency_toilet.user.service.UserService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,10 +45,9 @@ public class UserController {
     //닉네임 변경
     @GetMapping("/change-nn")
     public ResponseEntity<String> changeNickname(
-            @RequestHeader("Authorization") String token,
+            @AuthenticationPrincipal Long loginUserId,
             @RequestParam String newNn){
-        Long id = jwtUtil.extractId(token.substring(7));
-        userService.changeNn(id,newNn);
+        userService.changeNn(loginUserId,newNn);
 
 
         return ResponseEntity.ok("닉네임 변경 완료");
@@ -60,29 +60,24 @@ public class UserController {
     }
     //토큰 발급
     @GetMapping("/my-info")
-    public ResponseEntity<?> getMyInfo(@RequestHeader("Authorization") String token) {
-        return userService.getMyInfo(token);
+    public ResponseEntity<?> getMyInfo(@AuthenticationPrincipal Long loginUserId) {
+        return userService.getMyInfo(loginUserId);
     }
 
     //비밀번호 변경
     @PatchMapping("/change-pw")
     public ResponseEntity<String> changePw(
-            @RequestHeader("Authorization") String token,
+            @AuthenticationPrincipal Long loginUserId,
             @RequestParam String newPw){
-
-        Long id = jwtUtil.extractId(token.substring(7));
-        userService.changePw(id, newPw);
+        userService.changePw(loginUserId, newPw);
         return ResponseEntity.ok("비밀번호 변경 완료");
     }
 
     //계정 삭제
     @DeleteMapping("/delete")
     public ResponseEntity<String> deleteUser(
-            @RequestHeader("Authorization") String token){
-
-        // 토큰에서 이메일 추출
-        Long id = jwtUtil.extractId(token.substring(7));
-        userService.deleteUser(id);
+            @AuthenticationPrincipal Long loginUserId){
+        userService.deleteUser(loginUserId);
         return ResponseEntity.ok("회원 탈퇴 완료");
     }
 

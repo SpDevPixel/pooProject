@@ -166,10 +166,8 @@ public class ToiletService {
      */
 //    @CacheEvict(value = "userToilets", allEntries = true)
     @CacheEvict(value = "userToilets",allEntries = true)
-    public Toilet addUserToilet(Toilet toilet, String token) {
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken);
-        User user = userRepository.findById(id)
+    public Toilet addUserToilet(Toilet toilet, Long loginUserId) {
+        User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
         toilet.setUser(user);
@@ -180,10 +178,8 @@ public class ToiletService {
         return toiletRepository.save(toilet);
     }
 
-    public List<Toilet> getUserToilets(String token){
-        String pureToken = token.substring(7);
-        Long id = jwtUtil.extractId(pureToken);
-        User user = userRepository.findById(id)
+    public List<Toilet> getUserToilets(Long loginUserId){
+        User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다"));
 
         return toiletRepository.findByUser(user);

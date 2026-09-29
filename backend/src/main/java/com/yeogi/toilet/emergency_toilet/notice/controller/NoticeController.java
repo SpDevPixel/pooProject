@@ -5,6 +5,7 @@ import com.yeogi.toilet.emergency_toilet.notice.service.NoticeService;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,33 +33,23 @@ public class NoticeController {
 
     //공지사항 등록
     @PostMapping("/add")
-    public Notice addNotice(@RequestBody Notice notice,@RequestHeader("Authorization") String token){
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 토큰");
-        }
-
-        return noticeService.addNotice(notice,token);
+    public Notice addNotice(@RequestBody Notice notice,@AuthenticationPrincipal Long loginUserId){
+        return noticeService.addNotice(notice,loginUserId);
     }
 
     //공지사항 수정
     @PatchMapping("/{id}")
-    public ResponseEntity<Void> updateNotice(@PathVariable Long id,@RequestHeader("Authorization") String token,
+    public ResponseEntity<Void> updateNotice(@PathVariable Long id,@AuthenticationPrincipal Long loginUserId,
                                              @RequestBody Notice noticeDto){
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 토큰");
-        }
-        noticeService.updateNotice(id, noticeDto,token);
+        noticeService.updateNotice(id, noticeDto,loginUserId);
 
         return ResponseEntity.noContent().build();
     }
 
     //공지사항 삭제
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteNotice(@PathVariable Long id,@RequestHeader("Authorization") String token){
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new RuntimeException("유효하지 않은 토큰");
-        }
-        noticeService.deleteNotice(id,token);
+    public ResponseEntity<Void> deleteNotice(@PathVariable Long id,@AuthenticationPrincipal Long loginUserId){
+        noticeService.deleteNotice(id,loginUserId);
 
         return ResponseEntity.noContent().build();
     }

@@ -35,9 +35,7 @@ public class AdminService {
         if (!admin.getRole().equals("ADMIN")) { // 에러 메세지나 권한 비교는 프로젝트 구조에 맞게 변경
             throw new RuntimeException("관리자 권한이 없습니다.");
         }
-
         return userRepository.findAll();
-
     }
 
     @Transactional
