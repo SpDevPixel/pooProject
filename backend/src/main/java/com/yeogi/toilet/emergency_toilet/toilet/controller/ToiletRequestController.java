@@ -45,7 +45,7 @@ public class ToiletRequestController {
         return ResponseEntity.ok(requests);
     }
 
-    //관리자/주인이 특정 요청을 거절(삭제)할 때 호출하는 API
+    //주인이 특정 요청을 거절(삭제)할 때 호출하는 API
     @PatchMapping("/{requestId}/reject")
     public ResponseEntity<String> rejectRequest(
             @PathVariable("requestId") Long requestId,
@@ -53,6 +53,15 @@ public class ToiletRequestController {
 
         toiletRequestService.rejectToiletRequest(requestId, loginUserId);
         return ResponseEntity.ok("요청이 성공적으로 거절(삭제) 처리되었습니다.");
+    }
+
+    // 관리자가 처리 완료한 요청을 DB에서 삭제할 때 호출하는 API
+    @DeleteMapping("/{requestId}/complete")
+    public ResponseEntity<String> completeRequest(
+            @PathVariable("requestId") Long requestId) {
+
+        toiletRequestService.completeToiletRequest(requestId);
+        return ResponseEntity.ok("요청이 처리 완료되어 삭제되었습니다.");
     }
 
 }

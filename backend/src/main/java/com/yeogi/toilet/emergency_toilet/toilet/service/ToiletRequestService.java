@@ -79,9 +79,13 @@ public class ToiletRequestService {
         return request;
     }
 
-//    @Transactional
-//    public void deleteToiletRequest(Long requestId, String token){
-//
-//    }
+    @Transactional
+    public void completeToiletRequest(Long requestId) {
+        if (!toiletRequestRepository.existsById(requestId)) {
+            throw new RuntimeException("존재하지 않는 요청 사항입니다.");
+        }
+
+        toiletRequestRepository.deleteById(requestId);
+    }
 
 }
