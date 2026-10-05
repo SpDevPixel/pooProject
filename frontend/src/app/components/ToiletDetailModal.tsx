@@ -156,6 +156,11 @@ export function ToiletDetailModal({
   };
 
   const getRequestContext = () => {
+    if (!toilet.isUserSubmitted) {
+      toast.error("공공데이터 화장실은 수정·삭제 요청을 받지 않습니다.");
+      return null;
+    }
+
     if (!isAuthenticated || !user) {
       toast.error("로그인 후 요청을 보낼 수 있습니다.");
       return null;
@@ -490,14 +495,18 @@ export function ToiletDetailModal({
               <Button onClick={onClose} variant="outline">
                 닫기
               </Button>
-              <Button onClick={() => openRequestDialog("UPDATE")} variant="outline">
-                <FilePenLine size={16} className="mr-2" />
-                수정요청
-              </Button>
-              <Button onClick={() => openRequestDialog("DELETE")} variant="outline">
-                <Send size={16} className="mr-2" />
-                삭제요청
-              </Button>
+              {toilet.isUserSubmitted && (
+                <>
+                  <Button onClick={() => openRequestDialog("UPDATE")} variant="outline">
+                    <FilePenLine size={16} className="mr-2" />
+                    수정요청
+                  </Button>
+                  <Button onClick={() => openRequestDialog("DELETE")} variant="outline">
+                    <Send size={16} className="mr-2" />
+                    삭제요청
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>

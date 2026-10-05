@@ -103,6 +103,10 @@ export const addToiletRequest = async ({
   requesterId: number;
   token: string;
 }) => {
+  if (!toilet.isUserSubmitted) {
+    throw new Error("공공데이터 화장실은 수정·삭제 요청을 받지 않습니다.");
+  }
+
   const toiletId = getBackendToiletId(toilet);
 
   if (!toiletId) {
@@ -131,7 +135,7 @@ export const addToiletRequest = async ({
   }
 
   return {
-    recipientLabel: toilet.isUserSubmitted ? "등록자" : "관리자",
+    recipientLabel: "등록자",
   };
 };
 
