@@ -8,6 +8,7 @@ import { Loader2, Navigation, X } from "lucide-react";
 import type { Toilet } from "../types/toilet";
 import type { RoutePoint, TmapRouteResult } from "../api/tmapRoutes";
 import { Button } from "./ui/button";
+import selectedToiletMarkerUrl from "../../assets/selected-toilet-marker.svg";
 
 interface MapViewProps {
   toilets: Toilet[];
@@ -217,6 +218,7 @@ export function MapView({
 
       const markers = toilets
         .filter(hasValidToiletCoordinates)
+        .filter((toilet) => toilet.id !== selectedToilet?.id)
         .map((toilet) => {
           const marker = new window.kakao.maps.Marker({
             position: new window.kakao.maps.LatLng(toilet.lat, toilet.lng),
@@ -245,11 +247,37 @@ export function MapView({
     };
   }, [
     toilets,
+    selectedToilet?.id,
     onMarkerClick,
     hasValidToiletCoordinates,
     clearToiletMarkers,
     onAddressMarkerStatusChange,
   ]);
+
+  // 선택한 화장실은 클러스터에 묶이지 않도록 별도 마커로 표시합니다.
+  useEffect(() => {
+    if (!isMapReady || !mapInstanceRef.current || !selectedToilet || !window.kakao?.maps) return;
+    if (!hasValidToiletCoordinates(selectedToilet)) return;
+
+    const marker = new window.kakao.maps.Marker({
+      map: mapInstanceRef.current,
+      position: new window.kakao.maps.LatLng(selectedToilet.lat, selectedToilet.lng),
+      image: new window.kakao.maps.MarkerImage(
+        selectedToiletMarkerUrl,
+        new window.kakao.maps.Size(40, 48),
+        { offset: new window.kakao.maps.Point(20, 46) }
+      ),
+      title: selectedToilet.name,
+      zIndex: 100,
+    });
+    const handleClick = () => onMarkerClick(selectedToilet);
+    window.kakao.maps.event.addListener(marker, "click", handleClick);
+
+    return () => {
+      window.kakao.maps.event.removeListener(marker, "click", handleClick);
+      marker.setMap(null);
+    };
+  }, [isMapReady, selectedToilet, hasValidToiletCoordinates, onMarkerClick]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedToilet || !window.kakao?.maps) return;
@@ -263,7 +291,7 @@ export function MapView({
     if (typeof mapInstanceRef.current.setLevel === "function") {
       mapInstanceRef.current.setLevel(3);
     }
-  }, [selectedToilet, hasValidToiletCoordinates]);
+  }, [isMapReady, selectedToilet, hasValidToiletCoordinates]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !focusLocation || !window.kakao?.maps) return;
