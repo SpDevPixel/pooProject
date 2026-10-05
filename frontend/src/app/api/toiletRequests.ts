@@ -37,6 +37,7 @@ export interface ToiletRequestNotification {
   toiletName: string;
   roadAddress: string;
   recipientLabel: string;
+  recipientUserId: string;
   requesterName: string;
   requesterUserId: string;
   message: string;
@@ -74,6 +75,7 @@ const normalizeRequest = (
   const requester = request.requester;
   const approver = request.approver;
   const requesterDisplayId = requester?.userId ?? requester?.id?.toString() ?? "-";
+  const recipientDisplayId = approver?.userId ?? approver?.id?.toString() ?? "-";
 
   return {
     id: request.id.toString(),
@@ -82,7 +84,8 @@ const normalizeRequest = (
     managementNo: toilet?.managementNo?.toString() ?? "",
     toiletName: toilet?.name ?? "화장실 정보 없음",
     roadAddress: toilet?.roadAddress ?? "",
-    recipientLabel: approver?.name ?? approver?.userId ?? "나",
+    recipientLabel: approver?.name ?? approver?.nickname ?? approver?.userId ?? "정보 없음",
+    recipientUserId: recipientDisplayId,
     requesterName: requester?.name ?? requester?.nickname ?? requesterDisplayId,
     requesterUserId: requesterDisplayId,
     message: request.content ?? "",
@@ -166,6 +169,20 @@ export const getToiletRequests = async (token: string): Promise<ToiletRequestNot
     ...updateRequests.map((request) => normalizeRequest(request, "UPDATE")),
     ...deleteRequests.map((request) => normalizeRequest(request, "DELETE")),
   ];
+};
+
+export const completeToiletRequest = async (
+  requestId: string,
+  token: string
+): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/requests/${encodeURIComponent(requestId)}/complete`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error(getRequestApiErrorMessage(response, "요청 처리 완료에 실패했습니다."));
+  }
 };
 
 export const deleteToiletRequestNotification = async (

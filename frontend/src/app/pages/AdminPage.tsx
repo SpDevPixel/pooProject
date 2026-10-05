@@ -30,7 +30,7 @@ import {
 } from "../api/admin";
 import { createNotice, deleteNotice, fetchNotices, updateNotice } from "../api/notices";
 import {
-  deleteToiletRequestNotification,
+  completeToiletRequest,
   getToiletRequests,
   type ToiletRequestNotification,
 } from "../api/toiletRequests";
@@ -558,7 +558,7 @@ export default function AdminPage() {
     setProcessingRequestId(request.id);
 
     try {
-      await deleteToiletRequestNotification(request.id, user.token);
+      await completeToiletRequest(request.id, user.token);
       setUpdateRequests((current) => current.filter((item) => item.id !== request.id));
       toast.success("수정 요청을 처리 완료했습니다.");
     } catch (error) {
@@ -575,9 +575,9 @@ export default function AdminPage() {
     setProcessingRequestId(request.id);
 
     try {
-      await deleteToiletRequestNotification(request.id, user.token);
+      await completeToiletRequest(request.id, user.token);
       setDeleteRequests((current) => current.filter((item) => item.id !== request.id));
-      toast.success("삭제 요청을 닫았습니다.");
+      toast.success("삭제 요청을 처리 완료했습니다.");
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "삭제 요청 처리에 실패했습니다.");
@@ -945,6 +945,9 @@ export default function AdminPage() {
                           <p className="mt-1 text-sm text-muted-foreground">
                             요청자 {request.requesterName} · 아이디 {request.requesterUserId}
                           </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            수신자 {request.recipientLabel} · 아이디 {request.recipientUserId}
+                          </p>
                           <p className="mt-3 rounded-md bg-gray-50 p-3 text-sm leading-6 text-slate-700">
                             {request.message || "요청 내용이 없습니다."}
                           </p>
@@ -1021,6 +1024,9 @@ export default function AdminPage() {
                           <p className="mt-1 text-sm text-muted-foreground">
                             요청자 {request.requesterName} · 아이디 {request.requesterUserId}
                           </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            수신자 {request.recipientLabel} · 아이디 {request.recipientUserId}
+                          </p>
                           <p className="mt-3 rounded-md bg-gray-50 p-3 text-sm leading-6 text-slate-700">
                             {request.message || "요청 내용이 없습니다."}
                           </p>
@@ -1031,7 +1037,7 @@ export default function AdminPage() {
                             onClick={() => handleDismissDeleteRequest(request)}
                             disabled={processingRequestId === request.id}
                           >
-                            요청 닫기
+                            처리 완료
                           </Button>
                           <Button
                             onClick={() => setDeleteConfirmation({

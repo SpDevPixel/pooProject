@@ -994,9 +994,9 @@ export default function HomePage() {
                   <p className="mt-1 text-sm text-muted-foreground">{request.roadAddress}</p>
                   <p className="mt-3 rounded-md bg-gray-50 p-3 text-sm">{request.message}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span>요청자: {request.requesterName}</span>
-                      <span>아이디: {request.requesterUserId}</span>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p>요청자: {request.requesterName} · 아이디: {request.requesterUserId}</p>
+                      <p>수신자: {request.recipientLabel} · 아이디: {request.recipientUserId}</p>
                     </div>
                     <Button
                       variant="outline"
