@@ -50,6 +50,13 @@ import type { Notice } from "../types/notice";
 import type { Toilet } from "../types/toilet";
 
 type AdminTab = "approvals" | "toiletManagement" | "updateRequests" | "deleteRequests" | "notices" | "users";
+type ToiletSourceFilter = "all" | "public" | "user";
+
+const toiletSourceOptions = [
+  { value: "all", label: "전체" },
+  { value: "public", label: "공공데이터" },
+  { value: "user", label: "사용자 등록" },
+] as const;
 
 type AdminToiletEditForm = {
   name: string;
@@ -105,6 +112,7 @@ export default function AdminPage() {
   const [updateRequests, setUpdateRequests] = useState<ToiletRequestNotification[]>([]);
   const [deleteRequests, setDeleteRequests] = useState<ToiletRequestNotification[]>([]);
   const [toiletQuery, setToiletQuery] = useState("");
+  const [toiletSource, setToiletSource] = useState<ToiletSourceFilter>("all");
   const [noticeQuery, setNoticeQuery] = useState("");
   const [userQuery, setUserQuery] = useState("");
   const [noticeTitle, setNoticeTitle] = useState("");
@@ -243,10 +251,12 @@ export default function AdminPage() {
 
   const filteredAdminToilets = useMemo(() => {
     const keyword = toiletQuery.trim().toLowerCase();
-    if (!keyword) return adminToilets;
+    return adminToilets.filter((toilet) => {
+      if (toiletSource === "public" && toilet.isUserSubmitted) return false;
+      if (toiletSource === "user" && !toilet.isUserSubmitted) return false;
+      if (!keyword) return true;
 
-    return adminToilets.filter((toilet) =>
-      [
+      return [
         toilet.name,
         toilet.roadAddress,
         toilet.managementNo,
@@ -254,9 +264,9 @@ export default function AdminPage() {
         toilet.phoneNumber ?? "",
         toilet.status ?? "",
         toilet.isUserSubmitted ? "사용자 등록" : "공공데이터",
-      ].some((value) => value.toLowerCase().includes(keyword))
-    );
-  }, [adminToilets, toiletQuery]);
+      ].some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [adminToilets, toiletQuery, toiletSource]);
 
   const visibleAdminToilets = showAllManagedToilets
     ? filteredAdminToilets
@@ -758,13 +768,33 @@ export default function AdminPage() {
                 <div>
                   <h2 className="font-semibold text-white">전체 화장실 관리</h2>
                   <p className="mt-1 text-sm text-slate-300">
-                    공공데이터와 사용자 등록 화장실을 모두 검색해서 수정하거나 삭제합니다.
+                    등록 유형별로 화장실을 검색해서 수정하거나 삭제합니다.
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={loadAdminToilets} disabled={isLoadingAdminToilets}>
                   <RefreshCw size={14} className="mr-2" />
                   새로고침
                 </Button>
+              </div>
+
+              <div role="group" aria-label="화장실 등록 유형" className="flex flex-wrap gap-2">
+                {toiletSourceOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    variant="outline"
+                    size="sm"
+                    aria-pressed={toiletSource === option.value}
+                    className={toiletSource === option.value
+                      ? "border-blue-500 bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
+                      : "border-white/20 bg-transparent text-slate-300 hover:bg-white/10 hover:text-white"}
+                    onClick={() => {
+                      setToiletSource(option.value);
+                      setShowAllManagedToilets(false);
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
               </div>
 
               <SearchBox
@@ -793,7 +823,13 @@ export default function AdminPage() {
               {isLoadingAdminToilets ? (
                 <LoadingPanel message="전체 화장실 목록을 불러오는 중입니다." />
               ) : filteredAdminToilets.length === 0 ? (
-                <EmptyPanel message={toiletQuery.trim() ? "검색 결과가 없습니다." : "등록된 화장실이 없습니다."} />
+                <EmptyPanel message={toiletQuery.trim()
+                  ? "검색 결과가 없습니다."
+                  : toiletSource === "public"
+                    ? "공공데이터 화장실이 없습니다."
+                    : toiletSource === "user"
+                      ? "사용자 등록 화장실이 없습니다."
+                      : "등록된 화장실이 없습니다."} />
               ) : (
                 <div className="space-y-3">
                   {visibleAdminToilets.map((toilet) => (
