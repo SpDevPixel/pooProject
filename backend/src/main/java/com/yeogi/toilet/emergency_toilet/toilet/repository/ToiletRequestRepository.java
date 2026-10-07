@@ -43,5 +43,11 @@ public interface ToiletRequestRepository extends JpaRepository<ToiletRequest, Lo
     @Modifying
     @Query("delete from ToiletRequest tr where tr.toilet = :toilet")
     void deleteByToilet(@Param("toilet") Toilet toilet);
+
+    @Query("SELECT tr FROM ToiletRequest tr WHERE tr.deleteToiletRequest = true")
+    List<ToiletRequest> requestDeleteAll();
+
+    @Query("SELECT tr FROM ToiletRequest tr WHERE tr.updateToiletRequest = true")
+    List<ToiletRequest> requestUpdateAll();
 }
 

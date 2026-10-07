@@ -3,7 +3,9 @@ package com.yeogi.toilet.emergency_toilet.admin.service;
 
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletStatus;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletRequestDto;
 import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRepository;
+import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestRepository;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.user.service.UserService;
@@ -12,11 +14,10 @@ import org.springframework.cache.CacheManager;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final ToiletRepository toiletRepository;
+    private final ToiletRequestRepository toiletRequestRepository;
 
     private final CacheManager cacheManager;
 
@@ -67,5 +69,17 @@ public class AdminService {
         return toiletRepository.findByStatus(ToiletStatus.PENDING);
     }
 
+    @Transactional(readOnly = true)
+    public List<ToiletRequestDto> getRequestUpdate() {
+        return toiletRequestRepository.requestUpdateAll().stream()
+                .map(ToiletRequestDto::from)
+                .collect(Collectors.toList());
+    }
 
+    @Transactional(readOnly = true)
+    public List<ToiletRequestDto> getRequestDelete() {
+        return toiletRequestRepository.requestDeleteAll().stream()
+                .map(ToiletRequestDto::from)
+                .collect(Collectors.toList());
+    }
 }

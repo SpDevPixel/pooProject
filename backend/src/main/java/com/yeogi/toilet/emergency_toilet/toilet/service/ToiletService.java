@@ -1,6 +1,5 @@
 package com.yeogi.toilet.emergency_toilet.toilet.service;
 
-import com.yeogi.toilet.emergency_toilet.review.domain.Review;
 import com.yeogi.toilet.emergency_toilet.review.repository.ReviewRepository;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.ToiletStatus;

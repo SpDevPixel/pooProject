@@ -2,6 +2,7 @@ package com.yeogi.toilet.emergency_toilet.admin.controller;
 
 import com.yeogi.toilet.emergency_toilet.admin.service.AdminService;
 import com.yeogi.toilet.emergency_toilet.toilet.domain.Toilet;
+import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletRequestDto;
 import com.yeogi.toilet.emergency_toilet.toilet.dto.ToiletUpdateDto;
 import com.yeogi.toilet.emergency_toilet.toilet.service.ToiletService;
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
@@ -66,6 +67,18 @@ public class AdminController {
     public ResponseEntity<Void> deleteToilet(@PathVariable Long id) {
         toiletService.deleteAdminToilet(id); //
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/request/update")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ToiletRequestDto>> requestUpdate() {
+        return ResponseEntity.ok(adminService.getRequestUpdate());
+    }
+
+    @GetMapping("/request/delete")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<ToiletRequestDto>> requestDelete(){
+        return ResponseEntity.ok(adminService.getRequestDelete());
     }
 
     /**
