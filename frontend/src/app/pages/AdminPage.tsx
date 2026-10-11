@@ -31,7 +31,7 @@ import {
 import { createNotice, deleteNotice, fetchNotices, updateNotice } from "../api/notices";
 import {
   completeToiletRequest,
-  getToiletRequests,
+  getAdminToiletRequests,
   type ToiletRequestNotification,
 } from "../api/toiletRequests";
 import { useAuth } from "../contexts/AuthContext";
@@ -109,8 +109,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [adminToilets, setAdminToilets] = useState<Toilet[]>([]);
   const [pendingToilets, setPendingToilets] = useState<Toilet[]>([]);
-  const [updateRequests, setUpdateRequests] = useState<ToiletRequestNotification[]>([]);
-  const [deleteRequests, setDeleteRequests] = useState<ToiletRequestNotification[]>([]);
+  const [rawUpdateRequests, setUpdateRequests] = useState<ToiletRequestNotification[]>([]);
+  const [rawDeleteRequests, setDeleteRequests] = useState<ToiletRequestNotification[]>([]);
   const [toiletQuery, setToiletQuery] = useState("");
   const [toiletSource, setToiletSource] = useState<ToiletSourceFilter>("all");
   const [noticeQuery, setNoticeQuery] = useState("");
@@ -138,6 +138,27 @@ export default function AdminPage() {
   const [userError, setUserError] = useState<string | null>(null);
   const [pendingToiletError, setPendingToiletError] = useState<string | null>(null);
   const [toiletRequestError, setToiletRequestError] = useState<string | null>(null);
+
+  const [updateRequests, deleteRequests] = useMemo(() => {
+    const toiletsById = new Map(adminToilets.map((toilet) => [String(toilet.backendId), toilet]));
+    const usersById = new Map(users.map((adminUser) => [adminUser.id, adminUser]));
+    const enrichRequest = (request: ToiletRequestNotification): ToiletRequestNotification => {
+      const toilet = toiletsById.get(request.toiletId);
+      const requester = usersById.get(request.requesterUserId);
+      const recipient = usersById.get(request.recipientUserId);
+      return {
+        ...request,
+        toiletName: toilet?.name ?? request.toiletName,
+        roadAddress: toilet?.roadAddress ?? request.roadAddress,
+        managementNo: toilet?.managementNo ?? request.managementNo,
+        requesterName: requester?.name || requester?.nickname || request.requesterName,
+        requesterUserId: requester?.userId || request.requesterUserId,
+        recipientLabel: recipient?.name || recipient?.nickname || request.recipientLabel,
+        recipientUserId: recipient?.userId || request.recipientUserId,
+      };
+    };
+    return [rawUpdateRequests.map(enrichRequest), rawDeleteRequests.map(enrichRequest)];
+  }, [rawUpdateRequests, rawDeleteRequests, adminToilets, users]);
 
   // 공지 목록 조회
   const loadNotices = async () => {
@@ -205,7 +226,7 @@ export default function AdminPage() {
     }
   };
 
-  // 관리자에게 온 화장실 수정/삭제 요청 조회
+  // 등록자와 관계없이 모든 화장실 수정/삭제 요청 조회
   const loadToiletRequests = async () => {
     if (!user?.token || !isAdmin) return;
 
@@ -213,7 +234,7 @@ export default function AdminPage() {
     setToiletRequestError(null);
 
     try {
-      const requests = await getToiletRequests(user.token);
+      const requests = await getAdminToiletRequests(user.token);
       setUpdateRequests(requests.filter((request) => request.type === "UPDATE"));
       setDeleteRequests(requests.filter((request) => request.type === "DELETE"));
     } catch (error) {
@@ -591,7 +612,7 @@ export default function AdminPage() {
 
     const toiletId = Number(request.toiletId);
 
-    if (!Number.isFinite(toiletId)) {
+    if (!Number.isSafeInteger(toiletId) || toiletId <= 0) {
       toast.error("삭제할 화장실의 DB 식별자를 찾지 못했습니다.");
       return;
     }
@@ -911,7 +932,7 @@ export default function AdminPage() {
                 <div>
                   <h2 className="font-semibold text-white">화장실 수정 요청</h2>
                   <p className="mt-1 text-sm text-slate-300">
-                    관리자 소유 또는 공공데이터 화장실에 들어온 수정 요청을 확인합니다.
+                    모든 사용자 등록 화장실에 들어온 수정 요청을 확인합니다.
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={loadToiletRequests} disabled={isLoadingToiletRequests}>
@@ -940,6 +961,7 @@ export default function AdminPage() {
                           <div className="mb-2 flex flex-wrap items-center gap-2">
                             <h3 className="font-semibold text-slate-950">{request.toiletName}</h3>
                             <Badge variant="secondary">수정요청</Badge>
+                            <Badge variant="outline">{request.status === "REJECTED" ? "반려" : request.status === "PENDING" ? "대기" : request.status}</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{request.roadAddress || "주소 없음"}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
@@ -990,7 +1012,7 @@ export default function AdminPage() {
                 <div>
                   <h2 className="font-semibold text-white">화장실 삭제 요청</h2>
                   <p className="mt-1 text-sm text-slate-300">
-                    관리자 소유 또는 공공데이터 화장실에 들어온 삭제 요청을 처리합니다.
+                    모든 사용자 등록 화장실의 삭제 요청을 확인하고, 삭제 처리 시 DB에서도 화장실이 삭제됩니다.
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={loadToiletRequests} disabled={isLoadingToiletRequests}>
@@ -1019,6 +1041,7 @@ export default function AdminPage() {
                           <div className="mb-2 flex flex-wrap items-center gap-2">
                             <h3 className="font-semibold text-slate-950">{request.toiletName}</h3>
                             <Badge variant="outline">삭제요청</Badge>
+                            <Badge variant="secondary">{request.status === "REJECTED" ? "반려" : request.status === "PENDING" ? "대기" : request.status}</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{request.roadAddress || "주소 없음"}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
@@ -1037,7 +1060,7 @@ export default function AdminPage() {
                             onClick={() => handleDismissDeleteRequest(request)}
                             disabled={processingRequestId === request.id}
                           >
-                            처리 완료
+                            요청만 처리 완료
                           </Button>
                           <Button
                             onClick={() => setDeleteConfirmation({

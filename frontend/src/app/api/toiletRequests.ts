@@ -20,12 +20,13 @@ type BackendToiletSummary = {
 
 type BackendToiletRequest = {
   id: number | string;
+  toiletId?: number | string | null;
   toilet?: BackendToiletSummary | null;
   deleteToiletRequest?: boolean | null;
   updateToiletRequest?: boolean | null;
   content?: string | null;
-  requester?: BackendUserSummary | null;
-  approver?: BackendUserSummary | null;
+  requester?: BackendUserSummary | number | string | null;
+  approver?: BackendUserSummary | number | string | null;
   status?: string | null;
 };
 
@@ -72,15 +73,15 @@ const normalizeRequest = (
   type: ToiletRequestType
 ): ToiletRequestNotification => {
   const toilet = request.toilet;
-  const requester = request.requester;
-  const approver = request.approver;
+  const requester = typeof request.requester === "object" ? request.requester : { id: request.requester };
+  const approver = typeof request.approver === "object" ? request.approver : { id: request.approver };
   const requesterDisplayId = requester?.userId ?? requester?.id?.toString() ?? "-";
   const recipientDisplayId = approver?.userId ?? approver?.id?.toString() ?? "-";
 
   return {
     id: request.id.toString(),
     type,
-    toiletId: toilet?.id?.toString() ?? "",
+    toiletId: toilet?.id?.toString() ?? request.toiletId?.toString() ?? "",
     managementNo: toilet?.managementNo?.toString() ?? "",
     toiletName: toilet?.name ?? "화장실 정보 없음",
     roadAddress: toilet?.roadAddress ?? "",
@@ -142,12 +143,12 @@ export const addToiletRequest = async ({
   };
 };
 
-export const getToiletRequests = async (token: string): Promise<ToiletRequestNotification[]> => {
+const fetchToiletRequests = async (token: string, admin: boolean): Promise<ToiletRequestNotification[]> => {
   const [updateResponse, deleteResponse] = await Promise.all([
-    fetch(`${API_BASE_URL}/requests/received/update`, {
+    fetch(`${API_BASE_URL}/${admin ? "admin/request/update" : "requests/received/update"}`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
-    fetch(`${API_BASE_URL}/requests/received/delete`, {
+    fetch(`${API_BASE_URL}/${admin ? "admin/request/delete" : "requests/received/delete"}`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
   ]);
@@ -184,6 +185,12 @@ export const completeToiletRequest = async (
     throw new Error(getRequestApiErrorMessage(response, "요청 처리 완료에 실패했습니다."));
   }
 };
+
+export const getToiletRequests = (token: string): Promise<ToiletRequestNotification[]> =>
+  fetchToiletRequests(token, false);
+
+export const getAdminToiletRequests = (token: string): Promise<ToiletRequestNotification[]> =>
+  fetchToiletRequests(token, true);
 
 export const deleteToiletRequestNotification = async (
   requestId: string,
