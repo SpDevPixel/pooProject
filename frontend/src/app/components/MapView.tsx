@@ -3,12 +3,15 @@
  * 상위 폴더: src/app/components (화면에서 재사용하는 컴포넌트)
  * 역할: 카카오맵을 렌더링, 좌표가 있는 화장실 마커와 현재 위치 표시를 관리
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Navigation, X } from "lucide-react";
 import type { Toilet } from "../types/toilet";
 import type { RoutePoint, TmapRouteResult } from "../api/tmapRoutes";
 import { Button } from "./ui/button";
 import selectedToiletMarkerUrl from "../../assets/selected-toilet-marker.svg";
+import { useLiveLocation } from "../hooks/useLiveLocation";
+import type { LiveLocation } from "../utils/locationTracking";
+import { advanceRouteProgress, createRouteGeometry, distanceBetween, getRemainingPath } from "../utils/routeProgress";
 
 interface MapViewProps {
   toilets: Toilet[];
@@ -39,19 +42,28 @@ export function MapView({
   const markerClustererRef = useRef<any>(null);
   const currentLocationMarkerRef = useRef<any>(null);
   const routePolylineRef = useRef<any>(null);
+  const routeBasePolylineRef = useRef<any>(null);
   const routeStartOverlayRef = useRef<any>(null);
   const routeEndOverlayRef = useRef<any>(null);
-  const [isLocating, setIsLocating] = useState(false);
+  const { location: liveLocation, error: locationError, isLocating, retry: retryLocation } = useLiveLocation(onCurrentLocationChange);
+  const [isFollowingLocation, setIsFollowingLocation] = useState(true);
+  const [routeProgress, setRouteProgress] = useState(0);
+  const routeProgressRef = useRef(0);
+  const previousRouteLocationRef = useRef<LiveLocation | null>(null);
   const [mapLoadFailed, setMapLoadFailed] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [internalCurrentLocation, setInternalCurrentLocation] = useState<RoutePoint | null>(null);
-  const visibleCurrentLocation = currentLocation ?? internalCurrentLocation;
+  const visibleCurrentLocation = liveLocation ?? currentLocation;
+  const routeGeometry = useMemo(() => createRouteGeometry(activeRoute?.path ?? []), [activeRoute]);
+  const remainingFraction = routeGeometry.length > 0 ? Math.max(0, 1 - routeProgress / routeGeometry.length) : 1;
+  const remainingDistance = (activeRoute?.distance ?? 0) * remainingFraction;
+  const remainingDuration = (activeRoute?.duration ?? 0) * remainingFraction;
+  const hasArrived = Boolean(activeRoute && routeGeometry.length > 0 && routeProgress >= routeGeometry.length);
 
-  const routeDistanceText = activeRoute?.distance
-    ? `${activeRoute.distance >= 1000 ? `${(activeRoute.distance / 1000).toFixed(1)}km` : `${Math.round(activeRoute.distance)}m`}`
+  const routeDistanceText = activeRoute
+    ? `${remainingDistance >= 1000 ? `${(remainingDistance / 1000).toFixed(1)}km` : `${Math.round(remainingDistance)}m`}`
     : "";
-  const routeTimeText = activeRoute?.duration
-    ? `도보 약 ${Math.max(1, Math.ceil(activeRoute.duration / 60))}분`
+  const routeTimeText = activeRoute?.duration && !hasArrived
+    ? `도보 약 ${Math.max(1, Math.ceil(remainingDuration / 60))}분`
     : "";
 
   const hasValidToiletCoordinates = useCallback((toilet: Toilet) => {
@@ -74,6 +86,8 @@ export function MapView({
   }, []);
 
   const clearRouteOverlay = useCallback(() => {
+    routeBasePolylineRef.current?.setMap(null);
+    routeBasePolylineRef.current = null;
     routePolylineRef.current?.setMap(null);
     routePolylineRef.current = null;
     routeStartOverlayRef.current?.setMap(null);
@@ -91,7 +105,10 @@ export function MapView({
     (location: RoutePoint) => {
       if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
 
-      clearCurrentLocationMarker();
+      if (currentLocationMarkerRef.current) {
+        currentLocationMarkerRef.current.setPosition(new window.kakao.maps.LatLng(location.lat, location.lng));
+        return;
+      }
       currentLocationMarkerRef.current = new window.kakao.maps.CustomOverlay({
         position: new window.kakao.maps.LatLng(location.lat, location.lng),
         content:
@@ -283,6 +300,8 @@ export function MapView({
     if (!mapInstanceRef.current || !selectedToilet || !window.kakao?.maps) return;
     if (!hasValidToiletCoordinates(selectedToilet)) return;
 
+    setIsFollowingLocation(false);
+
     const position = new window.kakao.maps.LatLng(
       selectedToilet.lat,
       selectedToilet.lng
@@ -295,6 +314,8 @@ export function MapView({
 
   useEffect(() => {
     if (!mapInstanceRef.current || !focusLocation || !window.kakao?.maps) return;
+
+    setIsFollowingLocation(false);
 
     const position = new window.kakao.maps.LatLng(
       focusLocation.lat,
@@ -321,6 +342,9 @@ export function MapView({
   ]);
 
   useEffect(() => {
+    routeProgressRef.current = 0;
+    previousRouteLocationRef.current = null;
+    setRouteProgress(0);
     if (!activeRoute) {
       clearRouteOverlay();
       return;
@@ -328,11 +352,24 @@ export function MapView({
 
     if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
 
+    setIsFollowingLocation(true);
+
     clearRouteOverlay();
 
     const path = activeRoute.path.map(
       (point) => new window.kakao.maps.LatLng(point.lat, point.lng)
     );
+
+    // Keep the entire route in gray underneath the blue remaining portion.
+    routeBasePolylineRef.current = new window.kakao.maps.Polyline({
+      path,
+      strokeWeight: 6,
+      strokeColor: "#9ca3af",
+      strokeOpacity: 0.9,
+      strokeStyle: "solid",
+      zIndex: 1,
+      map: mapInstanceRef.current,
+    });
 
     routePolylineRef.current = new window.kakao.maps.Polyline({
       path,
@@ -340,6 +377,7 @@ export function MapView({
       strokeColor: "#2563eb",
       strokeOpacity: 0.9,
       strokeStyle: "solid",
+      zIndex: 2,
     });
     routePolylineRef.current.setMap(mapInstanceRef.current);
 
@@ -372,49 +410,59 @@ export function MapView({
     const bounds = new window.kakao.maps.LatLngBounds();
     path.forEach((point) => bounds.extend(point));
     mapInstanceRef.current.setBounds(bounds);
+    mapInstanceRef.current.setLevel(3);
 
     return clearRouteOverlay;
   }, [activeRoute, clearRouteOverlay, isMapReady]);
 
+  useEffect(() => {
+    if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
+    const map = mapInstanceRef.current;
+    const stopFollowing = () => setIsFollowingLocation(false);
+    window.kakao.maps.event.addListener(map, "dragstart", stopFollowing);
+    return () => window.kakao.maps.event.removeListener(map, "dragstart", stopFollowing);
+  }, [isMapReady]);
+
+  useEffect(() => {
+    if (!isMapReady || !visibleCurrentLocation || !isFollowingLocation || !window.kakao?.maps) return;
+    mapInstanceRef.current?.panTo(new window.kakao.maps.LatLng(visibleCurrentLocation.lat, visibleCurrentLocation.lng));
+  }, [isMapReady, visibleCurrentLocation, isFollowingLocation, activeRoute]);
+
+  useEffect(() => {
+    if (!activeRoute || !liveLocation || !routePolylineRef.current || !window.kakao?.maps) return;
+    // Coarse desktop fixes still move the marker, but must not consume the walking route.
+    if (locationError || !Number.isFinite(liveLocation.accuracy) || liveLocation.accuracy > 50) return;
+    const previousLocation = previousRouteLocationRef.current;
+    if (previousLocation && liveLocation.timestamp <= previousLocation.timestamp) return;
+    const movement = previousLocation ? distanceBetween(previousLocation, liveLocation) : 0;
+    const elapsed = previousLocation ? Math.max(0, (liveLocation.timestamp - previousLocation.timestamp) / 1000) : 0;
+    const maxAdvance = previousLocation ? Math.min(Math.max(60, movement * 1.5 + 20), Math.max(60, elapsed * 3 + 30)) : 80;
+    let progress = advanceRouteProgress(routeGeometry, liveLocation, routeProgressRef.current, maxAdvance, 25);
+    const end = routeGeometry.path[routeGeometry.path.length - 1];
+    if (end && routeGeometry.length - progress <= 15 && distanceBetween(liveLocation, end) <= 10) {
+      progress = routeGeometry.length;
+    }
+    previousRouteLocationRef.current = liveLocation;
+    routeProgressRef.current = progress;
+    setRouteProgress(progress);
+    const remainingPath = getRemainingPath(routeGeometry, progress);
+    routePolylineRef.current.setPath(remainingPath.map((point) => new window.kakao.maps.LatLng(point.lat, point.lng)));
+    if (progress > 5) routeStartOverlayRef.current?.setMap(null);
+  }, [activeRoute, isMapReady, liveLocation, locationError, routeGeometry]);
+
+  useEffect(() => () => {
+    clearRouteOverlay();
+    clearCurrentLocationMarker();
+  }, [clearRouteOverlay, clearCurrentLocationMarker]);
+
   const moveToCurrentLocation = () => {
     if (!mapInstanceRef.current || !window.kakao?.maps || isLocating) return;
 
-    if (!navigator.geolocation) {
-      alert("현재 브라우저에서는 위치 정보를 사용할 수 없습니다.");
-      return;
+    setIsFollowingLocation(true);
+    if (locationError || !visibleCurrentLocation) retryLocation();
+    if (visibleCurrentLocation) {
+      mapInstanceRef.current.panTo(new window.kakao.maps.LatLng(visibleCurrentLocation.lat, visibleCurrentLocation.lng));
     }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const location = { lat, lng };
-        const locPosition = new window.kakao.maps.LatLng(lat, lng);
-
-        setInternalCurrentLocation(location);
-        onCurrentLocationChange?.(location);
-        renderCurrentLocationMarker(location);
-
-        mapInstanceRef.current.panTo(locPosition);
-        setIsLocating(false);
-      },
-      (error) => {
-        setIsLocating(false);
-        console.error("위치 정보 오류:", error);
-
-        if (error.code === 1) {
-          alert("위치 권한이 꺼져 있습니다. 브라우저 위치 권한을 허용해주세요.");
-        } else if (error.code === 2) {
-          alert("현재 위치를 찾지 못했습니다. 잠시 후 다시 시도해주세요.");
-        } else if (error.code === 3) {
-          alert("위치 확인 시간이 초과되었습니다. 네트워크 상태를 확인해주세요.");
-        } else {
-          alert("현재 위치를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
   };
 
   return (
@@ -434,7 +482,7 @@ export function MapView({
         <div className="absolute left-4 right-4 top-[3.75rem] z-10 rounded-lg border bg-white p-4 shadow-lg sm:left-6 sm:right-auto sm:w-[320px] lg:top-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-blue-600">길 안내 중</p>
+              <p className="text-xs font-medium text-blue-600">{hasArrived ? "목적지에 도착했습니다" : "길 안내 중"}</p>
               <h3 className="mt-1 truncate font-semibold">{activeRoute.destination.name}</h3>
               <p className="mt-1 truncate text-xs text-muted-foreground">
                 {activeRoute.destination.roadAddress}
@@ -464,6 +512,11 @@ export function MapView({
               )}
             </div>
           )}
+          {liveLocation && liveLocation.accuracy > 50 && !hasArrived && !locationError && (
+            <p role="status" className="mt-2 text-xs text-amber-700">
+              위치 정확도가 낮습니다. 신호가 좋아지면 지나간 경로를 반영합니다.
+            </p>
+          )}
         </div>
       )}
 
@@ -473,14 +526,21 @@ export function MapView({
         className={`absolute bottom-16 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 shadow-lg transition-colors lg:bottom-20 lg:right-6 ${
           isLocating || mapLoadFailed ? "bg-gray-100 cursor-not-allowed" : "bg-white hover:bg-gray-50"
         }`}
-        aria-label="현재 위치로 이동"
+        aria-label={isFollowingLocation ? "현재 위치 따라가는 중" : "현재 위치 따라가기"}
+        aria-pressed={isFollowingLocation}
+        title={isFollowingLocation ? "현재 위치 따라가는 중" : "현재 위치 따라가기"}
       >
         {isLocating ? (
           <Loader2 size={24} className="animate-spin text-blue-600" />
         ) : (
-          <Navigation size={24} className="text-blue-600" />
+          <Navigation size={24} className={`text-blue-600 ${isFollowingLocation ? "fill-blue-100" : ""}`} />
         )}
       </button>
+      {locationError && (
+        <div role="status" className="absolute bottom-3 left-3 right-3 z-20 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 lg:right-24">
+          {locationError}
+        </div>
+      )}
     </div>
   );
 }
