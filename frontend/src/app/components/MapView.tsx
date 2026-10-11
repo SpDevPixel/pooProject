@@ -435,11 +435,12 @@ export function MapView({
     const stopFollowing = () => setFollowingLocation(false);
     window.kakao.maps.event.addListener(map, "dragstart", stopFollowing);
     const container = mapRef.current;
-    // 데스크톱으로 인식된 지도는 마우스 입력을 사용하므로 개발자 도구의 터치 드래그를 별도로 처리합니다.
+    // 지도 초기화 시 입력 모드를 기억해 F12에서 모바일 모드로 전환해도 터치 보완 처리가 유지되도록 합니다.
+    const needsDesktopTouchFallback = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     let desktopTouch: { x: number; y: number; identifier: number } | null = null;
     const beginDesktopTouch = (event: TouchEvent) => {
       desktopTouch = null;
-      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || event.touches.length !== 1) return;
+      if (!needsDesktopTouchFallback || event.touches.length !== 1) return;
       const touch = event.touches[0];
       desktopTouch = { x: touch.clientX, y: touch.clientY, identifier: touch.identifier };
     };
