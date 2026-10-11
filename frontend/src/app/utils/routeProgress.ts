@@ -21,7 +21,7 @@ export function createRouteGeometry(path: RoutePoint[]) {
 
 export type RouteGeometry = ReturnType<typeof createRouteGeometry>;
 
-// Match to the next portion of the route, so crossings and GPS drift cannot erase a later loop.
+// 현재 구간 근처에서만 진행 위치를 찾아 교차 경로나 GPS 오차로 아직 지나지 않은 구간이 처리되지 않도록 합니다.
 export function advanceRouteProgress(
   route: RouteGeometry,
   location: RoutePoint,

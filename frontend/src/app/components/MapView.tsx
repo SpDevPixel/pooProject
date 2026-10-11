@@ -12,6 +12,7 @@ import selectedToiletMarkerUrl from "../../assets/selected-toilet-marker.svg";
 import { useLiveLocation } from "../hooks/useLiveLocation";
 import type { LiveLocation } from "../utils/locationTracking";
 import { advanceRouteProgress, createRouteGeometry, distanceBetween, getRemainingPath } from "../utils/routeProgress";
+import { focusMapAt } from "../utils/mapViewport";
 
 interface MapViewProps {
   toilets: Toilet[];
@@ -20,7 +21,7 @@ interface MapViewProps {
   activeRoute?: TmapRouteResult | null;
   currentLocation?: RoutePoint | null;
   onClearRoute?: () => void;
-  onCurrentLocationChange?: (location: RoutePoint) => void;
+  onCurrentLocationChange?: (location: LiveLocation) => void;
   onMarkerClick: (toilet: Toilet) => void;
   onAddressMarkerStatusChange?: (status: "loading" | "complete") => void;
 }
@@ -40,6 +41,7 @@ export function MapView({
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const markerClustererRef = useRef<any>(null);
+  const clusterClickHandlerRef = useRef<((cluster: any) => void) | null>(null);
   const currentLocationMarkerRef = useRef<any>(null);
   const routePolylineRef = useRef<any>(null);
   const routeBasePolylineRef = useRef<any>(null);
@@ -47,6 +49,15 @@ export function MapView({
   const routeEndOverlayRef = useRef<any>(null);
   const { location: liveLocation, error: locationError, isLocating, retry: retryLocation } = useLiveLocation(onCurrentLocationChange);
   const [isFollowingLocation, setIsFollowingLocation] = useState(true);
+  const followingLocationRef = useRef(true);
+  const setFollowingLocation = useCallback((following: boolean) => {
+    followingLocationRef.current = following;
+    setIsFollowingLocation(following);
+  }, []);
+  const handleMarkerSelection = useCallback((toilet: Toilet) => {
+    setFollowingLocation(false);
+    onMarkerClick(toilet);
+  }, [onMarkerClick, setFollowingLocation]);
   const [routeProgress, setRouteProgress] = useState(0);
   const routeProgressRef = useRef(0);
   const previousRouteLocationRef = useRef<LiveLocation | null>(null);
@@ -134,6 +145,7 @@ export function MapView({
         const options = {
           center: new window.kakao.maps.LatLng(37.5665, 126.978),
           level: 5,
+          draggable: true,
         };
 
         mapInstanceRef.current = new window.kakao.maps.Map(container, options);
@@ -146,8 +158,16 @@ export function MapView({
           averageCenter: true,
           minLevel: 4,
           gridSize: 70,
-          disableClickZoom: false,
+          disableClickZoom: true,
         });
+        const handleClusterClick = (cluster: any) => {
+          setFollowingLocation(false);
+          const map = mapInstanceRef.current;
+          if (!map) return;
+          focusMapAt(map, cluster.getCenter(), Math.max(1, map.getLevel() - 1));
+        };
+        clusterClickHandlerRef.current = handleClusterClick;
+        window.kakao.maps.event.addListener(markerClustererRef.current, "clusterclick", handleClusterClick);
       });
     };
 
@@ -183,7 +203,7 @@ export function MapView({
       window.removeEventListener("kakao-maps-loaded", initMap);
       window.removeEventListener("kakao-maps-load-error", handleMapLoadError);
     };
-  }, [onAddressMarkerStatusChange]);
+  }, [onAddressMarkerStatusChange, setFollowingLocation]);
 
   useEffect(() => {
     const container = mapRef.current;
@@ -242,7 +262,7 @@ export function MapView({
           });
 
           window.kakao.maps.event.addListener(marker, "click", () => {
-            onMarkerClick(toilet);
+            handleMarkerSelection(toilet);
           });
 
           return marker;
@@ -265,7 +285,7 @@ export function MapView({
   }, [
     toilets,
     selectedToilet?.id,
-    onMarkerClick,
+    handleMarkerSelection,
     hasValidToiletCoordinates,
     clearToiletMarkers,
     onAddressMarkerStatusChange,
@@ -287,46 +307,40 @@ export function MapView({
       title: selectedToilet.name,
       zIndex: 100,
     });
-    const handleClick = () => onMarkerClick(selectedToilet);
+    const handleClick = () => handleMarkerSelection(selectedToilet);
     window.kakao.maps.event.addListener(marker, "click", handleClick);
 
     return () => {
       window.kakao.maps.event.removeListener(marker, "click", handleClick);
       marker.setMap(null);
     };
-  }, [isMapReady, selectedToilet, hasValidToiletCoordinates, onMarkerClick]);
+  }, [isMapReady, selectedToilet, hasValidToiletCoordinates, handleMarkerSelection]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedToilet || !window.kakao?.maps) return;
     if (!hasValidToiletCoordinates(selectedToilet)) return;
 
-    setIsFollowingLocation(false);
+    setFollowingLocation(false);
 
     const position = new window.kakao.maps.LatLng(
       selectedToilet.lat,
       selectedToilet.lng
     );
-    mapInstanceRef.current.panTo(position);
-    if (typeof mapInstanceRef.current.setLevel === "function") {
-      mapInstanceRef.current.setLevel(3);
-    }
-  }, [isMapReady, selectedToilet, hasValidToiletCoordinates]);
+    focusMapAt(mapInstanceRef.current, position, 3);
+  }, [isMapReady, selectedToilet?.id, selectedToilet?.lat, selectedToilet?.lng, hasValidToiletCoordinates, setFollowingLocation]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !focusLocation || !window.kakao?.maps) return;
 
-    setIsFollowingLocation(false);
+    setFollowingLocation(false);
 
     const position = new window.kakao.maps.LatLng(
       focusLocation.lat,
       focusLocation.lng
     );
 
-    mapInstanceRef.current.panTo(position);
-    if (typeof mapInstanceRef.current.setLevel === "function") {
-      mapInstanceRef.current.setLevel(4);
-    }
-  }, [focusLocation]);
+    focusMapAt(mapInstanceRef.current, position, 4);
+  }, [isMapReady, focusLocation, setFollowingLocation]);
 
   useEffect(() => {
     if (!visibleCurrentLocation) {
@@ -352,7 +366,7 @@ export function MapView({
 
     if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
 
-    setIsFollowingLocation(true);
+    setFollowingLocation(true);
 
     clearRouteOverlay();
 
@@ -360,7 +374,7 @@ export function MapView({
       (point) => new window.kakao.maps.LatLng(point.lat, point.lng)
     );
 
-    // Keep the entire route in gray underneath the blue remaining portion.
+    // 전체 경로를 회색으로 유지하고, 남은 구간을 파란색으로 덮어 표시합니다.
     routeBasePolylineRef.current = new window.kakao.maps.Polyline({
       path,
       strokeWeight: 6,
@@ -413,24 +427,66 @@ export function MapView({
     mapInstanceRef.current.setLevel(3);
 
     return clearRouteOverlay;
-  }, [activeRoute, clearRouteOverlay, isMapReady]);
+  }, [activeRoute, clearRouteOverlay, isMapReady, setFollowingLocation]);
 
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current || !window.kakao?.maps) return;
     const map = mapInstanceRef.current;
-    const stopFollowing = () => setIsFollowingLocation(false);
+    const stopFollowing = () => setFollowingLocation(false);
     window.kakao.maps.event.addListener(map, "dragstart", stopFollowing);
-    return () => window.kakao.maps.event.removeListener(map, "dragstart", stopFollowing);
-  }, [isMapReady]);
+    const container = mapRef.current;
+    // 데스크톱으로 인식된 지도는 마우스 입력을 사용하므로 개발자 도구의 터치 드래그를 별도로 처리합니다.
+    let desktopTouch: { x: number; y: number; identifier: number } | null = null;
+    const beginDesktopTouch = (event: TouchEvent) => {
+      desktopTouch = null;
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      desktopTouch = { x: touch.clientX, y: touch.clientY, identifier: touch.identifier };
+    };
+    const moveDesktopTouch = (event: TouchEvent) => {
+      if (!desktopTouch || !container) return;
+      if (event.touches.length !== 1 || event.touches[0].identifier !== desktopTouch.identifier) {
+        desktopTouch = null;
+        return;
+      }
+      const touch = event.touches[0];
+      const dx = touch.clientX - desktopTouch.x;
+      const dy = touch.clientY - desktopTouch.y;
+      if (dx || dy) {
+        const point = new window.kakao.maps.Point(container.clientWidth / 2 - dx, container.clientHeight / 2 - dy);
+        map.setCenter(map.getProjection().coordsFromContainerPoint(point));
+        desktopTouch = { x: touch.clientX, y: touch.clientY, identifier: touch.identifier };
+        if (event.cancelable) event.preventDefault();
+      }
+    };
+    const endDesktopTouch = () => { desktopTouch = null; };
+    container?.addEventListener("wheel", stopFollowing, { capture: true, passive: true });
+    container?.addEventListener("pointerdown", stopFollowing, { capture: true, passive: true });
+    container?.addEventListener("touchstart", stopFollowing, { capture: true, passive: true });
+    container?.addEventListener("touchstart", beginDesktopTouch, { passive: true });
+    container?.addEventListener("touchmove", moveDesktopTouch, { passive: false });
+    container?.addEventListener("touchend", endDesktopTouch, { passive: true });
+    container?.addEventListener("touchcancel", endDesktopTouch, { passive: true });
+    return () => {
+      window.kakao.maps.event.removeListener(map, "dragstart", stopFollowing);
+      container?.removeEventListener("wheel", stopFollowing, true);
+      container?.removeEventListener("pointerdown", stopFollowing, true);
+      container?.removeEventListener("touchstart", stopFollowing, true);
+      container?.removeEventListener("touchstart", beginDesktopTouch);
+      container?.removeEventListener("touchmove", moveDesktopTouch);
+      container?.removeEventListener("touchend", endDesktopTouch);
+      container?.removeEventListener("touchcancel", endDesktopTouch);
+    };
+  }, [isMapReady, setFollowingLocation]);
 
   useEffect(() => {
-    if (!isMapReady || !visibleCurrentLocation || !isFollowingLocation || !window.kakao?.maps) return;
+    if (!isMapReady || !visibleCurrentLocation || !followingLocationRef.current || !window.kakao?.maps) return;
     mapInstanceRef.current?.panTo(new window.kakao.maps.LatLng(visibleCurrentLocation.lat, visibleCurrentLocation.lng));
   }, [isMapReady, visibleCurrentLocation, isFollowingLocation, activeRoute]);
 
   useEffect(() => {
     if (!activeRoute || !liveLocation || !routePolylineRef.current || !window.kakao?.maps) return;
-    // Coarse desktop fixes still move the marker, but must not consume the walking route.
+    // 위치 정확도가 낮아도 현재 위치 마커는 갱신하되, 경로의 이동 완료 처리는 보류합니다.
     if (locationError || !Number.isFinite(liveLocation.accuracy) || liveLocation.accuracy > 50) return;
     const previousLocation = previousRouteLocationRef.current;
     if (previousLocation && liveLocation.timestamp <= previousLocation.timestamp) return;
@@ -451,6 +507,9 @@ export function MapView({
   }, [activeRoute, isMapReady, liveLocation, locationError, routeGeometry]);
 
   useEffect(() => () => {
+    if (markerClustererRef.current && clusterClickHandlerRef.current && window.kakao?.maps) {
+      window.kakao.maps.event.removeListener(markerClustererRef.current, "clusterclick", clusterClickHandlerRef.current);
+    }
     clearRouteOverlay();
     clearCurrentLocationMarker();
   }, [clearRouteOverlay, clearCurrentLocationMarker]);
@@ -458,7 +517,7 @@ export function MapView({
   const moveToCurrentLocation = () => {
     if (!mapInstanceRef.current || !window.kakao?.maps || isLocating) return;
 
-    setIsFollowingLocation(true);
+    setFollowingLocation(true);
     if (locationError || !visibleCurrentLocation) retryLocation();
     if (visibleCurrentLocation) {
       mapInstanceRef.current.panTo(new window.kakao.maps.LatLng(visibleCurrentLocation.lat, visibleCurrentLocation.lng));
@@ -467,7 +526,7 @@ export function MapView({
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden" style={{ minHeight: "400px" }}>
-      <div ref={mapRef} className="w-full h-full" />
+      <div ref={mapRef} className="w-full h-full touch-none select-none" style={{ touchAction: "none" }} />
 
       {mapLoadFailed && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white text-center text-red-600">

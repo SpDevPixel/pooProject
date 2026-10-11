@@ -42,6 +42,7 @@ import {
 import { searchKakaoLocations, type SearchLocation } from "../api/kakaoSearch";
 import type { Toilet, ToiletFilters as Filters } from "../types/toilet";
 import { useAuth } from "../contexts/AuthContext";
+import { getCurrentRoutePoint, type LiveLocation } from "../utils/locationTracking";
 
 const hasValidToiletCoordinates = (toilet: Toilet) =>
   typeof toilet.lat === "number" &&
@@ -52,31 +53,6 @@ const hasValidToiletCoordinates = (toilet: Toilet) =>
   toilet.lat <= 90 &&
   toilet.lng >= -180 &&
   toilet.lng <= 180;
-
-const getCurrentRoutePoint = (): Promise<RoutePoint> =>
-  new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("현재 브라우저에서 위치 정보를 사용할 수 없습니다."));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        if (error.code === 1) {
-          reject(new Error("위치 권한을 허용한 뒤 다시 시도해주세요."));
-        } else {
-          reject(new Error("현재 위치를 확인하지 못했습니다. 잠시 후 다시 시도해주세요."));
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  });
 
 const getDistanceMeters = (from: RoutePoint, toilet: Toilet) => {
   if (!hasValidToiletCoordinates(toilet)) return Number.POSITIVE_INFINITY;
@@ -121,6 +97,11 @@ export default function HomePage() {
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<TmapRouteResult | null>(null);
   const [currentLocation, setCurrentLocation] = useState<RoutePoint | null>(null);
+  const latestLocationRef = useRef<LiveLocation | null>(null);
+  const handleCurrentLocationChange = useCallback((next: LiveLocation) => {
+    latestLocationRef.current = next;
+    setCurrentLocation(next);
+  }, []);
   const [isStartingRoute, setIsStartingRoute] = useState(false);
   const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
@@ -404,7 +385,7 @@ export default function HomePage() {
       setIsStartingRoute(true);
 
       try {
-        const routeStart = start ?? (await getCurrentRoutePoint());
+        const routeStart = start ?? (await getCurrentRoutePoint(latestLocationRef.current));
         setCurrentLocation(routeStart);
         const route = await fetchPedestrianRoute({
           start: routeStart,
@@ -441,7 +422,7 @@ export default function HomePage() {
     setIsStartingRoute(true);
 
     try {
-      const start = await getCurrentRoutePoint();
+      const start = await getCurrentRoutePoint(latestLocationRef.current);
       setCurrentLocation(start);
       const nearestToilet = [...candidates].sort(
         (a, b) => getDistanceMeters(start, a) - getDistanceMeters(start, b)
@@ -480,7 +461,7 @@ export default function HomePage() {
     setIsStartingRoute(true);
 
     try {
-      const start = await getCurrentRoutePoint();
+      const start = await getCurrentRoutePoint(latestLocationRef.current);
       setCurrentLocation(start);
 
       const nearbyToilets = candidates
@@ -929,7 +910,7 @@ export default function HomePage() {
                 activeRoute={activeRoute}
                 currentLocation={currentLocation}
                 onClearRoute={() => setActiveRoute(null)}
-                onCurrentLocationChange={setCurrentLocation}
+                onCurrentLocationChange={handleCurrentLocationChange}
                 onMarkerClick={handleToiletClick}
                 onAddressMarkerStatusChange={setAddressMarkerStatus}
               />

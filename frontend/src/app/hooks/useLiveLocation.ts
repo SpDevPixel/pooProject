@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RoutePoint } from "../api/tmapRoutes";
-import { watchLiveLocation, type LiveLocation } from "../utils/locationTracking";
+import { getLocationErrorMessage, watchLiveLocation, type LiveLocation } from "../utils/locationTracking";
 
-export function useLiveLocation(onLocationChange?: (location: RoutePoint) => void) {
+export function useLiveLocation(onLocationChange?: (location: LiveLocation) => void) {
   const [location, setLocation] = useState<LiveLocation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -26,13 +25,11 @@ export function useLiveLocation(onLocationChange?: (location: RoutePoint) => voi
         setLocation(next);
         setIsLocating(false);
         setError(null);
-        callbackRef.current?.({ lat: next.lat, lng: next.lng });
+        callbackRef.current?.(next);
       },
       (positionError) => {
         setIsLocating(false);
-        setError(positionError.code === 1
-          ? "위치 권한을 허용한 뒤 현재 위치 버튼을 눌러주세요."
-          : "현재 위치를 확인하지 못했습니다. 위치 신호가 잡히면 자동으로 다시 반영됩니다.");
+        setError(getLocationErrorMessage(positionError));
       }
     );
   }, [attempt]);
