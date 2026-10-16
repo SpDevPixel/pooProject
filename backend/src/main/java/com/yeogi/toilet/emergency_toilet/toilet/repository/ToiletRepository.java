@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ToiletRepository extends JpaRepository<Toilet, Long> {
     List<Toilet> findByIsUserSubmitted(Boolean isUserSubmitted);
@@ -20,6 +21,8 @@ public interface ToiletRepository extends JpaRepository<Toilet, Long> {
     List<Toilet> findTop10ByRoadAddressContaining(String keyword);
 
     boolean existsByManagementNo(String managementNo);
+
+    Optional<Toilet> findByManagementNo(String managementNo);
 
     List<Toilet> findByStatus(ToiletStatus status);
 

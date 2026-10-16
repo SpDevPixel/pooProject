@@ -17,12 +17,8 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("데이터 초기화 체크 중...");
 
-        // 데이터가 하나도 없는 경우에만 API 호출
-        if (!toiletService.hasData()) {
-            log.info("DB가 비어있습니다. 서울시 공공데이터를 로드합니다.");
-            toiletService.loadFromApi();
-        } else {
-            log.info("기존 데이터가 존재하여 API 자동 로드를 건너뜁니다.");
-        }
+        // 신규 데이터는 추가하고, 기존 공공데이터 행은 최신 API 값으로 갱신합니다.
+        log.info("서울시 공공데이터를 로드하고 기존 공공데이터를 갱신합니다.");
+        toiletService.loadFromApi();
     }
 }

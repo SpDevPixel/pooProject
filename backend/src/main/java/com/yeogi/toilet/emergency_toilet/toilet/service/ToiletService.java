@@ -267,10 +267,12 @@ public class ToiletService {
 
                     if (rows != null && !rows.isEmpty()) {
                         List<Toilet> toiletsToSave = rows.stream()
-                                // 1. 수정: existsByManagementNo를 사용하여 기존 DB에 있는지 검사
-                                .filter(row -> !toiletRepository.existsByManagementNo(row.getManagementNo()))
-                                // 2. 중요: toEntityFromApi 내부에서는 새 PK(id)를 세팅하지 않아야 함
-                                .map(this::toEntityFromApi)
+                                .map(row -> {
+                                    Toilet apiToilet = toEntityFromApi(row);
+                                    return toiletRepository.findByManagementNo(row.getManagementNo())
+                                            .map(existing -> updatePublicToilet(existing, apiToilet))
+                                            .orElse(apiToilet);
+                                })
                                 .collect(Collectors.toList());
 
                         if (!toiletsToSave.isEmpty()) {
@@ -325,6 +327,28 @@ public class ToiletService {
         t.setStatus(ToiletStatus.APPROVED);
 
         return t;
+    }
+
+    private Toilet updatePublicToilet(Toilet existing, Toilet apiToilet) {
+        // 공공데이터 행만 갱신하고, 사용자 등록 데이터 및 리뷰/평점은 보존합니다.
+        if (Boolean.TRUE.equals(existing.getIsUserSubmitted())) {
+            return existing;
+        }
+
+        existing.setName(apiToilet.getName());
+        existing.setRoadAddress(apiToilet.getRoadAddress());
+        existing.setLat(apiToilet.getLat());
+        existing.setLng(apiToilet.getLng());
+        existing.setPhoneNumber(apiToilet.getPhoneNumber());
+        existing.setOpenTime(apiToilet.getOpenTime());
+        existing.setManagingOrg(apiToilet.getManagingOrg());
+        existing.setHasDisabledFacility(apiToilet.getHasDisabledFacility());
+        existing.setHasEmergencyBell(apiToilet.getHasEmergencyBell());
+        existing.setHasDiaperTable(apiToilet.getHasDiaperTable());
+        existing.setHasEntranceCctv(apiToilet.getHasEntranceCctv());
+        existing.setIsUserSubmitted(false);
+        existing.setStatus(ToiletStatus.APPROVED);
+        return existing;
     }
 
 
