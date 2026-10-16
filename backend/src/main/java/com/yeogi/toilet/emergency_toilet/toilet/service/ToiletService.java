@@ -28,6 +28,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -269,7 +270,7 @@ public class ToiletService {
                         List<Toilet> toiletsToSave = rows.stream()
                                 .map(row -> {
                                     Toilet apiToilet = toEntityFromApi(row);
-                                    return toiletRepository.findByManagementNo(row.getManagementNo())
+                                    return findExistingPublicToilet(row, apiToilet)
                                             .map(existing -> updatePublicToilet(existing, apiToilet))
                                             .orElse(apiToilet);
                                 })
@@ -288,6 +289,24 @@ public class ToiletService {
         } catch (Exception e) {
             log.error("서울시 화장실 API 로딩 실패: {}", e.getMessage(), e);
         }
+    }
+
+    private Optional<Toilet> findExistingPublicToilet(ToiletApiRow row, Toilet apiToilet) {
+        if (apiToilet.getName() != null && apiToilet.getRoadAddress() != null
+                && apiToilet.getLat() != null && apiToilet.getLng() != null) {
+            double coordinateTolerance = 0.0001;
+            Optional<Toilet> matchByLocation = toiletRepository
+                    .findFirstByIsUserSubmittedFalseAndNameAndRoadAddressAndLatBetweenAndLngBetweenOrderByIdAsc(
+                            apiToilet.getName(), apiToilet.getRoadAddress(),
+                            apiToilet.getLat() - coordinateTolerance,
+                            apiToilet.getLat() + coordinateTolerance,
+                            apiToilet.getLng() - coordinateTolerance,
+                            apiToilet.getLng() + coordinateTolerance);
+            if (matchByLocation.isPresent()) {
+                return matchByLocation;
+            }
+        }
+        return toiletRepository.findByManagementNo(row.getManagementNo());
     }
 
     private Toilet toEntityFromApi(ToiletApiRow row) {
@@ -335,6 +354,7 @@ public class ToiletService {
             return existing;
         }
 
+        existing.setManagementNo(apiToilet.getManagementNo());
         existing.setName(apiToilet.getName());
         existing.setRoadAddress(apiToilet.getRoadAddress());
         existing.setLat(apiToilet.getLat());

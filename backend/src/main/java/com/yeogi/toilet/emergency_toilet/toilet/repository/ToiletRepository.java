@@ -24,6 +24,9 @@ public interface ToiletRepository extends JpaRepository<Toilet, Long> {
 
     Optional<Toilet> findByManagementNo(String managementNo);
 
+    Optional<Toilet> findFirstByIsUserSubmittedFalseAndNameAndRoadAddressAndLatBetweenAndLngBetweenOrderByIdAsc(
+            String name, String roadAddress, Double minLat, Double maxLat, Double minLng, Double maxLng);
+
     List<Toilet> findByStatus(ToiletStatus status);
 
 
