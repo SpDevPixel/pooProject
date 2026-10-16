@@ -28,8 +28,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -354,21 +356,27 @@ public class ToiletService {
             return existing;
         }
 
-        existing.setManagementNo(apiToilet.getManagementNo());
-        existing.setName(apiToilet.getName());
-        existing.setRoadAddress(apiToilet.getRoadAddress());
-        existing.setLat(apiToilet.getLat());
-        existing.setLng(apiToilet.getLng());
-        existing.setPhoneNumber(apiToilet.getPhoneNumber());
-        existing.setOpenTime(apiToilet.getOpenTime());
-        existing.setManagingOrg(apiToilet.getManagingOrg());
-        existing.setHasDisabledFacility(apiToilet.getHasDisabledFacility());
-        existing.setHasEmergencyBell(apiToilet.getHasEmergencyBell());
-        existing.setHasDiaperTable(apiToilet.getHasDiaperTable());
-        existing.setHasEntranceCctv(apiToilet.getHasEntranceCctv());
-        existing.setIsUserSubmitted(false);
-        existing.setStatus(ToiletStatus.APPROVED);
+        updateIfChanged(existing.getManagementNo(), apiToilet.getManagementNo(), existing::setManagementNo);
+        updateIfChanged(existing.getName(), apiToilet.getName(), existing::setName);
+        updateIfChanged(existing.getRoadAddress(), apiToilet.getRoadAddress(), existing::setRoadAddress);
+        updateIfChanged(existing.getLat(), apiToilet.getLat(), existing::setLat);
+        updateIfChanged(existing.getLng(), apiToilet.getLng(), existing::setLng);
+        updateIfChanged(existing.getPhoneNumber(), apiToilet.getPhoneNumber(), existing::setPhoneNumber);
+        updateIfChanged(existing.getOpenTime(), apiToilet.getOpenTime(), existing::setOpenTime);
+        updateIfChanged(existing.getManagingOrg(), apiToilet.getManagingOrg(), existing::setManagingOrg);
+        updateIfChanged(existing.getHasDisabledFacility(), apiToilet.getHasDisabledFacility(), existing::setHasDisabledFacility);
+        updateIfChanged(existing.getHasEmergencyBell(), apiToilet.getHasEmergencyBell(), existing::setHasEmergencyBell);
+        updateIfChanged(existing.getHasDiaperTable(), apiToilet.getHasDiaperTable(), existing::setHasDiaperTable);
+        updateIfChanged(existing.getHasEntranceCctv(), apiToilet.getHasEntranceCctv(), existing::setHasEntranceCctv);
+        updateIfChanged(existing.getIsUserSubmitted(), false, existing::setIsUserSubmitted);
+        updateIfChanged(existing.getStatus(), ToiletStatus.APPROVED, existing::setStatus);
         return existing;
+    }
+
+    private <T> void updateIfChanged(T currentValue, T apiValue, Consumer<T> setter) {
+        if (!Objects.equals(currentValue, apiValue)) {
+            setter.accept(apiValue);
+        }
     }
 
 
