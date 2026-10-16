@@ -38,6 +38,9 @@ public class ToiletApiRow {
     @JsonProperty("VALUE_06")
     private String convenienceFacilities; // 편의시설(기타설비) - 비상벨, 기저귀교환대 등 (파싱 필요)
 
+    @JsonProperty("VALUE_07")
+    private String safetyFacilities; // 안전시설 - 비상벨, 출입구 CCTV
+
     @JsonProperty("VALUE_08")
     private String managingOrg; // 소재지 (관리기관명으로 사용 가능성 높음)
 

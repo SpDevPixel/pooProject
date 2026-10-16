@@ -308,17 +308,18 @@ public class ToiletService {
                 && !row.getDisabledFacilityStatus().contains("없음");
         t.setHasDisabledFacility(hasDisabled);
 
-        // 편의시설 (VALUE_06): "비상벨", "기저귀" 키워드 포함 여부 확인
+        // 편의시설 (VALUE_06): "기저귀" 키워드 포함 여부 확인
         String convenience = row.getConvenienceFacilities();
         if (convenience != null) {
-            t.setHasEmergencyBell(convenience.contains("비상벨"));
             t.setHasDiaperTable(convenience.contains("기저귀"));
         } else {
-            t.setHasEmergencyBell(false);
             t.setHasDiaperTable(false);
         }
 
-        t.setHasEntranceCctv(false); // API에서 제공 여부 확인 후 수정 가능
+        // 안전시설 (VALUE_07): 비상벨과 출입구 CCTV
+        String safetyFacilities = row.getSafetyFacilities();
+        t.setHasEmergencyBell(safetyFacilities != null && safetyFacilities.contains("비상벨"));
+        t.setHasEntranceCctv(safetyFacilities != null && safetyFacilities.contains("출입구CCTV"));
         t.setIsUserSubmitted(false); // 공공데이터
 
         t.setStatus(ToiletStatus.APPROVED);
