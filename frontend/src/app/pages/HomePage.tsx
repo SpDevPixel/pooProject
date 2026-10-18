@@ -102,7 +102,8 @@ export default function HomePage() {
     latestLocationRef.current = next;
     setCurrentLocation(next);
   }, []);
-  const [isStartingRoute, setIsStartingRoute] = useState(false);
+  const [startingRouteSource, setStartingRouteSource] = useState<"detail" | "nearest" | "topRated" | null>(null);
+  const isStartingRoute = startingRouteSource !== null;
   const [addressMarkerStatus, setAddressMarkerStatus] = useState<"idle" | "loading" | "complete">("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLocation, setSearchLocation] = useState<SearchLocation | null>(null);
@@ -382,7 +383,7 @@ export default function HomePage() {
         return;
       }
 
-      setIsStartingRoute(true);
+      setStartingRouteSource("detail");
 
       try {
         const routeStart = start ?? (await getCurrentRoutePoint(latestLocationRef.current));
@@ -404,7 +405,7 @@ export default function HomePage() {
             : "길 안내를 시작하지 못했습니다."
         );
       } finally {
-        setIsStartingRoute(false);
+        setStartingRouteSource(null);
       }
     },
     [isStartingRoute]
@@ -419,7 +420,7 @@ export default function HomePage() {
       return;
     }
 
-    setIsStartingRoute(true);
+    setStartingRouteSource("nearest");
 
     try {
       const start = await getCurrentRoutePoint(latestLocationRef.current);
@@ -444,7 +445,7 @@ export default function HomePage() {
           : "가장 가까운 화장실 경로를 찾지 못했습니다."
       );
     } finally {
-      setIsStartingRoute(false);
+      setStartingRouteSource(null);
     }
   }, [isStartingRoute, visibleToilets]);
 
@@ -458,7 +459,7 @@ export default function HomePage() {
       return;
     }
 
-    setIsStartingRoute(true);
+    setStartingRouteSource("topRated");
 
     try {
       const start = await getCurrentRoutePoint(latestLocationRef.current);
@@ -513,7 +514,7 @@ export default function HomePage() {
           : "평점이 가장 높은 주변 화장실 경로를 찾지 못했습니다."
       );
     } finally {
-      setIsStartingRoute(false);
+      setStartingRouteSource(null);
     }
   }, [isStartingRoute, toilets]);
 
@@ -746,13 +747,13 @@ export default function HomePage() {
               <RailButton
                 icon={Navigation}
                 label="가까운 화장실 안내"
-                active={isStartingRoute}
+                active={startingRouteSource === "nearest"}
                 onClick={handleNavigateToNearestToilet}
               />
               <RailButton
                 icon={Star}
                 label="평점 높은 화장실 안내"
-                active={false}
+                active={startingRouteSource === "topRated"}
                 onClick={handleNavigateToTopRatedNearbyToilet}
               />
               <RailButton
