@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Calendar, Megaphone, RefreshCw } from "lucide-react";
-import { fetchNoticeById } from "../api/notices";
-import { Button } from "../components/ui/button";
-import type { Notice } from "../types/notice";
+import { fetchNoticeById } from "../app/api/notices";
+import { Button } from "../app/components/ui/button";
+import type { Notice } from "../app/types/notice";
 
 export default function NoticeDetailPage() {
   const navigate = useNavigate();

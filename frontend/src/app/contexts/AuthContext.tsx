@@ -48,8 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem("user");
     if (!savedUser) return null;
 
-    const parsedUser = JSON.parse(savedUser);
-    if (isTokenExpired(parsedUser.token)) {
+    let parsedUser: User;
+    try {
+      parsedUser = JSON.parse(savedUser);
+      if (!parsedUser || typeof parsedUser !== "object" || isTokenExpired(parsedUser.token)) {
+        throw new Error("Invalid saved session");
+      }
+    } catch {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       return null;

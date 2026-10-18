@@ -452,7 +452,7 @@ export default function HomePage() {
   const handleNavigateToTopRatedNearbyToilet = useCallback(async () => {
     if (isStartingRoute) return;
 
-    const candidates = toilets.filter(hasValidToiletCoordinates);
+    const candidates = visibleToilets.filter(hasValidToiletCoordinates);
 
     if (candidates.length === 0) {
       toast.error("길 안내할 수 있는 화장실 좌표가 없습니다.");
@@ -516,7 +516,7 @@ export default function HomePage() {
     } finally {
       setStartingRouteSource(null);
     }
-  }, [isStartingRoute, toilets]);
+  }, [isStartingRoute, visibleToilets]);
 
   const handleOpenNotifications = () => {
     if (!user?.token) {
