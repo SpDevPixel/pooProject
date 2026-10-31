@@ -146,6 +146,7 @@ jobs:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USERNAME }}
           key: ${{ secrets.OCI_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }} # <-- [수정] 5480 포트 지정
           source: "backend/build/libs/*.jar"
           target: "/home/ubuntu/app"
           strip_components: 3
@@ -160,7 +161,7 @@ jobs:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USERNAME }}
           key: ${{ secrets.OCI_SSH_KEY }}
-
+          port: ${{ secrets.SSH_PORT }}
           script: |
             mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
