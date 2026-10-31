@@ -112,8 +112,8 @@ jobs:
               "isStateless": false,
               "tcpOptions": {
                 "destinationPortRange": {
-                  "min": 22,
-                  "max": 22
+                  "min": ${{ secrets.SSH_PORT }},
+                  "max": ${{ secrets.SSH_PORT }}
                 }
               },
               "description": "Temporary GitHub Actions SSH"
