@@ -478,7 +478,13 @@ export function ToiletDetailModal({
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2 pt-2">
               <Button
-                onClick={() => setIsReviewDialogOpen(true)}
+                onClick={() => {
+                  if (!isAuthenticated || !user?.token) {
+                    toast.error("로그인 후 리뷰를 작성할 수 있습니다.");
+                    return;
+                  }
+                  setIsReviewDialogOpen(true);
+                }}
                 variant="outline"
                 className="col-span-2"
               >
