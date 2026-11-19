@@ -215,7 +215,7 @@ jobs:
               DATABASE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               SEOUL_TOILET_API_KEY="${{ secrets.SEOUL_TOILET_API_KEY }}" \
               JWTUTIL_PASSWORD="${{ secrets.JWTUTIL_PASSWORD }}" \
-              java -XX:-UseBASE64Intrinsics -jar app.jar > nohup.out 2>&1 < /dev/null &
+              java -jar app.jar > nohup.out 2>&1 < /dev/null &
 
 
             echo $! > app.pid
