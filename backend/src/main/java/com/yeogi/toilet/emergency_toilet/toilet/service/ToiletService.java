@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -297,13 +298,19 @@ public class ToiletService {
         if (apiToilet.getName() != null && apiToilet.getRoadAddress() != null
                 && apiToilet.getLat() != null && apiToilet.getLng() != null) {
             double coordinateTolerance = 0.0001;
+            String name = apiToilet.getName();
+            String roadAddress = apiToilet.getRoadAddress();
+
+            double minLat = apiToilet.getLat() - coordinateTolerance;
+            double maxLat = apiToilet.getLat() + coordinateTolerance;
+            double minLng = apiToilet.getLng() - coordinateTolerance;
+            double maxLng = apiToilet.getLng() + coordinateTolerance;
+
             Optional<Toilet> matchByLocation = toiletRepository
-                    .findFirstByIsUserSubmittedFalseAndNameAndRoadAddressAndLatBetweenAndLngBetweenOrderByIdAsc(
-                            apiToilet.getName(), apiToilet.getRoadAddress(),
-                            apiToilet.getLat() - coordinateTolerance,
-                            apiToilet.getLat() + coordinateTolerance,
-                            apiToilet.getLng() - coordinateTolerance,
-                            apiToilet.getLng() + coordinateTolerance);
+                    .findPublicToiletsByLocation(
+                            name, roadAddress, minLat, maxLat, minLng, maxLng,
+                            PageRequest.of(0, 1)
+                    ).stream().findFirst();
             if (matchByLocation.isPresent()) {
                 return matchByLocation;
             }
