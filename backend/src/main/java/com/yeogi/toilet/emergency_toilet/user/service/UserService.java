@@ -8,6 +8,7 @@ import com.yeogi.toilet.emergency_toilet.toilet.repository.ToiletRequestReposito
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import com.yeogi.toilet.emergency_toilet.user.domain.UserFavorite;
 import com.yeogi.toilet.emergency_toilet.user.dto.UserDto;
+import com.yeogi.toilet.emergency_toilet.user.dto.UserResponseDto;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserFavoriteRepository;
 import com.yeogi.toilet.emergency_toilet.user.repository.UserRepository;
 import com.yeogi.toilet.emergency_toilet.util.JwtUtil;
@@ -106,11 +107,12 @@ public class UserService {
         String token = jwtUtil.generateToken(user.get().getId(), user.get().getRole());
         return ResponseEntity.ok(Map.of("token", token));
     }
-    //토큰 발생
+    //사용자 정보 전송
     public ResponseEntity<?> getMyInfo(Long loginUserId) {
         User user = userRepository.findById(loginUserId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-        return ResponseEntity.ok(user);
+
+        return ResponseEntity.ok(UserResponseDto.from(user));
     }
     //회원탈퇴
     @Transactional
