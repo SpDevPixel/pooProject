@@ -22,12 +22,14 @@ public class AdminController {
     private final ToiletService toiletService;
 
     @GetMapping("/user")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<User>> getAllUsers(){
         List<User> users = adminService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
     @DeleteMapping("/admin/user/{targetUserId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> forceWithdrawUser(
             @PathVariable("targetUserId") Long targetUserId // 강제 탈퇴시킬 유저의 ID
     ){
