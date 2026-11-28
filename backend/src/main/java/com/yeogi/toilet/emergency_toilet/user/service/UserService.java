@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -97,12 +98,12 @@ public class UserService {
     public ResponseEntity<?> login(UserDto userDto){
         Optional<User> user = userRepository.findByUserId(userDto.getId());
 
-        if(user.isEmpty()){
-            return ResponseEntity.badRequest().body("계정이 없음");
-        }
-
-        if(!passwordEncoder.matches(userDto.getPassword(),user.get().getPassword())){
-            return ResponseEntity.badRequest().body("비밀번호 없음");
+        if (user.isEmpty()
+                || !passwordEncoder.matches(
+                userDto.getPassword(),
+                user.get().getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "아이디 또는 비밀번호가 올바르지 않습니다."));
         }
         String token = jwtUtil.generateToken(user.get().getId(), user.get().getRole());
         return ResponseEntity.ok(Map.of("token", token));
