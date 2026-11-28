@@ -2,9 +2,11 @@ package com.yeogi.toilet.emergency_toilet.user.dto;
 
 import com.yeogi.toilet.emergency_toilet.user.domain.User;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Setter;
 
 @Setter
+@Getter
 @AllArgsConstructor
 public class UserResponseDto {
     private Long id;
